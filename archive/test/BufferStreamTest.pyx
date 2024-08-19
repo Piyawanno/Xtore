@@ -1,6 +1,6 @@
 #cython: language_level=3
 
-from xtore.BufferStream cimport BufferStream
+from xtore.common.BufferStream cimport BufferStream
 
 def testBufferStream():
 	stream = BufferStream(1024)

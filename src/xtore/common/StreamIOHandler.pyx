@@ -1,4 +1,4 @@
-from xtore.Buffer cimport Buffer
+from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i64
 from posix cimport fcntl, unistd
 

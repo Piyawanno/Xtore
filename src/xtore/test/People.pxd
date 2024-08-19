@@ -1,5 +1,5 @@
-from xtore.HashNode cimport HashNode
-from xtore.Buffer cimport Buffer
+from xtore.instance.HashNode cimport HashNode
+from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport u64
 
 cdef class People (HashNode):

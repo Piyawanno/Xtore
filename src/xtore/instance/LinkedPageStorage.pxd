@@ -1,7 +1,7 @@
 from xtore.BaseType cimport i32, i64
-from xtore.Buffer cimport Buffer
-from xtore.StreamIOHandler cimport StreamIOHandler
-from xtore.LinkedPage cimport LinkedPage
+from xtore.common.Buffer cimport Buffer
+from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.instance.LinkedPage cimport LinkedPage
 
 cdef class LinkedPageStorage:
 	cdef StreamIOHandler io

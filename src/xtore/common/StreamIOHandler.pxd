@@ -1,4 +1,4 @@
-from xtore.Buffer cimport Buffer
+from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i32, i64
 
 cdef class StreamIOHandler:

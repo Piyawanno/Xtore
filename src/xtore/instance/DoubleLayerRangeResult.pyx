@@ -1,7 +1,7 @@
 from xtore.BaseType cimport i32, i64
-from xtore.Page cimport Page
-from xtore.LinkedPage cimport LinkedPage
-from xtore.HashPageNode cimport HashPageNode
+from xtore.instance.Page cimport Page
+from xtore.instance.LinkedPage cimport LinkedPage
+from xtore.instance.HashPageNode cimport HashPageNode
 
 from libc.stdlib cimport malloc, free
 

@@ -1,6 +1,7 @@
-from xtore.BaseType cimport u8, u64
+from xtore.BaseType cimport u8, u16, u64
 from libc.string cimport memcpy
 from libc.stdlib cimport free
+from cpython cimport PyBytes_FromStringAndSize
 
 cdef struct Buffer :
 	u64 position
@@ -18,6 +19,17 @@ cdef inline void setBuffer(Buffer *self, char *buffer, u64 length) :
 	memcpy(self.buffer+self.position, buffer, length)
 	self.position += length
 
+cdef inline void setBytes(Buffer *self, bytes buffer):
+	cdef u16 length = len(buffer)
+	setBuffer(self, <char* > &length, 2)
+	memcpy(self.buffer+self.position, <char *> buffer, length)
+
+cdef inline void setString(Buffer *self, str text):
+	cdef bytes buffer = text.encode()
+	cdef u16 length = len(buffer)
+	setBuffer(self, <char* > &length, 2)
+	memcpy(self.buffer+self.position, <char *> buffer, length)
+
 cdef inline void setBoolean(Buffer *self, bint data) :
 	cdef u8 converted = 1 if data else 0
 	setBuffer(self, <char *> &converted, 1)
@@ -25,6 +37,18 @@ cdef inline void setBoolean(Buffer *self, bint data) :
 cdef inline char *getBuffer(Buffer *self, u64 length) :
 	cdef char *buffer = self.buffer + self.position
 	self.position += length
+	return buffer
+
+cdef inline str getString(Buffer *self):
+	cdef u16 length = (<u16*> getBuffer(self, 2))[0]
+	cdef char *pointer = getBuffer(self, length)
+	cdef bytes buffer = PyBytes_FromStringAndSize(pointer, length)
+	return buffer.decode()
+
+cdef inline bytes getBytes(Buffer *self):
+	cdef u16 length = (<u16*> getBuffer(self, 2))[0]
+	cdef char *pointer = getBuffer(self, length)
+	cdef bytes buffer = PyBytes_FromStringAndSize(pointer, length)
 	return buffer
 
 cdef inline bint getBoolean(Buffer *self) :

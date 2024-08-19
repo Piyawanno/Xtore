@@ -1,6 +1,6 @@
-from xtore.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
-from xtore.HashNode cimport HashNode
-from xtore.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
+from xtore.instance.HashNode cimport HashNode
+from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.BaseType cimport u32, i32, i64
 
 from libc.string cimport memcpy

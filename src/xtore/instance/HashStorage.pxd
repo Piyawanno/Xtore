@@ -1,6 +1,6 @@
-from xtore.Buffer cimport Buffer
-from xtore.StreamIOHandler cimport StreamIOHandler
-from xtore.HashNode cimport HashNode
+from xtore.common.Buffer cimport Buffer
+from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.instance.HashNode cimport HashNode
 from xtore.BaseType cimport i32, i64
 
 cdef i32 HASH_LAYER

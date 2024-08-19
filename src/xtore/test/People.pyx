@@ -1,5 +1,5 @@
-from xtore.HashNode cimport HashNode
-from xtore.Buffer cimport Buffer, getBuffer
+from xtore.instance.HashNode cimport HashNode
+from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, getString, setString
 from xtore.BaseType cimport i16, i64, u64
 
 cdef class People (HashNode):
@@ -14,7 +14,10 @@ cdef class People (HashNode):
 		self.ID = (<i64*> getBuffer(stream, 8))[0]
 
 	cdef readValue(self, i16 version, Buffer *stream):
-		raise NotImplementedError
+		self.name = getString(stream)
+		self.surname = getString(stream)
 
 	cdef write(self, Buffer *stream):
-		raise NotImplementedError
+		setBuffer(stream, <char *> &self.ID, 8)
+		setString(stream, self.name)
+		setString(stream, self.surname)

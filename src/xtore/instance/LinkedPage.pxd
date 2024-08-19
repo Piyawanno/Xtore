@@ -1,5 +1,5 @@
 from xtore.BaseType cimport i32, i64
-from xtore.Page cimport Page
+from xtore.instance.Page cimport Page
 
 cdef i32 LINKED_PAGE_HEADER_SIZE
 

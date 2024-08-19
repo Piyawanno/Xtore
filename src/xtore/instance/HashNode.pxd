@@ -1,4 +1,4 @@
-from xtore.Buffer cimport Buffer
+from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i16, i64, u8, u32
 
 cdef inline i64 hashDJB(char *key, u32 klen):

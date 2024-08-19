@@ -1,6 +1,6 @@
 from xtore.BaseType cimport i32, i64
-from xtore.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
-from xtore.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
+from xtore.common.StreamIOHandler cimport StreamIOHandler
 from libc.string cimport memcpy
 from libc.stdlib cimport malloc
 from posix.strings cimport bzero

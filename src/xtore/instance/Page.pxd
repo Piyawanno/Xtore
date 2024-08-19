@@ -1,6 +1,6 @@
 from xtore.BaseType cimport i32, i64
-from xtore.Buffer cimport Buffer
-from xtore.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer
+from xtore.common.StreamIOHandler cimport StreamIOHandler
 
 cdef i32 PAGE_HEADER_SIZE
 
