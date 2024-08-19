@@ -1,0 +1,6 @@
+
+[dev]
+Cython>=3.0.0
+build
+setuptools
+wheel

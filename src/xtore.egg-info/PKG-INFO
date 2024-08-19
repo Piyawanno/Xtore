@@ -1,0 +1,31 @@
+Metadata-Version: 2.1
+Name: xtore
+Version: 0.1
+Summary: Xtore: A simple storage module with simple indexing.
+Author-email: Kittipong Piyawanno <k.piyawanno@gmailc.com>
+Project-URL: Homepage, https://github.com/Piyawanno/Xtore
+Project-URL: Documentation, https://github.com/Piyawanno/Xtore/tree/main/document
+Project-URL: Repository, https://github.com/Piyawanno/Xtore
+Project-URL: Issues, https://github.com/Piyawanno/Xtore/issues
+Project-URL: Changelog, https://github.com/Piyawanno/Xtore/blob/main/CHANGELOG.md
+Keywords: database
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Database
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+License-File: LICENSE.txt
+
+# Xtore
+
+Xtore: A simple storage module with simple indexing.
