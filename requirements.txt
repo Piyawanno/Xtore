@@ -1,13 +1,4 @@
-pyOpenssl
-websockets==10.4
-sanic==22.6.0
-quandl
-aiosqlite
-panda
-datapackage
-requests
-secrets
-pystache
-lxml
-numpy
-matplotlib
+Cython>=3.0.0
+build
+setuptools
+wheel
