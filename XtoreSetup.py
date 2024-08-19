@@ -49,6 +49,7 @@ class XtoreSetup :
 				break
 		
 		self.script = [
+			'xt-test',
 		]
 
 		self.configList = [
