@@ -27,3 +27,6 @@ src/xtore/LinkedPageStorage.cpp
 src/xtore/Page.cpp
 src/xtore/PageSearch.cpp
 src/xtore/StreamIOHandler.cpp
+src/xtore/cli/PeopleStorageTestCLI.cpp
+src/xtore/test/People.cpp
+src/xtore/test/PeopleStorage.cpp

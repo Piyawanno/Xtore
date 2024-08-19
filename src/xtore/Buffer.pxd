@@ -2,9 +2,6 @@ from xtore.BaseType cimport u8, u64
 from libc.string cimport memcpy
 from libc.stdlib cimport free
 
-DEF __BUFFER_MODULUS__ = 16383
-DEF __BUFFER_SHIFT__ = 14
-
 cdef struct Buffer :
 	u64 position
 	u64 capacity

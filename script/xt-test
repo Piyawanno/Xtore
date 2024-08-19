@@ -1,3 +1,4 @@
 #!/usr/bin/env python
 
-print('Test Xtore')
+from xtore.cli.PeopleStorageTestCLI import run
+if __name__ == '__main__': run()
