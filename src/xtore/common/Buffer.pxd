@@ -23,12 +23,15 @@ cdef inline void setBytes(Buffer *self, bytes buffer):
 	cdef u16 length = len(buffer)
 	setBuffer(self, <char* > &length, 2)
 	memcpy(self.buffer+self.position, <char *> buffer, length)
+	self.position += length
+
 
 cdef inline void setString(Buffer *self, str text):
 	cdef bytes buffer = text.encode()
 	cdef u16 length = len(buffer)
 	setBuffer(self, <char* > &length, 2)
 	memcpy(self.buffer+self.position, <char *> buffer, length)
+	self.position += length
 
 cdef inline void setBoolean(Buffer *self, bint data) :
 	cdef u8 converted = 1 if data else 0

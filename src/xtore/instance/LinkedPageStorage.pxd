@@ -10,6 +10,7 @@ cdef class LinkedPageStorage:
 	cdef i32 itemSize
 	cdef i64 rootPosition
 	cdef i64 tailPosition
+	cdef i64 headPosition
 
 	cdef Buffer headerStream
 

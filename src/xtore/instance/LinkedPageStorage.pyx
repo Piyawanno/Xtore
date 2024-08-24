@@ -4,7 +4,7 @@ from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.LinkedPage cimport LinkedPage
 from libc.stdlib cimport free, malloc
 
-cdef i32 HEADER_SIZE = 16
+cdef i32 HEADER_SIZE = 24
 
 cdef class LinkedPageStorage:
 	def __init__(self, StreamIOHandler io, i32 pageSize, i32 itemSize):
@@ -25,11 +25,14 @@ cdef class LinkedPageStorage:
 		self.writeHeader()
 		self.tail.position = -1
 		self.createPage()
+		self.headPosition = self.tail.position
+		self.writeHeader()
 		return self.rootPosition
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
 		setBuffer(&self.headerStream, <char *> &self.tailPosition, 8)
+		setBuffer(&self.headerStream, <char *> &self.headPosition, 8)
 		setBuffer(&self.headerStream, <char *> &self.pageSize, 4)
 		setBuffer(&self.headerStream, <char *> &self.itemSize, 4)
 		self.io.seek(self.rootPosition)
@@ -40,6 +43,7 @@ cdef class LinkedPageStorage:
 		self.io.seek(self.rootPosition)
 		self.io.read(&self.headerStream, HEADER_SIZE)
 		self.tailPosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
+		self.headPosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
 		self.pageSize = (<i32 *> getBuffer(&self.headerStream, 4))[0]
 		self.itemSize = (<i32 *> getBuffer(&self.headerStream, 4))[0]
 		self.tail.read(self.tailPosition)
@@ -56,13 +60,13 @@ cdef class LinkedPageStorage:
 
 	cdef appendValue(self, char *value):
 		cdef bint isSuccess
-		if self.itemSize < 0:
+		if self.itemSize > 0:
 			isSuccess = self.tail.appendValue(value)
 			if not isSuccess:
 				self.createPage()
 				self.tail.appendValue(value)
 		else:
-			print("*** WARNING LinkedPageStorage is VARY SIZE. It is not possible to append value.")
+			print(f"*** WARNING LinkedPageStorage is VARY SIZE. It is not possible to append value {self.itemSize}.")
 	
 	cdef createPage(self):
 		cdef i64 previous = self.tail.position

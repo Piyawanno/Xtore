@@ -49,16 +49,17 @@ requires = ["setuptools", "Cython>=3.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
-xtore = ["*.pxd"]
+xtore = ["*.pxd", "common/*.pxd", "instance/*.pxd", "test/*.pxd"]
 
 [tool.setuptools.exclude-package-data]
-xtore = ["*.c"]
+xtore = ["*.cpp"]
 
 [tool.local.cythonize.kwargs]
 parallel = 16
 
 [tool.setuptools.packages.find]
 where = ["./src/"]
-include = ["xtore"]
+include = ["xtore/*"]
 exclude = []
-namespaces = true
+namespaces = false
+

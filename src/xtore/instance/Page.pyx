@@ -59,9 +59,10 @@ cdef class Page:
 		if self.itemSize <= 0: return False
 		cdef i32 capacity = self.pageSize-self.tail
 		if capacity >= self.itemSize:
-			memcpy(self.stream.buffer+self.tail, value, self.pageSize)
-			self.io.writeOffset(&self.stream, self.tail, self.pageSize)
-			self.tail += self.pageSize
+			memcpy(self.stream.buffer+self.tail, value, self.itemSize)
+			self.io.seek(self.position+self.tail)
+			self.io.writeOffset(&self.stream, self.tail, self.itemSize)
+			self.tail += self.itemSize
 			self.writeHeader()
 			self.n += 1
 			return True
@@ -72,8 +73,9 @@ cdef class Page:
 		if self.itemSize <= 0: return False
 		cdef i32 position = self.headerSize + self.itemSize*index
 		if position <= self.pageSize:
-			memcpy(self.stream.buffer+position, value, self.pageSize)
-			self.io.writeOffset(&self.stream, position, self.pageSize)
+			memcpy(self.stream.buffer+position, value, self.itemSize)
+			self.io.seek(self.position+position)
+			self.io.writeOffset(&self.stream, position, self.itemSize)
 			self.writeHeader()
 			return True
 		else:
