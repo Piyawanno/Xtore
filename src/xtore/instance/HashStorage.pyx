@@ -2,7 +2,8 @@ from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBo
 from xtore.instance.HashNode cimport HashNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.BaseType cimport u32, i32, i64
+from xtore.common.TimeUtil cimport getMicroTime
+from xtore.BaseType cimport u32, i32, i64, f64
 
 from libc.string cimport memcpy, memcmp
 from libc.stdlib cimport malloc, free
@@ -15,7 +16,7 @@ cdef i32 BLOCK_SIZE = 1 << 14
 cdef i32 REST_SIZE = (1 << 12) - 1
 cdef i32 HASH_LAYER = 15
 cdef i32 PAGE_SIZE = 1 << 15
-cdef i32 HEADER_SIZE = 13 + MAGIC_LENGTH + HASH_LAYER*8
+cdef i32 HEADER_SIZE = 29 + MAGIC_LENGTH + HASH_LAYER*8
 cdef i32 HASH_PAGE_SIZE = 1 << 16
 cdef i32 HASH_PAGE_ITEM_SIZE = 8
 
@@ -65,7 +66,7 @@ cdef class HashStorage:
 			self.layerPosition = NULL
 	
 	cdef enableIterable(self):
-		self.isIterable = True
+		if not self.isCreated: self.isIterable = True
 
 	cdef i64 create(self):
 		self.rootPosition = self.io.getTail()
@@ -74,6 +75,7 @@ cdef class HashStorage:
 		self.pagePosition = -1
 		for i in range(1, HASH_LAYER):
 			self.layerPosition[i] = -1
+		self.lastUpdate = getMicroTime()
 		self.writeHeader()
 		self.page.create()
 		self.pagePosition = self.page.rootPosition
@@ -83,12 +85,14 @@ cdef class HashStorage:
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
-		setBuffer(&self.headerStream, MAGIC, 8)
+		setBuffer(&self.headerStream, MAGIC, MAGIC_LENGTH)
 		setBuffer(&self.headerStream, <char *> &self.layer, 4)
 		setBuffer(&self.headerStream, <char *> &self.treePosition, 8)
 		setBuffer(&self.headerStream, <char *> &self.pagePosition, 8)
+		setBuffer(&self.headerStream, <char *> &self.lastUpdate, 8)
 		setBoolean(&self.headerStream, self.isIterable)
 		setBuffer(&self.headerStream, <char *> self.layerPosition, 8*HASH_LAYER)
+
 		self.io.seek(self.rootPosition)
 		self.io.write(&self.headerStream)
 		self.isCreated = True
@@ -104,6 +108,7 @@ cdef class HashStorage:
 		self.layer = (<i32 *> getBuffer(&self.headerStream, 4))[0]
 		self.treePosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
 		self.pagePosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
+		self.lastUpdate = (<f64 *> getBuffer(&self.headerStream, 8))[0]
 		self.isIterable = getBoolean(&self.headerStream)
 		memcpy(self.layerPosition, getBuffer(&self.headerStream, 8*HASH_LAYER), 8*HASH_LAYER)
 		
@@ -119,11 +124,9 @@ cdef class HashStorage:
 	cdef set(self, HashNode reference):
 		cdef i64 hashed = reference.hash()
 		cdef bint isBucket = self.setBucket(hashed, reference)
-		if isBucket:
-			if self.isIterable: self.page.appendValue(<char *> &reference.position)
-			return
-		self.setTreePage(hashed, reference)
+		if not isBucket: self.setTreePage(hashed, reference)
 		if self.isIterable: self.page.appendValue(<char *> &reference.position)
+		self.lastUpdate = getMicroTime()
 	
 	cdef setComparingNode(self, HashNode comparingNode):
 		self.comparingNode = comparingNode

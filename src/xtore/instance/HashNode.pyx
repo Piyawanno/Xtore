@@ -5,6 +5,9 @@ cdef class HashNodeKey:
 	pass
 
 cdef class HashNode:
+	def __init__(self):
+		self.position = -1
+
 	cdef i64 hash(self):
 		raise NotImplementedError
 

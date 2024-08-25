@@ -59,7 +59,7 @@ parallel = 16
 
 [tool.setuptools.packages.find]
 where = ["./src/"]
-include = ["xtore/*"]
+include = ["xtore", "xtore.*"]
 exclude = []
-namespaces = false
+namespaces = true
 

@@ -1,11 +1,14 @@
-from xtore.BaseType cimport i32, i64
+from xtore.BaseType cimport i32, i64, f64
 from xtore.common.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.common.TimeUtil cimport getMicroTime
 from xtore.instance.LinkedPage cimport LinkedPage
 from libc.stdlib cimport free, malloc
+from libc.string cimport memcmp
 
-cdef i32 HEADER_SIZE = 24
-
+cdef char *MAGIC = "@XT_PAGE"
+cdef i32 MAGIC_LENGTH = 8
+cdef i32 HEADER_SIZE = 32 + MAGIC_LENGTH
 cdef class LinkedPageStorage:
 	def __init__(self, StreamIOHandler io, i32 pageSize, i32 itemSize):
 		self.io = io
@@ -18,6 +21,9 @@ cdef class LinkedPageStorage:
 	
 	def __dealloc__(self):
 		releaseBuffer(&self.headerStream)
+	
+	def __repr__(self) -> str:
+		return f'<LinkedPageStorage {self.rootPosition} t={self.tailPosition} ps={self.pageSize} is={self.itemSize}>'
 
 	cdef i64 create(self):
 		self.rootPosition = self.io.getTail()
@@ -31,8 +37,10 @@ cdef class LinkedPageStorage:
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
+		setBuffer(&self.headerStream, MAGIC, MAGIC_LENGTH)
 		setBuffer(&self.headerStream, <char *> &self.tailPosition, 8)
 		setBuffer(&self.headerStream, <char *> &self.headPosition, 8)
+		setBuffer(&self.headerStream, <char *> &self.lastUpdate, 8)
 		setBuffer(&self.headerStream, <char *> &self.pageSize, 4)
 		setBuffer(&self.headerStream, <char *> &self.itemSize, 4)
 		self.io.seek(self.rootPosition)
@@ -42,8 +50,13 @@ cdef class LinkedPageStorage:
 		self.rootPosition = rootPosition
 		self.io.seek(self.rootPosition)
 		self.io.read(&self.headerStream, HEADER_SIZE)
+		cdef bint isMagic = memcmp(MAGIC, self.headerStream.buffer, MAGIC_LENGTH)
+		self.headerStream.position += MAGIC_LENGTH
+		if isMagic != 0:
+			raise ValueError('Wrong Magic for LinkedPageStorage')
 		self.tailPosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
 		self.headPosition = (<i64 *> getBuffer(&self.headerStream, 8))[0]
+		self.lastUpdate = (<f64 *> getBuffer(&self.headerStream, 8))[0]
 		self.pageSize = (<i32 *> getBuffer(&self.headerStream, 4))[0]
 		self.itemSize = (<i32 *> getBuffer(&self.headerStream, 4))[0]
 		self.tail.read(self.tailPosition)
@@ -55,6 +68,7 @@ cdef class LinkedPageStorage:
 			if not isSuccess:
 				self.createPage()
 				self.tail.appendBuffer(stream)
+			self.lastUpdate = getMicroTime()
 		else:
 			print("*** WARNING LinkedPageStorage is FIXED SIZE. It is not possible to append buffer.")
 
@@ -65,6 +79,7 @@ cdef class LinkedPageStorage:
 			if not isSuccess:
 				self.createPage()
 				self.tail.appendValue(value)
+			self.lastUpdate = getMicroTime()
 		else:
 			print(f"*** WARNING LinkedPageStorage is VARY SIZE. It is not possible to append value {self.itemSize}.")
 	

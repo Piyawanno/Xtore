@@ -2,7 +2,7 @@ from xtore.common.Buffer cimport Buffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.HashNode cimport HashNode
-from xtore.BaseType cimport i32, i64
+from xtore.BaseType cimport i32, i64, f64
 
 cdef i32 HASH_LAYER
 
@@ -10,6 +10,7 @@ cdef class HashStorage:
 	cdef i64 rootPosition
 	cdef i64 treePosition
 	cdef i64 pagePosition
+	cdef f64 lastUpdate
 	cdef i32 layer
 	cdef i32 headerSize
 	cdef LinkedPageStorage page

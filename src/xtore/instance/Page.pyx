@@ -21,6 +21,9 @@ cdef class Page:
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
 	
+	def __repr__(self) -> str:
+		return f'<Page {self.position} ps={self.pageSize} is={self.itemSize} t={self.tail} n={self.n}>'
+	
 	cdef reset(self):
 		bzero(self.stream.buffer, self.pageSize)
 		self.tail = self.headerSize
@@ -49,8 +52,8 @@ cdef class Page:
 			self.io.seek(self.position+self.tail)
 			self.io.writeOffset(&self.stream, self.tail, size)
 			self.tail += size
-			self.writeHeader()
 			self.n += 1
+			self.writeHeader()
 			return True
 		else:
 			return False
@@ -63,8 +66,8 @@ cdef class Page:
 			self.io.seek(self.position+self.tail)
 			self.io.writeOffset(&self.stream, self.tail, self.itemSize)
 			self.tail += self.itemSize
-			self.writeHeader()
 			self.n += 1
+			self.writeHeader()
 			return True
 		else:
 			return False

@@ -23,6 +23,9 @@ cdef class LinkedPage (Page):
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
 	
+	def __repr__(self) -> str:
+		return f'<LinkedPage {self.position} n={self.next} p={self.previous} ps={self.pageSize} is={self.itemSize} t={self.tail} n={self.n}>'
+
 	cdef reset(self):
 		bzero(self.stream.buffer, self.pageSize)
 		self.tail = self.headerSize
