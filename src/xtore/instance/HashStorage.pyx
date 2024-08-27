@@ -83,6 +83,9 @@ cdef class HashStorage:
 		self.isCreated = True
 		return self.rootPosition
 
+	cdef HashNode createNode(self):
+		raise NotImplementedError
+
 	cdef writeHeader(self):
 		self.headerStream.position = 0
 		setBuffer(&self.headerStream, MAGIC, MAGIC_LENGTH)
@@ -137,6 +140,7 @@ cdef class HashStorage:
 		cdef i64 storedHash
 		cdef i64 storedNode
 		cdef i64 position
+		cdef HashNode stored
 		for i in range(HASH_LAYER) :
 			m = self.layerModulus[i]
 			if i > self.layer: break
@@ -150,6 +154,7 @@ cdef class HashStorage:
 				stored = self.readNodeKey(storedNode, result)
 				if reference.isEqual(stored) :
 					self.readNodeValue(stored)
+					stored.position = storedNode
 					return stored
 		return None
 
@@ -323,6 +328,7 @@ cdef class HashStorage:
 				stored = self.readNodeKey(storedNode, result)
 				if reference.isEqual(stored) :
 					self.readNodeValue(stored)
+					stored.position = storedNode
 					return stored
 				position = right
 			elif hashed > storedHash :

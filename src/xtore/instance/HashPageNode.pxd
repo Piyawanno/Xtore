@@ -3,6 +3,8 @@ from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i64
 
 cdef class HashPageNode(HashNode):
+	cdef i64 pagePosition
+	
 	cdef readItem(self, Buffer *stream)
 	
 	cdef writerUpperItem(self, Buffer *stream, i64 lowerPagePosition)

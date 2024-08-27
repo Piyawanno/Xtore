@@ -3,6 +3,10 @@ from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i64
 
 cdef class HashPageNode(HashNode):
+	def __init__(self):
+		HashNode.__init__(self)
+		self.pagePosition = -1
+		
 	cdef readItem(self, Buffer *stream):
 		raise NotImplementedError
 	

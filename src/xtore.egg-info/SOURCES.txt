@@ -16,6 +16,7 @@ setup.py
 ./src/xtore/instance/HashIterator.pxd
 ./src/xtore/instance/HashNode.pxd
 ./src/xtore/instance/HashPageNode.pxd
+./src/xtore/instance/HashPageStorage.pxd
 ./src/xtore/instance/HashStorage.pxd
 ./src/xtore/instance/LinkedPage.pxd
 ./src/xtore/instance/LinkedPageIterator.pxd
@@ -42,6 +43,7 @@ src/xtore/instance/HashNode.cpp
 src/xtore/instance/HashNode.pxd
 src/xtore/instance/HashPageNode.cpp
 src/xtore/instance/HashPageNode.pxd
+src/xtore/instance/HashPageStorage.cpp
 src/xtore/instance/HashStorage.cpp
 src/xtore/instance/HashStorage.pxd
 src/xtore/instance/LinkedPage.cpp

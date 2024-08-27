@@ -28,6 +28,7 @@ cdef class HashStorage:
 
 	cdef enableIterable(self)
 	cdef i64 create(self)
+	cdef HashNode createNode(self)
 	cdef writeHeader(self)
 	cdef readHeader(self, i64 rootPosition)
 	
