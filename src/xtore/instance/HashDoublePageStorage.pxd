@@ -8,7 +8,7 @@ from xtore.instance.DoubleLayerRangeResult cimport DoubleLayerRangeResult
 from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i32, i64
 
-cdef class HashPageStorage(HashStorage):
+cdef class HashDoublePageStorage(HashStorage):
 	cdef Buffer upperPageStream
 	cdef Buffer entryStream
 	cdef Buffer searchStream
@@ -23,3 +23,4 @@ cdef class HashPageStorage(HashStorage):
 	cdef appendPageNode(self, HashPageNode entry)
 	cdef HashPageNode getPageNode(self, HashPageNode reference)
 	cdef DoubleLayerRangeResult getRange(self, HashPageNode start, HashPageNode end)
+	cdef HashPageNode getLatestPageNode(self, HashPageNode reference)

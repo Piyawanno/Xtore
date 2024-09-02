@@ -40,9 +40,7 @@ cdef class DoubleLayerIterator:
 	cdef start(self, i64 headPosition):
 		self.currentIndex = 0
 		self.currentSubIndex = 0
-
-		self.upper.read(headPosition)
-		
+		self.upper.read(headPosition)		
 		cdef i64 lowerPosition = self.getLowerPosition(0)
 		self.lower.read(lowerPosition)
 

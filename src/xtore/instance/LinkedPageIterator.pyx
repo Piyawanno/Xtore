@@ -27,6 +27,7 @@ cdef class LinkedPageIterator:
 		self.storage.io.seek(position+4)
 		self.storage.io.read(stream, size)
 		self.currentPosition += (4+size)
+		return True
 
 	cdef bint getNextValue(self, char *buffer):
 		if self.currentPosition >= self.current.tail:
@@ -38,3 +39,4 @@ cdef class LinkedPageIterator:
 		self.storage.io.read(&self.current.stream, self.storage.itemSize)
 		memcpy(buffer, self.current.stream.buffer, self.storage.itemSize)
 		self.currentPosition += self.storage.itemSize
+		return True

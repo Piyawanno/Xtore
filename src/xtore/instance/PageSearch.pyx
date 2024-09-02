@@ -206,6 +206,8 @@ cdef class PageSearch:
 	cdef bint isLess(self, Buffer *reference):
 		self.page.stream.position = self.page.headerSize
 		cdef i32 head = self.compare(reference, &self.page.stream)
+		self.page.stream.position = self.page.tail - self.page.itemSize
+		self.compare(reference, &self.page.stream)
 		return head < 0
 	
 	cdef bint isGreater(self, Buffer *reference):
@@ -221,7 +223,8 @@ cdef class PageSearch:
 		else: return -1
 
 	cdef i32 getGreater(self, Buffer *reference):
-		if not self.isInRange(reference): return -1
+		if self.isGreater(reference): return -1
+		if self.isLess(reference): return 0
 		cdef bint isFound = False
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound:
@@ -235,7 +238,8 @@ cdef class PageSearch:
 			position += 1
 
 	cdef i32 getLess(self, Buffer *reference):
-		if not self.isInRange(reference): return -1
+		if self.isGreater(reference): return self.page.n - 1
+		if self.isLess(reference): return -1
 		cdef bint isFound = False
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound:
@@ -249,7 +253,8 @@ cdef class PageSearch:
 			position = position - 1
 
 	cdef i32 getGreaterEqual(self, Buffer *reference):
-		if not self.isInRange(reference): return -1
+		if self.isGreater(reference): return -1
+		if self.isLess(reference): return 0
 		cdef bint isFound = False
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound: return position
@@ -261,7 +266,8 @@ cdef class PageSearch:
 			position += 1
 
 	cdef i32 getLessEqual(self, Buffer *reference):
-		if not self.isInRange(reference): return -1
+		if self.isGreater(reference): return self.page.n - 1
+		if self.isLess(reference): return -1
 		cdef bint isFound = False
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound: return position

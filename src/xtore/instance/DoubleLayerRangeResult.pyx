@@ -32,6 +32,9 @@ cdef class DoubleLayerRangeResult:
 			free(self.lowerPosition)
 			self.lowerPosition = NULL
 
+	def __repr__(self) -> str:
+		return f'<DoubleLayerRangeResult {self.startPosition} {self.startIndex} {self.startSubIndex} {self.endPosition} {self.endIndex} {self.endSubIndex}>'
+
 	cdef start(self):
 		self.currentPosition = self.startPosition
 		self.currentIndex = self.startIndex

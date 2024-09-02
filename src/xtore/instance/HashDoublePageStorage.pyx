@@ -12,7 +12,7 @@ from libc.stdlib cimport malloc
 
 cdef i32 BUFFER_SIZE = 64
 
-cdef class HashPageStorage(HashStorage):
+cdef class HashDoublePageStorage(HashStorage):
 	def __init__(self, StreamIOHandler io, PageSearch upperSearch, PageSearch lowerSearch):
 		HashStorage.__init__(self, io)
 		self.upperSearch = upperSearch
@@ -110,7 +110,8 @@ cdef class HashPageStorage(HashStorage):
 		start.writeItem(&self.searchStream)
 		self.searchStream.position = 0
 		cdef i64 startPosition = self.upper.position
-		cdef i32 offset = self.upperSearch.position[startUpper - 1]
+		cdef i32 index = startUpper if startUpper == 0 else startUpper - 1
+		cdef i32 offset = self.upperSearch.position[index]
 		cdef i64 lowerPosition = (<i64 *> (self.upper.stream.buffer+offset))[0]
 		self.lower.read(lowerPosition)
 		cdef i32 startLower = self.lowerSearch.getGreaterEqual(&self.searchStream)
@@ -132,10 +133,24 @@ cdef class HashPageStorage(HashStorage):
 		
 		cdef DoubleLayerRangeResult result = DoubleLayerRangeResult(self.upper, self.lower)
 		result.startPosition = startPosition
-		result.startIndex = startUpper-1
+		result.startIndex = index
 		result.startSubIndex = startLower
 		result.endPosition = endPosition
 		result.endIndex = endUpper
 		result.endSubIndex = endLower
 		return result
 
+	cdef HashPageNode getLatestPageNode(self, HashPageNode reference):
+		cdef HashPageNode found = self.get(reference, self.existing)
+		if found is None: return None
+		self.itemStorage.readHeader(found.pagePosition)
+		self.upper.read(self.itemStorage.headPosition)
+		cdef i32 offset = self.upper.tail - self.upper.itemSize
+		if self.upper.n == 0: return
+		cdef i64 lowerPosition = (<i64 *> (self.upper.stream.buffer+offset))[0]
+		self.lower.read(lowerPosition)
+		if self.lower.n == 0: return
+		offset = self.lower.tail - self.lower.itemSize
+		self.lower.stream.position = offset
+		found.readItem(&self.lower.stream)
+		return found
