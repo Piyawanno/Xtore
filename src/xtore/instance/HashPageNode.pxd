@@ -4,6 +4,7 @@ from xtore.BaseType cimport i64
 
 cdef class HashPageNode(HashNode):
 	cdef i64 pagePosition
+	cdef i64 itemPosition
 	
 	cdef readItem(self, Buffer *stream)
 	

@@ -30,7 +30,7 @@ cdef class HashStorage:
 		self.io = io
 		self.layer = -1
 		self.position = -1
-		self.page = LinkedPageStorage(io, HASH_PAGE_SIZE, HASH_PAGE_ITEM_SIZE)
+		self.pageStorage = LinkedPageStorage(io, HASH_PAGE_SIZE, HASH_PAGE_ITEM_SIZE)
 		self.comparingNode = None
 		self.isIterable = False
 		self.isCreated = False
@@ -81,8 +81,8 @@ cdef class HashStorage:
 			self.layerPosition[i] = -1
 		self.lastUpdate = getMicroTime()
 		self.writeHeader()
-		self.page.create()
-		self.pagePosition = self.page.rootPosition
+		self.pageStorage.create()
+		self.pagePosition = self.pageStorage.rootPosition
 		self.expandLayer(1)
 		self.isCreated = True
 		return self.rootPosition
@@ -111,7 +111,7 @@ cdef class HashStorage:
 		self.io.seek(self.rootPosition)
 		self.io.read(&self.headerStream, self.headerSize)
 		self.readHeaderBuffer(&self.headerStream)
-		self.page.readHeader(self.pagePosition)
+		self.pageStorage.readHeader(self.pagePosition)
 	
 	cdef readHeaderBuffer(self, Buffer *stream):
 		cdef bint isMagic = memcmp(MAGIC, self.headerStream.buffer, MAGIC_LENGTH)
@@ -140,7 +140,7 @@ cdef class HashStorage:
 		if setResult == NOT_SET:
 			setResult = self.setTreePage(hashed, reference)
 		if self.isIterable and setResult == NOT_FOUND_AND_SET:
-			self.page.appendValue(<char *> &reference.position)
+			self.pageStorage.appendValue(<char *> &reference.position)
 		self.lastUpdate = getMicroTime()
 	
 	cdef setComparingNode(self, HashNode comparingNode):

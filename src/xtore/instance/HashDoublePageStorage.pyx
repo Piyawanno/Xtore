@@ -27,7 +27,6 @@ cdef class HashDoublePageStorage(HashStorage):
 		initBuffer(&self.upperPageStream, <char *> malloc(bufferSize), bufferSize)
 		initBuffer(&self.searchStream, <char *> malloc(bufferSize), bufferSize)
 		initBuffer(&self.entryStream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
-
 	
 	def __dealloc__(self):
 		releaseBuffer(&self.upperPageStream)
@@ -48,6 +47,7 @@ cdef class HashDoublePageStorage(HashStorage):
 		cdef i64 pagePosition
 		if existing is None:
 			pagePosition = self.lower.create()
+			entry.itemPosition = self.lower.position + self.lower.tail
 			self.lower.appendValue(self.entryStream.buffer)
 			self.upperPageStream.position = 0
 			entry.writerUpperItem(&self.upperPageStream, pagePosition)
@@ -63,9 +63,11 @@ cdef class HashDoublePageStorage(HashStorage):
 			tail.stream.position = tail.tail-self.upper.itemSize
 			pagePosition = (<i64 *> getBuffer(&tail.stream, 8))[0]
 			self.lower.read(pagePosition)
+		entry.itemPosition = self.lower.position + self.lower.tail
 		cdef bint isAppended = self.lower.appendValue(self.entryStream.buffer)
 		if not isAppended:
 			pagePosition = self.lower.create()
+			entry.itemPosition = self.lower.position + self.lower.tail
 			self.lower.appendValue(self.entryStream.buffer)
 			self.upperPageStream.position = 0
 			entry.writerUpperItem(&self.upperPageStream, pagePosition)

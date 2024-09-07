@@ -38,5 +38,6 @@ cdef class LinkedPageIterator:
 		self.storage.io.seek(position)
 		self.storage.io.read(&self.current.stream, self.storage.itemSize)
 		memcpy(buffer, self.current.stream.buffer, self.storage.itemSize)
+
 		self.currentPosition += self.storage.itemSize
 		return True

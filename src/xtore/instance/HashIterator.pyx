@@ -11,7 +11,7 @@ cdef i32 BUFFER_SIZE = 8
 cdef class HashIterator:
 	def __init__(self, HashStorage storage):
 		self.storage = storage
-		self.iterator = LinkedPageIterator(self.storage.page)
+		self.iterator = LinkedPageIterator(self.storage.pageStorage)
 		self.buffer = <char *> malloc(BUFFER_SIZE)
 	
 	def __dealloc__(self):
@@ -26,5 +26,6 @@ cdef class HashIterator:
 		cdef i64 position = (<i64 *> self.buffer)[0]
 		cdef HashNode stored = self.storage.readNodeKey(position, node)
 		self.storage.readNodeValue(stored)
+		node.position = position
 		return True
 		
