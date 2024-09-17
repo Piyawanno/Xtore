@@ -50,7 +50,8 @@ cdef class DoubleLayerRangeResult:
 		cdef bint result = self.currentPosition >= self.endPosition
 		result = result & (self.currentIndex >= self.endIndex)
 		result = result & (self.currentSubIndex >= self.endSubIndex)
-		if result: return False
+		if result:
+			return False
 		if self.currentSubIndex < self.lower.n:
 			offset = self.lowerPosition[self.currentSubIndex]
 			self.currentSubIndex += 1
@@ -60,7 +61,8 @@ cdef class DoubleLayerRangeResult:
 				lowerPosition = self.getLowerPosition(self.currentIndex)
 				self.lower.read(lowerPosition)
 			else:
-				if self.upper.next < 0: return False
+				if self.upper.next < 0:
+					return False
 				self.currentPosition = self.upper.next
 				self.upper.read(self.upper.next)
 				lowerPosition = self.getLowerPosition(self.currentIndex)

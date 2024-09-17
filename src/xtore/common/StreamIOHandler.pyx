@@ -27,7 +27,7 @@ cdef class StreamIOHandler:
 		self.tail = unistd.lseek(self.fd, 0, fcntl.SEEK_END)
 		return self.tail
 
-	cdef seek(self, int position):
+	cdef seek(self, i64 position):
 		unistd.lseek(self.fd, position, fcntl.SEEK_SET)
 	
 	cdef read(self, Buffer *stream, int size):

@@ -107,7 +107,7 @@ cdef class HashDoublePageStorage(HashStorage):
 		self.searchStream.position = 0
 		self.upper.read(found.pagePosition)
 		cdef i32 startUpper = self.upperSearch.getGreaterEqualPage(&self.searchStream)
-		if startUpper < 0: return None
+		if startUpper < 0: startUpper = 0
 		
 		start.writeItem(&self.searchStream)
 		self.searchStream.position = 0
@@ -122,7 +122,7 @@ cdef class HashDoublePageStorage(HashStorage):
 		end.writerUpperItem(&self.searchStream, -1)
 		self.searchStream.position = 0
 		cdef i32 endUpper = self.upperSearch.getLessEqualPage(&self.searchStream)
-		if endUpper < 0: return None
+		if endUpper < 0: endUpper = 0
 		
 		end.writeItem(&self.searchStream)
 		self.searchStream.position = 0

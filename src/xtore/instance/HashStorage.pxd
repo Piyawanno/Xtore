@@ -13,6 +13,7 @@ cdef class HashStorage:
 	cdef f64 lastUpdate
 	cdef i32 layer
 	cdef i32 headerSize
+	cdef i32 n
 	cdef LinkedPageStorage pageStorage
 	cdef HashNode comparingNode
 	cdef Buffer stream

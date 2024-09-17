@@ -47,6 +47,7 @@ cdef class DoubleLayerIterator:
 	cdef bint getNext(self, HashPageNode entry):
 		cdef i32 offset
 		cdef i64 lowerPosition
+		cdef i32 positionSize = <i32> ((self.lower.pageSize-self.lower.headerSize)/self.lower.itemSize)
 		if self.currentSubIndex < self.lower.n:
 			offset = self.lowerPosition[self.currentSubIndex]
 			self.currentSubIndex += 1

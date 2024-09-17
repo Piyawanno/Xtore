@@ -42,6 +42,7 @@ cdef class HashStorage:
 		self.layerModulus = <i64 *> malloc(8*HASH_LAYER)
 		self.layerSize = <i64 *> malloc(8*HASH_LAYER)
 		self.layerPosition = <i64 *> malloc(8*HASH_LAYER)
+		self.n = 0
 
 		cdef u32 i
 		cdef u32 m = 1
@@ -139,6 +140,7 @@ cdef class HashStorage:
 		cdef i32 setResult = self.setBucket(hashed, reference)
 		if setResult == NOT_SET:
 			setResult = self.setTreePage(hashed, reference)
+		if setResult == NOT_FOUND_AND_SET: self.n += 1
 		if self.isIterable and setResult == NOT_FOUND_AND_SET:
 			self.pageStorage.appendValue(<char *> &reference.position)
 		self.lastUpdate = getMicroTime()
@@ -364,7 +366,7 @@ cdef class HashStorage:
 		return self.io.tail >= self.layerSize[HASH_LAYER-1]
 
 	cdef expandLayer(self, i32 layer):
-		cdef i32 n = self.layerModulus[layer-1]*HASH_SIZE
+		cdef i64 n = self.layerModulus[layer-1]*HASH_SIZE
 		self.layerPosition[layer-1] = self.io.getTail()
 		print(f'>>> Expand layer {layer} {self.layerPosition[layer-1]}')
 		while True:

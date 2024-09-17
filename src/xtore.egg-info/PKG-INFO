@@ -18,8 +18,12 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Description-Content-Type: text/markdown
-Provides-Extra: dev
 License-File: LICENSE.txt
+Provides-Extra: dev
+Requires-Dist: Cython>=3.0.0; extra == "dev"
+Requires-Dist: build; extra == "dev"
+Requires-Dist: setuptools; extra == "dev"
+Requires-Dist: wheel; extra == "dev"
 
 # Xtore
 

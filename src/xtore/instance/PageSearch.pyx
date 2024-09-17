@@ -112,7 +112,7 @@ cdef class PageSearch:
 			elif self.isGreater(reference):
 				if page.next > 0: page.read(page.next)
 				# NOTE All data are less than reference.
-				elif not hasLess: return -1
+				elif not hasLess: return self.page.n
 				# NOTE The first item of the next page is greater than reference
 				if hasLess: return 0
 				hasGreater = True
@@ -160,8 +160,8 @@ cdef class PageSearch:
 				hasLess = True
 			elif self.isGreater(reference):
 				if page.next > 0: page.read(page.next)
-				# NOTE All data are less than reference.
-				elif not hasLess: return -1
+				# NOTE All data are less than reference -> Look in lower page
+				elif not hasLess: return page.n
 				# NOTE The first item of the next page is greater than reference
 				if hasLess: return 0
 				hasGreater = True
@@ -206,8 +206,6 @@ cdef class PageSearch:
 	cdef bint isLess(self, Buffer *reference):
 		self.page.stream.position = self.page.headerSize
 		cdef i32 head = self.compare(reference, &self.page.stream)
-		self.page.stream.position = self.page.tail - self.page.itemSize
-		self.compare(reference, &self.page.stream)
 		return head < 0
 	
 	cdef bint isGreater(self, Buffer *reference):

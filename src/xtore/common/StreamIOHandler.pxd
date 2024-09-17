@@ -10,7 +10,7 @@ cdef class StreamIOHandler:
 	cdef open(self)
 	cdef close(self)
 	cdef i64 reserve(self, int size)
-	cdef seek(self, int position)
+	cdef seek(self, i64 position)
 	cdef read(self, Buffer *stream, int size)
 	cdef write(self, Buffer *stream)
 	cdef writeOffset(self, Buffer *stream, i32 offset, i32 size)
