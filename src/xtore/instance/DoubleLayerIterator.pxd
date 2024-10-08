@@ -5,6 +5,16 @@ from xtore.instance.LinkedPage cimport LinkedPage
 from xtore.instance.HashPageNode cimport HashPageNode
 from xtore.common.Buffer cimport Buffer
 
+ctypedef struct DoubleLayerIndex:
+	i32 offset
+	i32 index
+	i32 subIndex
+	i64 upperPosition
+	i64 lowerPosition
+
+cdef inline str getIndexString(DoubleLayerIndex index):
+	return f'<DoubleLayerIndex o={index.offset} i={index.index} s={index.subIndex} up={index.upperPosition} lp={index.lowerPosition}>'
+
 cdef class DoubleLayerIterator:
 	cdef LinkedPageStorage storage
 	cdef LinkedPage upper
@@ -19,5 +29,7 @@ cdef class DoubleLayerIterator:
 
 	cdef start(self, i64 headPosition)
 	cdef bint getNext(self, HashPageNode entry)
+	cdef bint move(self, DoubleLayerIndex *index)
 	cdef i64 getLowerPosition(self, i32 index)
+	cdef setPosition(self, DoubleLayerIndex index)
 

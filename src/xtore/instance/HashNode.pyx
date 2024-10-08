@@ -22,3 +22,9 @@ cdef class HashNode:
 
 	cdef write(self, Buffer *stream):
 		raise NotImplementedError
+	
+	cdef i32 compare(self, HashNode other):
+		raise NotImplementedError
+	
+	cdef copyKey(self, HashNode other):
+		raise NotImplementedError

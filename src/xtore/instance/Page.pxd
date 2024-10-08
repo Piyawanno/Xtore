@@ -23,6 +23,9 @@ cdef class Page:
 	cdef bint writeValue(self, char *value, i32 index)
 
 	cdef read(self, i64 position)
+	cdef readHeader(self, i64 position)
+	cdef readHead(self, i64 position)
+	cdef readHeaderBuffer(self)
 	cdef write(self)
 	cdef writeHeader(self)
 	cdef writeHeaderBuffer(self)

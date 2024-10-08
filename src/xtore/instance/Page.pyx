@@ -88,6 +88,21 @@ cdef class Page:
 		self.position = position
 		self.io.seek(self.position)
 		self.io.read(&self.stream, self.pageSize)
+		self.readHeaderBuffer()
+	
+	cdef readHeader(self, i64 position):
+		self.position = position
+		self.io.seek(self.position)
+		self.io.read(&self.stream, PAGE_HEADER_SIZE)
+		self.readHeaderBuffer()
+		
+	cdef readHead(self, i64 position):
+		self.position = position
+		self.io.seek(self.position)
+		self.io.read(&self.stream, PAGE_HEADER_SIZE+self.itemSize)
+		self.readHeaderBuffer()
+	
+	cdef readHeaderBuffer(self):
 		self.stream.position = 0
 		self.tail = (<i32 *> getBuffer(&self.stream, 4))[0]
 		self.n = (<i32 *> getBuffer(&self.stream, 4))[0]

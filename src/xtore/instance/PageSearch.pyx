@@ -1,6 +1,8 @@
 from xtore.instance.Page cimport Page
+from xtore.instance.LinkedPage cimport LinkedPage, LINKED_PAGE_HEADER_SIZE
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
-from xtore.BaseType cimport i32, i64
+from xtore.common.TimeUtil cimport getMicroTime
+from xtore.BaseType cimport i32, i64, f64
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 
@@ -11,8 +13,12 @@ cdef class PageSearch:
 	def __init__(self, Page page):
 		self.page = page
 
-		self.pagePositionSize = PAGE_CHUNK_SIZE
-		self.pagePosition = <i64 *> malloc(self.pagePositionSize*8)
+		self.topLayerSize = PAGE_CHUNK_SIZE
+		self.topLayerCount = 0
+		self.topLayer = <TopLayerPage *> malloc(self.topLayerSize*sizeof(TopLayerPage))
+		self.topLayerBufferCount = 0
+		self.topLayerBuffer = <char **> malloc(PAGE_CHUNK_SIZE*8)
+		self.setTopLayerBuffer(0)
 
 		self.positionSize = <i32> ((self.page.pageSize-self.page.headerSize)/self.page.itemSize)
 		self.position = <i32 *> malloc(self.positionSize*4)
@@ -26,9 +32,12 @@ cdef class PageSearch:
 			j += self.page.itemSize
 
 	def __dealloc__(self):
-		if self.pagePositionSize > 0: free(self.pagePosition)
-		self.pagePositionSize = 0
+		if self.topLayerSize > 0: free(self.topLayer)
+		self.topLayerSize = 0
 		if self.positionSize > 0: free(self.position)
+		for i in range(self.topLayerBufferCount):
+			free(self.topLayerBuffer[i])
+		free(self.topLayerBuffer)
 		self.positionSize = 0
 		releaseBuffer(&self.stream)
 
@@ -48,151 +57,251 @@ cdef class PageSearch:
 				self.position[i] = j
 				j += self.page.itemSize
 	
-	cdef readPosition(self):
+	cdef readPosition(self, f64 lastUpdate):
+		if lastUpdate <= self.lastTopLayerRead: return
 		cdef LinkedPage page = <LinkedPage> self.page
 		cdef i64 previous = page.previous
 		cdef i64 root = page.position
 		while previous > 0:
 			root = previous
-			page.io.seek(previous+8)
-			page.io.read(&self.stream, 8)
-			previous = (<i64 *> self.stream.buffer)[0]
+			page.readHeader(previous)
+			previous = page.previous
 		
 		cdef i64 next = root
 		cdef i32 i = 0
 		cdef i32 pageSize
+		cdef i32 itemsize = self.page.itemSize
 		cdef i32 bufferSize
 		cdef char *buffer
+		cdef TopLayerPage *top
 		while next > 0:
-			if i >= self.pagePositionSize:
-				pageSize = self.pagePositionSize + PAGE_CHUNK_SIZE
-				buffer = <char *> malloc(pageSize*8)
-				memcpy(buffer, self.pagePosition, self.pagePositionSize*8)
-				free(self.pagePosition)
-				self.pagePosition = <i64 *> buffer
-				self.pagePositionSize = pageSize
-			self.pagePosition[i] = next
+			if i >= self.topLayerSize:
+				pageSize = self.topLayerSize + PAGE_CHUNK_SIZE
+				buffer = <char *> malloc(pageSize*sizeof(TopLayerPage))
+				memcpy(buffer, self.topLayer, self.topLayerSize*8)
+				free(self.topLayer)
+				self.topLayer = <TopLayerPage *> buffer
+				self.setTopLayerBuffer(self.topLayerSize)
+				self.topLayerSize = pageSize
+			page.readHeader(next)
+			top = &self.topLayer[i]
+			top.position = page.position
+			top.next = page.next
+			top.previous = page.previous
+			top.n = page.n
+			page.io.seek(page.position+LINKED_PAGE_HEADER_SIZE)
+			page.io.read(&top.head, itemsize)
+			page.io.seek(page.position+page.tail-itemsize)
+			page.io.read(&top.tail, itemsize)
+			# print(666, i, top.position, top.next, top.previous, top.n, (<i32 *> (top.head.buffer+8))[0], (<i32 *> (top.tail.buffer+8))[0])
 			i += 1
-			page.io.seek(next)
-			page.io.read(&self.stream, 8)
-			next = (<i64 *> self.stream.buffer)[0]
-		self.pagePositionCount = i
+			next = page.next
 		
+		page.read(page.position)
+		self.topLayerCount = i
+		self.lastTopLayerRead = getMicroTime()
+	
+	cdef setTopLayerBuffer(self, i32 startPosition):
+		if self.topLayerBufferCount >= PAGE_CHUNK_SIZE:
+			raise ValueError("Top Layer is too large. The design is must be reconsidered.")
+		cdef i32 position = 0
+		cdef i32 itemSize = self.page.itemSize
+		cdef i32 i
+		cdef char* buffer = <char *> malloc(PAGE_CHUNK_SIZE*itemSize*2)
+		for i in range(PAGE_CHUNK_SIZE):
+			initBuffer(&self.topLayer[startPosition+i].head, buffer + position, itemSize)
+			position += itemSize
+			initBuffer(&self.topLayer[startPosition+i].tail, buffer + position, itemSize)
+			position += itemSize
+		self.topLayerBuffer[self.topLayerBufferCount] = buffer
+		self.topLayerBufferCount += 1
 
 	cdef LinkedPage getPageInRange(self, Buffer *reference):
 		cdef bint isFound = False
-		self.searchPage(reference, &isFound)
+		cdef i32 index
+		if self.topLayerCount == 1: index = 0
+		else: index = self.searchPage(reference, &isFound)
 		cdef LinkedPage page = <LinkedPage> self.page
-		if isFound: return page
-		cdef i64 neighbor
+		cdef TopLayerPage top = self.topLayer[index]
+		if isFound:
+			if isPageChanged(page, top): page.read(top.position)
+			return page
+		cdef bint hasGreater = False
+		cdef bint hasLess = False
 		while True:
-			if self.isLess(reference):
-				neighbor = page.previous
-			elif self.isGreater(reference):
-				neighbor = page.next
+			top = self.topLayer[index]
+			if self.isUpperLess(reference, index):
+				index = index - 1
+				if hasGreater: return None
+				hasLess = True
+			elif self.isUpperGreater(reference, index):
+				index = index + 1
+				if hasLess: return None
+				hasGreater = True
 			else:
+				if isPageChanged(page, top): page.read(top.position)
 				return page
-			if neighbor < 0: return None
-			page.read(neighbor)
 	
 	cdef i32 getGreaterPage(self, Buffer *reference):
 		cdef bint isFound = False
-		self.searchPage(reference, &isFound)
+		cdef i32 index
+		cdef TopLayerPage top
+		if self.topLayerCount == 1: index = 0
+		else: index = self.searchPage(reference, &isFound)
 		cdef LinkedPage page = <LinkedPage> self.page
 		cdef bint hasGreater = False
 		cdef bint hasLess = False
 		while True:
-			if self.isLess(reference):
-				# NOTE The first item is greater than reference
-				if hasGreater: return 0
-				if page.previous > 0: page.read(page.previous)
-				# NOTE All data are greater than reference.
-				else: return 0
+			top = self.topLayer[index]
+			if self.isUpperLess(reference, index):
 				hasLess = True
-			elif self.isGreater(reference):
-				if page.next > 0: page.read(page.next)
-				# NOTE All data are less than reference.
-				elif not hasLess: return self.page.n
-				# NOTE The first item of the next page is greater than reference
-				if hasLess: return 0
+				index = index - 1
+				if top.previous < 0 or index < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return 0
+				if hasGreater:
+					top = self.topLayer[index]
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n
+			elif self.isUpperGreater(reference, index):
+				index = index + 1
+				if hasLess or top.next < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n
 				hasGreater = True
 			else:
+				if isPageChanged(self.page, top): self.page.read(top.position)
 				return self.getGreater(reference)
 
 	cdef i32 getLessPage(self, Buffer *reference):
 		cdef bint isFound = False
-		self.searchPage(reference, &isFound)
+		cdef i32 index
+		cdef TopLayerPage top
+		if self.topLayerCount == 1: index = 0
+		else: index = self.searchPage(reference, &isFound)
 		cdef LinkedPage page = <LinkedPage> self.page
 		cdef bint hasGreater = False
 		cdef bint hasLess = False
 		while True:
-			if self.isLess(reference):
-				if page.previous > 0: page.read(page.previous)
-				# NOTE All data are greater than reference.
-				elif not hasGreater: return -1
-				# NOTE The last item of the previous page is less than reference
-				if hasGreater: return page.n - 1
+			top = self.topLayer[index]
+			if self.isUpperLess(reference, index):
 				hasLess = True
-			elif self.isGreater(reference):
+				# NOTE All data are greater than reference.
+				if index == 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return -1
+				# NOTE The last item of the previous page is less than reference
+				if hasGreater:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n - 1
+				index = index - 1
+				hasLess = True
+			elif self.isUpperGreater(reference, index):
+				index = index + 1
 				# NOTE The last item is less than reference
-				if hasLess: return page.n - 1
-				if page.next > 0: page.read(page.next)
+				if hasLess:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return page.n - 1
 				# NOTE All data are less than reference.
-				else: return page.n - 1
+				if top.next < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					page.read(page.next)
+					return top.n - 1
 				hasGreater = True
 			else:
+				if isPageChanged(self.page, top): self.page.read(top.position)
 				return self.getLess(reference)
 
 	cdef i32 getGreaterEqualPage(self, Buffer *reference):
 		cdef bint isFound = False
-		cdef index = self.searchPage(reference, &isFound)
+		cdef i32 index
+		cdef TopLayerPage top
+		if self.topLayerCount == 1: index = 0
+		else: index = self.searchPage(reference, &isFound)
 		cdef LinkedPage page = <LinkedPage> self.page
-		if isFound: return 0
+		if isFound: return index
 		cdef bint hasGreater = False
 		cdef bint hasLess = False
 		while True:
-			if self.isLess(reference):
-				# NOTE The first item is greater than reference
-				if hasGreater: return 0
-				if page.previous > 0: page.read(page.previous)
-				# NOTE All data are greater than reference.
-				else: return 0
+			top = self.topLayer[index]
+			if self.isUpperLess(reference, index):
 				hasLess = True
-			elif self.isGreater(reference):
-				if page.next > 0: page.read(page.next)
-				# NOTE All data are less than reference -> Look in lower page
-				elif not hasLess: return page.n
-				# NOTE The first item of the next page is greater than reference
-				if hasLess: return 0
+				index = index - 1
+				if top.previous < 0 or index < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return 0
+				if hasGreater:
+					top = self.topLayer[index]
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n
+			elif self.isUpperGreater(reference, index):
+				index = index + 1
+				if hasLess or top.next < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n
 				hasGreater = True
 			else:
+				if isPageChanged(self.page, top): self.page.read(top.position)
 				return self.getGreaterEqual(reference)
 
 	cdef i32 getLessEqualPage(self, Buffer *reference):
 		cdef bint isFound = False
-		self.searchPage(reference, &isFound)
+		cdef i32 index
+		cdef TopLayerPage top
+		if self.topLayerCount == 1: index = 0
+		else: index = self.searchPage(reference, &isFound)
 		cdef LinkedPage page = <LinkedPage> self.page
-		if isFound: return 0
+		if isFound: return index
 		cdef bint hasGreater = False
 		cdef bint hasLess = False
 		while True:
-			if self.isLess(reference):
-				if page.previous > 0: page.read(page.previous)
-				# NOTE All data are greater than reference.
-				elif not hasGreater: return -1
-				# NOTE The last item of the previous page is less than reference
-				if hasGreater: return page.n - 1
+			top = self.topLayer[index]
+			if self.isUpperLess(reference, index):
 				hasLess = True
-			elif self.isGreater(reference):
+				# NOTE All data are greater than reference.
+				if index == 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return -1
+				# NOTE The last item of the previous page is less than reference
+				if hasGreater:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return top.n - 1
+				index = index - 1
+				hasLess = True
+			elif self.isUpperGreater(reference, index):
+				index = index + 1
 				# NOTE The last item is less than reference
-				if hasLess: return page.n - 1
-				if page.next > 0: page.read(page.next)
+				if hasLess:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					return page.n - 1
 				# NOTE All data are less than reference.
-				else: return page.n - 1
+				if top.next < 0:
+					if isPageChanged(self.page, top): self.page.read(top.position)
+					page.read(page.next)
+					return top.n - 1
 				hasGreater = True
 			else:
+				if isPageChanged(self.page, top): self.page.read(top.position)
 				return self.getLessEqual(reference)
 
+	cdef bint isUpperInRange(self, Buffer *reference, i32 index):
+		cdef i32 head = self.compare(reference, &self.topLayer[index].head)
+		if head < 0: return False
+		cdef i32 tail = self.compare(reference, &self.topLayer[index].tail)
+		if tail > 0: return False
+		return True
+	
+	cdef bint isUpperLess(self, Buffer *reference, i32 index):
+		self.page.stream.position = self.page.headerSize
+		# print(640, index)
+		cdef i32 head = self.compare(reference, &self.topLayer[index].head)
+		return head < 0
+	
+	cdef bint isUpperGreater(self, Buffer *reference, i32 index):
+		# print(641, index)
+		cdef i32 tail = self.compare(reference, &self.topLayer[index].tail)
+		return tail > 0
+	
 	cdef bint isInRange(self, Buffer *reference):
 		if self.page.tail <= self.page.headerSize: return False
 		self.page.stream.position = self.page.headerSize
@@ -205,11 +314,13 @@ cdef class PageSearch:
 	
 	cdef bint isLess(self, Buffer *reference):
 		self.page.stream.position = self.page.headerSize
+		# print(642, self.page)
 		cdef i32 head = self.compare(reference, &self.page.stream)
 		return head < 0
 	
 	cdef bint isGreater(self, Buffer *reference):
 		self.page.stream.position = self.page.tail - self.page.itemSize
+		# print(643, self.page)
 		cdef i32 tail = self.compare(reference, &self.page.stream)
 		return tail > 0
 
@@ -283,9 +394,11 @@ cdef class PageSearch:
 		cdef i32 high = n - 1
 		cdef i32 i = 0
 		cdef i32 compared
+		# print(620)
 		while low <= high:
 			i = (high + low) // 2
 			self.page.stream.position = self.position[i]
+			# print(621, i, self.position[i])
 			compared = self.compare(reference, &self.page.stream)
 			if compared > 0 :
 				low = i + 1
@@ -298,18 +411,18 @@ cdef class PageSearch:
 	
 	cdef i32 searchPage(self, Buffer *reference, bint *isFound):
 		isFound[0] = False
-		cdef i32 n = self.pagePositionCount
+		cdef i32 n = self.topLayerCount
 		cdef i32 low = 0
 		cdef i32 high = n - 1
 		cdef i32 i = 0
 		cdef i32 compared
 		cdef i64 position
+		# print(610)
 		while low <= high:
 			i = (high + low) // 2
-			position = self.pagePosition[i]
-			self.page.read(position)
-			self.page.stream.position = self.position[0]
-			compared = self.compare(reference, &self.page.stream)
+			position = self.topLayer[i].position
+			# print(611, i, position)
+			compared = self.compare(reference, &self.topLayer[i].head)
 			if compared > 0 :
 				low = i + 1
 			elif compared < 0 :

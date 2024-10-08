@@ -81,7 +81,18 @@ class XtoreSetup :
 			self.link()
 		elif operation == 'uninstall' :
 			self.uninstall()
+		elif operation == 'clean' :
+			self.clean()
 	
+	def clean(self):
+		os.system('rm -rfv build/*')
+		for root, dirs, files in os.walk('./src'):
+			for i in files:
+				if i[-4:] == '.cpp':
+					command = f'rm {root}/{i}'
+					print(command)
+					os.system(command)
+
 	def uninstall(self):
 		self.uninstallLibrary()
 		self.uninstallScript()
@@ -185,7 +196,7 @@ if __name__ == '__main__' :
 	from argparse import RawTextHelpFormatter
 	import argparse
 	parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
-	parser.add_argument("operation", help="Operation of setup", choices=['setup', 'install', 'link', 'uninstall'])
+	parser.add_argument("operation", help="Operation of setup", choices=['setup', 'install', 'link', 'uninstall', 'clean'])
 	parser.add_argument("-p", "--platform", help="Platform for installation of base environment.", choices=['oracle', 'centos', 'debian', 'ubuntu'])
 	option = parser.parse_args(sys.argv[1:])
 	if option.platform is None : option.platform = 'ubuntu'

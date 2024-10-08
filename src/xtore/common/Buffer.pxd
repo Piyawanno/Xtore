@@ -1,6 +1,6 @@
 from xtore.BaseType cimport u8, u16, u64
 from libc.string cimport memcpy
-from libc.stdlib cimport free
+from libc.stdlib cimport malloc, free
 from cpython cimport PyBytes_FromStringAndSize
 
 cdef struct Buffer :
@@ -10,10 +10,25 @@ cdef struct Buffer :
 
 ctypedef void (* CapacityChecker) (Buffer *self, u64 length)
 
-cdef inline void initBuffer(Buffer *self, char *buffer, u64 capacity) :
+cdef inline void initBuffer(Buffer *self, char *buffer, u64 capacity):
 	self.buffer = buffer
 	self.capacity = capacity
 	self.position = 0
+
+cdef inline void resizeBuffer(Buffer *self, char *buffer, u64 capacity):
+	if capacity > self.capacity:
+		memcpy(buffer, self.buffer, self.position)
+		releaseBuffer(self)
+		self.buffer = buffer
+		self.capacity = capacity
+
+cdef inline void checkBufferSize(Buffer *self, u64 chunkSize):
+	cdef int capacity
+	cdef char *buffer
+	if self.position >= self.capacity:
+		capacity = self.capacity + chunkSize
+		buffer = <char *> malloc(capacity)
+		resizeBuffer(self, buffer, capacity)
 
 cdef inline void setBuffer(Buffer *self, char *buffer, u64 length) :
 	memcpy(self.buffer+self.position, buffer, length)

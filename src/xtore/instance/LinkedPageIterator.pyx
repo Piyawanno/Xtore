@@ -1,6 +1,6 @@
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.LinkedPage cimport LinkedPage, LINKED_PAGE_HEADER_SIZE
-from xtore.common.Buffer cimport Buffer, getBuffer
+from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i32, i64
 from libc.string cimport memcpy
 

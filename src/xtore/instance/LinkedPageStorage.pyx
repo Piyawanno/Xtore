@@ -63,7 +63,7 @@ cdef class LinkedPageStorage:
 
 	cdef appendBuffer(self, Buffer *stream):
 		cdef bint isSuccess
-		if self.itemSize < 0:
+		if self.itemSize > 0:
 			isSuccess = self.tail.appendBuffer(stream)
 			if not isSuccess:
 				self.createPage()
