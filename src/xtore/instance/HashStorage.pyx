@@ -25,7 +25,8 @@ cdef i32 FOUND_AND_SET = 1
 cdef i32 NOT_SET = 2
 
 cdef class HashStorage:
-	def __init__(self, StreamIOHandler io):
+	def __init__(self, StreamIOHandler io, CollisionMode mode):
+		self.mode = mode
 		self.headerSize = HASH_STORAGE_HEADER_SIZE
 		self.io = io
 		self.layer = -1

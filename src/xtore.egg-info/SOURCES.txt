@@ -18,6 +18,7 @@ src/xtore/common/Buffer.pxd
 src/xtore/common/StreamIOHandler.cpp
 src/xtore/common/StreamIOHandler.pxd
 src/xtore/common/TimeUtil.pxd
+src/xtore/instance/CollisionMode.pxd
 src/xtore/instance/DoubleLayerIterator.cpp
 src/xtore/instance/DoubleLayerIterator.pxd
 src/xtore/instance/DoubleLayerRangeResult.cpp

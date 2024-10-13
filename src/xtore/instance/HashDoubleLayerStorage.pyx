@@ -1,3 +1,4 @@
+from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.HashStorage cimport HashStorage
 from xtore.instance.HashPageNode cimport HashPageNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
@@ -18,8 +19,8 @@ from posix.strings cimport bzero
 cdef i32 BUFFER_SIZE = 64
 
 cdef class HashDoubleLayerStorage(HashStorage):
-	def __init__(self, StreamIOHandler io, PageSearch upperSearch, PageSearch lowerSearch):
-		HashStorage.__init__(self, io)
+	def __init__(self, StreamIOHandler io, CollisionMode mode, PageSearch upperSearch, PageSearch lowerSearch):
+		HashStorage.__init__(self, io, mode)
 		self.upperSearch = upperSearch
 		self.upper = self.upperSearch.page
 		self.splittedUpper = LinkedPage(self.io, self.upper.pageSize, self.upper.itemSize)

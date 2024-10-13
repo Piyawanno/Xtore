@@ -46,7 +46,7 @@ cdef class DoubleLayerIterator:
 	cdef bint getNext(self, HashPageNode entry):
 		cdef DoubleLayerIndex index
 		cdef bint result = self.move(&index)
-		# print(400, getIndexString(index))
+		# print(400, result, getIndexString(index), self.upper.next, self.currentIndex, self.currentSubIndex, self.upper.n, self.lower.n)
 		if not result: return False
 		self.entryStream.buffer = (self.lower.stream.buffer+index.offset)
 		self.entryStream.position = 0
@@ -64,7 +64,7 @@ cdef class DoubleLayerIterator:
 			index[0].subIndex = self.currentSubIndex
 			self.currentSubIndex += 1
 		else:
-			# print(401, '-'*50)
+			# print(401, '-'*50, self.upper.next < 0, self.currentIndex+1 >= self.upper.n)
 			if self.upper.next < 0 and self.currentIndex+1 >= self.upper.n:
 				return False
 			elif self.currentIndex+1 < self.upper.n:

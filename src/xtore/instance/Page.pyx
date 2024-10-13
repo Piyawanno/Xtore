@@ -37,6 +37,11 @@ cdef class Page:
 		self.io.fill(&self.stream)
 		self.stream.position = self.headerSize
 		return self.position
+	
+	cdef copyHeader(self, Page other):
+		self.position = other.position
+		self.tail = other.tail
+		self.n = other.n
 
 	cdef i32 getCapacity(self):
 		return self.pageSize - self.tail
@@ -46,11 +51,15 @@ cdef class Page:
 		cdef i32 capacity = self.pageSize-self.tail
 		cdef i32 size
 		if capacity >= stream.position:
-			size = stream.position + 4
-			setBuffer(&self.stream, <char *> &stream.position, 4)
-			setBuffer(&self.stream, stream.buffer, stream.position)
-			self.io.seek(self.position+self.tail)
-			self.io.writeOffset(&self.stream, self.tail, size)
+			if self.hasBody:
+				size = stream.position + 4
+				setBuffer(&self.stream, <char *> &stream.position, 4)
+				setBuffer(&self.stream, stream.buffer, stream.position)
+				self.io.seek(self.position+self.tail)
+				self.io.writeOffset(&self.stream, self.tail, size)
+			else:
+				self.io.seek(self.position+self.tail)
+				self.io.write(stream)
 			self.tail += size
 			self.n += 1
 			self.writeHeader()
@@ -61,10 +70,18 @@ cdef class Page:
 	cdef bint appendValue(self, char *value):
 		if self.itemSize <= 0: return False
 		cdef i32 capacity = self.pageSize-self.tail
+		cdef Buffer stream
 		if capacity >= self.itemSize:
-			memcpy(self.stream.buffer+self.tail, value, self.itemSize)
-			self.io.seek(self.position+self.tail)
-			self.io.writeOffset(&self.stream, self.tail, self.itemSize)
+			if self.hasBody:
+				memcpy(self.stream.buffer+self.tail, value, self.itemSize)
+				self.io.seek(self.position+self.tail)
+				self.io.writeOffset(&self.stream, self.tail, self.itemSize)
+			else:
+				stream.buffer = value
+				stream.position = self.itemSize
+				stream.capacity = self.itemSize
+				self.io.seek(self.position+self.tail)
+				self.io.write(&stream)
 			self.tail += self.itemSize
 			self.n += 1
 			self.writeHeader()
@@ -89,19 +106,15 @@ cdef class Page:
 		self.io.seek(self.position)
 		self.io.read(&self.stream, self.pageSize)
 		self.readHeaderBuffer()
+		self.hasBody = True
 	
 	cdef readHeader(self, i64 position):
 		self.position = position
 		self.io.seek(self.position)
 		self.io.read(&self.stream, PAGE_HEADER_SIZE)
 		self.readHeaderBuffer()
+		self.hasBody = False
 		
-	cdef readHead(self, i64 position):
-		self.position = position
-		self.io.seek(self.position)
-		self.io.read(&self.stream, PAGE_HEADER_SIZE+self.itemSize)
-		self.readHeaderBuffer()
-	
 	cdef readHeaderBuffer(self):
 		self.stream.position = 0
 		self.tail = (<i32 *> getBuffer(&self.stream, 4))[0]

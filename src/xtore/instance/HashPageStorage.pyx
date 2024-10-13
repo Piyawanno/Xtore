@@ -1,3 +1,4 @@
+from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.HashStorage cimport HashStorage
 from xtore.instance.HashPageNode cimport HashPageNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
@@ -12,8 +13,8 @@ from libc.stdlib cimport malloc
 cdef i32 BUFFER_SIZE = 64
 
 cdef class HashPageStorage(HashStorage):
-	def __init__(self, StreamIOHandler io, PageSearch search):
-		HashStorage.__init__(self, io)
+	def __init__(self, StreamIOHandler io, CollisionMode mode, PageSearch search):
+		HashStorage.__init__(self, io, mode)
 		self.search = search
 		self.page = self.search.page
 		self.itemStorage = LinkedPageStorage(self.io, self.page.pageSize, self.page.itemSize)

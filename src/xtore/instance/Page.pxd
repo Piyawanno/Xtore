@@ -13,9 +13,11 @@ cdef class Page:
 	cdef i32 n
 	cdef StreamIOHandler io
 	cdef Buffer stream
+	cdef bint hasBody
 
 	cdef reset(self)
 	cdef i64 create(self)
+	cdef copyHeader(self, Page other)
 	cdef i32 getCapacity(self)
 	
 	cdef bint appendBuffer(self, Buffer *stream)
@@ -24,7 +26,6 @@ cdef class Page:
 
 	cdef read(self, i64 position)
 	cdef readHeader(self, i64 position)
-	cdef readHead(self, i64 position)
 	cdef readHeaderBuffer(self)
 	cdef write(self)
 	cdef writeHeader(self)

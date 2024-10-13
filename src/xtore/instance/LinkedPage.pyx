@@ -26,6 +26,14 @@ cdef class LinkedPage (Page):
 	def __repr__(self) -> str:
 		return f'<LinkedPage {self.position} n={self.next} p={self.previous} ps={self.pageSize} is={self.itemSize} t={self.tail} n={self.n}>'
 
+	cdef copyHeader(self, Page otherPage):
+		cdef LinkedPage other = <LinkedPage> otherPage
+		self.position = other.position
+		self.next = other.next
+		self.previous = other.previous
+		self.tail = other.tail
+		self.n = other.n
+
 	cdef reset(self):
 		bzero(self.stream.buffer, self.pageSize)
 		self.tail = self.headerSize
@@ -38,19 +46,15 @@ cdef class LinkedPage (Page):
 		self.io.seek(self.position)
 		self.io.read(&self.stream, self.pageSize)
 		self.readHeaderBuffer()
+		self.hasBody = True
 	
 	cdef readHeader(self, i64 position):
 		self.position = position
 		self.io.seek(self.position)
 		self.io.read(&self.stream, LINKED_PAGE_HEADER_SIZE)
 		self.readHeaderBuffer()
+		self.hasBody = False
 		
-	cdef readHead(self, i64 position):
-		self.position = position
-		self.io.seek(self.position)
-		self.io.read(&self.stream, LINKED_PAGE_HEADER_SIZE+self.itemSize)
-		self.readHeaderBuffer()
-	
 	cdef readHeaderBuffer(self):
 		self.stream.position = 0
 		self.next = (<i64 *> getBuffer(&self.stream, 8))[0]
