@@ -28,6 +28,7 @@ cdef class HashStorage:
 	def __init__(self, StreamIOHandler io, CollisionMode mode):
 		self.mode = mode
 		self.headerSize = HASH_STORAGE_HEADER_SIZE
+		self.name = None
 		self.io = io
 		self.layer = -1
 		self.position = -1
@@ -126,7 +127,13 @@ cdef class HashStorage:
 		self.lastUpdate = (<f64 *> getBuffer(&self.headerStream, 8))[0]
 		self.isIterable = getBoolean(&self.headerStream)
 		memcpy(self.layerPosition, getBuffer(&self.headerStream, 8*HASH_LAYER), 8*HASH_LAYER)
-		
+	
+	cdef setHeaderSize(self, i32 headerSize):
+		self.headerSize = headerSize
+
+	cdef setName(self, str name):
+		self.name = name
+
 	cdef HashNode get(self, HashNode reference, HashNode result):
 		if self.layer < 0: return None
 		cdef i64 hashed = reference.hash()
@@ -369,7 +376,7 @@ cdef class HashStorage:
 	cdef expandLayer(self, i32 layer):
 		cdef i64 n = self.layerModulus[layer-1]*HASH_SIZE
 		self.layerPosition[layer-1] = self.io.getTail()
-		print(f'>>> Expand layer {layer} {self.layerPosition[layer-1]}')
+		print(f'>>> Expand layer {layer} {self.layerPosition[layer-1]} {self.name}')
 		while True:
 			if n < PAGE_SIZE:
 				self.pageStream.position = n

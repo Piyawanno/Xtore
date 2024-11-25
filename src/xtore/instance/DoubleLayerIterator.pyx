@@ -67,7 +67,7 @@ cdef class DoubleLayerIterator:
 			# print(401, '-'*50, self.upper.next < 0, self.currentIndex+1 >= self.upper.n)
 			if self.upper.next < 0 and self.currentIndex+1 >= self.upper.n:
 				return False
-			elif self.currentIndex+1 < self.upper.n:
+			elif self.currentIndex <= self.upper.n:
 				self.currentIndex += 1
 				index.lowerPosition = self.getLowerPosition(self.currentIndex)
 				self.lower.read(index.lowerPosition)

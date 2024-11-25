@@ -18,7 +18,6 @@ ctypedef struct TopLayerPage:
 	Buffer tail
 
 cdef inline bint isPageChanged(LinkedPage page, TopLayerPage top):
-	# print(667, page, top.position, top.next, top.previous, top.n)
 	if page.position != top.position: return True
 	if page.previous != top.previous: return True
 	if page.next != top.next: return True
@@ -31,6 +30,7 @@ cdef class PageSearch:
 	cdef BufferComparator compare
 	cdef TopLayerPage *topLayer
 	cdef f64 lastTopLayerRead
+	cdef i64 currentStoragePostition
 	cdef i32 topLayerCount
 	cdef i32 topLayerSize
 	cdef char **topLayerBuffer
@@ -42,7 +42,7 @@ cdef class PageSearch:
 	cdef Buffer stream
 
 	cdef setPage(self, Page page)
-	cdef readPosition(self, f64 lastUpdate)
+	cdef readPosition(self, i64 storagePosition, f64 lastUpdate)
 	cdef setTopLayerBuffer(self, i32 startPosition)
 	
 	cdef LinkedPage getPageInRange(self, Buffer *reference)

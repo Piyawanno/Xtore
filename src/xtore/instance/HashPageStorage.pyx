@@ -42,11 +42,13 @@ cdef class HashPageStorage(HashStorage):
 		cdef i64 pagePosition
 		if existing is None:
 			self.itemStorage.create()
+			# print(470)
 			self.itemStorage.appendValue(self.entryStream.buffer)
 			entry.pagePosition = self.itemStorage.rootPosition
 			self.set(entry)
 			return
 		if self.itemStorage.rootPosition != entry.pagePosition:
 			self.itemStorage.readHeader(entry.pagePosition)
+		# print(471)
 		self.itemStorage.appendValue(self.entryStream.buffer)
 	

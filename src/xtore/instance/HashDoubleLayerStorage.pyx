@@ -104,10 +104,11 @@ cdef class HashDoubleLayerStorage(HashStorage):
 			self.tail.readItem(&self.lower.stream)
 		
 		if existing is None or entry.comparePage(self.tail) > 0:
-			# print(801)
 			tail = self.itemStorage.tail
-			pagePosition = (<i64*> (tail.stream.buffer+(tail.tail-tail.itemSize)))[0]
-			if self.lower.position != pagePosition: self.lower.read(pagePosition)
+			if tail.n > 0:
+				pagePosition = (<i64*> (tail.stream.buffer+(tail.tail-tail.itemSize)))[0]
+				if self.lower.position != pagePosition:
+					self.lower.read(pagePosition)
 			self.appendPageNode(entry)
 			self.tail.copyKey(entry)
 			self.tail.copyPageKey(entry)
@@ -116,27 +117,15 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef DoubleLayerIndex target = self.searchInsertPosition(entry, existing)
 		self.upper = <LinkedPage> self.upperSearch.page
 		self.lower = self.lowerSearch.page
-
 		cdef bint hasSpace = (self.lower.pageSize - self.lower.tail) > self.lower.itemSize
 		if hasSpace:
-			# print(802)
 			self.insertLower(target, &self.searchStream)
 			return
 		hasSpace = (self.upper.pageSize - self.upper.tail) > self.upper.itemSize
 		if hasSpace:
-			# print(803, self.lower)
 			self.splitTail(target, &self.upperPageStream, &self.searchStream)
 		else:
-			# print(804, self.lower)
 			self.split(target, &self.upperPageStream, &self.searchStream)
-
-		# print(923, '%'*50)
-		# cdef LinkedPage next = LinkedPage(self.io, self.upper.pageSize, self.upper.itemSize)
-		# next.readHeader(self.itemStorage.headPosition)
-		# while True:
-		# 	print(924, next)
-		# 	if next.next < 0: break
-		# 	next.readHeader(next.next)
 
 	cdef HashPageNode getPageNode(self, HashPageNode reference):
 		cdef HashPageNode found = self.get(reference, self.existing)
@@ -166,7 +155,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		self.itemStorage.readHeader(found.pagePosition)
 		self.upper.read(self.itemStorage.headPosition)
 		self.upperSearch.setPage(self.upper)
-		self.upperSearch.readPosition(self.itemStorage.lastUpdate)
+		self.upperSearch.readPosition(self.itemStorage.rootPosition, self.itemStorage.lastUpdate)
 		
 		start.writeUpperItem(&self.searchStream, -1)
 		self.searchStream.position = 0
@@ -182,7 +171,16 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef i64 lowerPosition = (<i64 *> (self.upper.stream.buffer+offset))[0]
 		self.lower.read(lowerPosition)
 		cdef i32 startLower = self.lowerSearch.getGreaterEqual(&self.searchStream)
-		if startLower < 0: return None
+		if startLower < 0:
+			if startUpper+1 < self.upper.n:
+				startUpper += 1
+				startLower = 0
+			elif self.upper.next > 0:
+				self.upper.read(self.upper.next)
+				startUpper = 0
+				startLower = 0
+			else:
+				return None
 		
 		end.writeUpperItem(&self.searchStream, -1)
 		self.searchStream.position = 0
@@ -204,14 +202,14 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		result.startSubIndex = startLower
 		result.endPosition = endPosition
 		result.endIndex = endUpper
-		result.endSubIndex = endLower
+		result.endSubIndex = endLower + 1
 		return result
 
 	cdef HashPageNode getLatestPageNode(self, HashPageNode reference):
 		cdef HashPageNode found = self.get(reference, self.existing)
 		if found is None: return None
 		self.itemStorage.readHeader(found.pagePosition)
-		self.upper.read(self.itemStorage.headPosition)
+		self.upper.read(self.itemStorage.tailPosition)
 		cdef i32 offset = self.upper.tail - self.upper.itemSize
 		if self.upper.n == 0: return
 		cdef i64 lowerPosition = (<i64 *> (self.upper.stream.buffer+offset))[0]
@@ -219,6 +217,20 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		if self.lower.n == 0: return
 		offset = self.lower.tail - self.lower.itemSize
 		self.lower.stream.position = offset
+		found.readItem(&self.lower.stream)
+		return found
+	
+	cdef HashPageNode getFirstPageNode(self, HashPageNode reference):
+		cdef HashPageNode found = self.get(reference, self.existing)
+		if found is None: return None
+		self.itemStorage.readHeader(found.pagePosition)
+		self.upper.read(self.itemStorage.headPosition)
+		if self.upper.n == 0: return
+		cdef i64 lowerPosition = (<i64 *> (self.upper.stream.buffer+LINKED_PAGE_HEADER_SIZE))[0]
+		cdef i32 dateID = (<i64 *> (self.upper.stream.buffer+LINKED_PAGE_HEADER_SIZE+8))[0]
+		self.lower.read(lowerPosition)
+		if self.lower.n == 0: return
+		self.lower.stream.position = PAGE_HEADER_SIZE
 		found.readItem(&self.lower.stream)
 		return found
 	
@@ -230,7 +242,6 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef LinkedPage upperPage = self.upper
 		if self.upper.position == self.itemStorage.tail.position:
 			upperPage = self.itemStorage.tail
-		# print(700, getIndexString(target))
 		memcpy(stream.buffer+offset+itemSize, stream.buffer+offset, length)
 		memcpy(stream.buffer+offset, lower.buffer, itemSize)
 		self.io.seek(target.lowerPosition+offset)
@@ -247,13 +258,10 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		lower.position = 0
 		self.existing.readItem(lower)
 		upperOffset = self.upperSearch.position[target.index]
-		# print(701, upperOffset, self.upper)
 		upperPage.stream.position = upperOffset
 		self.existing.writeUpperItem(&upperPage.stream, target.lowerPosition)
 		self.io.seek(target.upperPosition+upperOffset)
 		self.io.writeOffset(&upperPage.stream, upperOffset, upperPage.itemSize)
-		# print(702, (<i32 *> (upperPage.stream.buffer+32))[0])
-
 	
 	cdef split(self, DoubleLayerIndex target, Buffer *upper, Buffer *lower):
 		cdef i32 itemSize = self.upper.itemSize
@@ -286,15 +294,12 @@ cdef class HashDoubleLayerStorage(HashStorage):
 			targetPage = splitted
 			length += itemSize
 			index = index - n
-			# print(910, targetPage.n, index)
 		else:
 			targetPage = self.upper
 			existingLength += itemSize
-			# print(911, targetPage.n, index)
 
 		cdef i32 targetOffset = LINKED_PAGE_HEADER_SIZE + itemSize*index
 		cdef i32 targetLength = itemSize*(targetPage.n - index)
-		# print(912, targetOffset, targetLength, index)
 		stream = &targetPage.stream
 		if targetLength > 0: memcpy(stream.buffer+targetOffset+itemSize, stream.buffer+targetOffset, targetLength)
 		
@@ -311,10 +316,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 			next.readHeader(self.upper.next)
 			next.previous = splitted.position
 			next.writeHeader()
-			# if next.position == self.itemStorage.tailPosition:
-			# 	self.itemStorage.tail = next
-			# print(999, next)
-
+			
 		splitted.next = self.upper.next
 		self.upper.tail = existingLength
 		self.upper.next = splitted.position
@@ -334,20 +336,6 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		self.itemStorage.lastUpdate = getMicroTime()
 		self.itemStorage.writeHeader()
 
-		# cdef i32 i
-		# cdef i32 previous, current
-		# for i in range(self.upper.n):
-		# 	current = (<i32*> (self.upper.stream.buffer+24+i*12+8))[0]
-		# 	print(920, i, self.upper.n, current)
-		# 	if i > 0 and current < previous: raise ValueError
-		# 	previous = current
-		# print(921, '%'*50)
-		# for i in range(splitted.n):
-		# 	current = (<i32*> (splitted.stream.buffer+24+i*12+8))[0]
-		# 	print(922, i, splitted.n, current)
-		# 	if i > 0 and current < previous: raise ValueError
-		# 	previous = current
-		# print(923, self.itemStorage.tail, splitted, self.upper)
 		
 	cdef splitTail(self, DoubleLayerIndex target, Buffer *upper, Buffer *lower):
 		cdef i32 itemSize = self.upper.itemSize
@@ -357,11 +345,9 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef LinkedPage page
 		if target.upperPosition == self.itemStorage.tailPosition:
 			page = self.itemStorage.tail
-			# print(950, page)
 		else:
 			self.upper.read(target.upperPosition)
 			page = self.upper
-			# print(951, page)
 		
 		if target.subIndex == 0: self.writeLowerHeadToUpper(target, lower, page)
 
@@ -371,9 +357,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef i32 offset = LINKED_PAGE_HEADER_SIZE + itemSize*index
 		cdef i32 length = itemSize*(self.upper.n - index)
 		cdef Buffer *stream = &page.stream
-		if length > 0:
-			# print(810, offset, length, getIndexString(target))
-			memcpy(stream.buffer+offset+itemSize, stream.buffer+offset, length)
+		if length > 0: memcpy(stream.buffer+offset+itemSize, stream.buffer+offset, length)
 		
 		stream.position = offset
 		self.existing.writeUpperItem(stream, splittedLower.position)
@@ -384,15 +368,6 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		page.writeHeader()
 		self.itemStorage.lastUpdate = getMicroTime()
 		self.itemStorage.writeHeader()
-
-		# cdef i32 i
-		# print(930, offset, page)
-		# cdef i32 previous, current
-		# for i in range(page.n):
-		# 	current = (<i32*> (stream.buffer+(24+i*itemSize+8)))[0]
-		# 	print(931, i, page.n, current)
-		# 	if previous > current: raise ValueError
-		# 	previous = current
 
 	cdef Page splitLower(self, DoubleLayerIndex target, Buffer *lower):
 		cdef i32 itemSize = self.lower.itemSize
@@ -444,12 +419,11 @@ cdef class HashDoubleLayerStorage(HashStorage):
 			self.itemStorage.readHeader(found.pagePosition)
 		self.upper.read(self.itemStorage.headPosition)
 		self.upperSearch.setPage(self.upper)
-		self.upperSearch.readPosition(self.itemStorage.lastUpdate)
+		self.upperSearch.readPosition(self.itemStorage.rootPosition, self.itemStorage.lastUpdate)
 		self.upperPageStream.position = 0
 		entry.writeUpperItem(&self.upperPageStream, -1)
 		self.upperPageStream.position = 0
 		target.index = self.upperSearch.getGreaterEqualPage(&self.upperPageStream)
-		# print(670, target.index)
 		cdef bint isHead = target.index <= 0
 		target.index = 0 if target.index <= 0 else target.index-1
 		target.upperPosition = self.upper.position

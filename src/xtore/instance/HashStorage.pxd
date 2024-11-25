@@ -15,6 +15,7 @@ cdef class HashStorage:
 	cdef i32 layer
 	cdef i32 headerSize
 	cdef i32 n
+	cdef str name
 	cdef CollisionMode mode
 	cdef LinkedPageStorage pageStorage
 	cdef HashNode comparingNode
@@ -36,6 +37,9 @@ cdef class HashStorage:
 	cdef writeHeaderBuffer(self, Buffer *stream)
 	cdef readHeader(self, i64 rootPosition)
 	cdef readHeaderBuffer(self, Buffer *stream)
+	cdef setHeaderSize(self, i32 headerSize)
+	cdef setName(self, str name)
+
 	
 	cdef HashNode get(self, HashNode reference, HashNode result)
 	cdef set(self, HashNode reference)

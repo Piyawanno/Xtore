@@ -69,6 +69,7 @@ cdef class LinkedPageStorage:
 				self.createPage()
 				self.tail.appendBuffer(stream)
 			self.lastUpdate = getMicroTime()
+			self.writeHeader()
 		else:
 			print("*** WARNING LinkedPageStorage is FIXED SIZE. It is not possible to append buffer.")
 
@@ -80,6 +81,7 @@ cdef class LinkedPageStorage:
 				self.createPage()
 				self.tail.appendValue(value)
 			self.lastUpdate = getMicroTime()
+			self.writeHeader()
 		else:
 			print(f"*** WARNING LinkedPageStorage is VARY SIZE. It is not possible to append value {self.itemSize}.")
 	

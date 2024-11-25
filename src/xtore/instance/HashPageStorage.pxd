@@ -13,7 +13,7 @@ cdef class HashPageStorage(HashStorage):
 
 	cdef HashPageNode existing
 	cdef PageSearch search
-
+	
 	cdef appendPageNode(self, HashPageNode entry)
 	#cdef HashPageNode getPageNode(self, HashPageNode reference)
 	#cdef PageRangeResult getRange(self, HashPageNode start, HashPageNode end)

@@ -34,6 +34,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 	cdef HashPageNode getPageNode(self, HashPageNode reference)
 	cdef DoubleLayerRangeResult getRange(self, HashPageNode start, HashPageNode end)
 	cdef HashPageNode getLatestPageNode(self, HashPageNode reference)
+	cdef HashPageNode getFirstPageNode(self, HashPageNode reference)
 	cdef insertLower(self, DoubleLayerIndex target, Buffer *stream)
 	cdef writeLowerHeadToUpper(self, DoubleLayerIndex target, Buffer *lower, LinkedPage upperPage)
 	cdef split(self, DoubleLayerIndex target, Buffer *upper, Buffer *lower)

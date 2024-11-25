@@ -24,6 +24,8 @@ cdef class PageSearch:
 		self.position = <i32 *> malloc(self.positionSize*4)
 
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
+		self.lastTopLayerRead = -1
+		self.currentStoragePostition = -1
 		
 		cdef int i
 		cdef int j = self.page.headerSize
@@ -57,8 +59,9 @@ cdef class PageSearch:
 				self.position[i] = j
 				j += self.page.itemSize
 	
-	cdef readPosition(self, f64 lastUpdate):
-		if lastUpdate <= self.lastTopLayerRead: return
+	cdef readPosition(self, i64 storagePosition, f64 lastUpdate):
+		if self.currentStoragePostition == storagePosition and lastUpdate <= self.lastTopLayerRead: return
+		self.currentStoragePostition = storagePosition
 		cdef LinkedPage page = <LinkedPage> self.page
 		cdef i64 previous = page.previous
 		cdef i64 root = page.position
@@ -186,27 +189,24 @@ cdef class PageSearch:
 			top = self.topLayer[index]
 			if self.isUpperLess(reference, index):
 				hasLess = True
+				index = index - 1
 				# NOTE All data are greater than reference.
-				if index == 0:
+				if top.previous < 0 or index < 0:
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return -1
 				# NOTE The last item of the previous page is less than reference
 				if hasGreater:
+					top = self.topLayer[index]
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return top.n - 1
-				index = index - 1
 				hasLess = True
 			elif self.isUpperGreater(reference, index):
 				index = index + 1
-				# NOTE The last item is less than reference
-				if hasLess:
+				# NOTE 1. The last item is less than reference
+				# NOTE 2. All data are less than reference.
+				if hasLess or top.next < 0:
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return page.n - 1
-				# NOTE All data are less than reference.
-				if top.next < 0:
-					if isPageChanged(self.page, top): self.page.read(top.position)
-					page.read(page.next)
-					return top.n - 1
 				hasGreater = True
 			else:
 				if isPageChanged(self.page, top): self.page.read(top.position)
@@ -258,27 +258,24 @@ cdef class PageSearch:
 			top = self.topLayer[index]
 			if self.isUpperLess(reference, index):
 				hasLess = True
+				index = index - 1
 				# NOTE All data are greater than reference.
-				if index == 0:
+				if top.previous < 0 or index < 0:
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return -1
 				# NOTE The last item of the previous page is less than reference
 				if hasGreater:
+					top = self.topLayer[index]
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return top.n - 1
-				index = index - 1
 				hasLess = True
 			elif self.isUpperGreater(reference, index):
 				index = index + 1
-				# NOTE The last item is less than reference
-				if hasLess:
+				# NOTE 1. The last item is less than reference
+				# NOTE 2. All data are less than reference.
+				if hasLess or top.next < 0:
 					if isPageChanged(self.page, top): self.page.read(top.position)
 					return page.n - 1
-				# NOTE All data are less than reference.
-				if top.next < 0:
-					if isPageChanged(self.page, top): self.page.read(top.position)
-					page.read(page.next)
-					return top.n - 1
 				hasGreater = True
 			else:
 				if isPageChanged(self.page, top): self.page.read(top.position)
@@ -293,12 +290,10 @@ cdef class PageSearch:
 	
 	cdef bint isUpperLess(self, Buffer *reference, i32 index):
 		self.page.stream.position = self.page.headerSize
-		# print(640, index)
 		cdef i32 head = self.compare(reference, &self.topLayer[index].head)
 		return head < 0
 	
 	cdef bint isUpperGreater(self, Buffer *reference, i32 index):
-		# print(641, index)
 		cdef i32 tail = self.compare(reference, &self.topLayer[index].tail)
 		return tail > 0
 	
@@ -314,13 +309,11 @@ cdef class PageSearch:
 	
 	cdef bint isLess(self, Buffer *reference):
 		self.page.stream.position = self.page.headerSize
-		# print(642, self.page)
 		cdef i32 head = self.compare(reference, &self.page.stream)
 		return head < 0
 	
 	cdef bint isGreater(self, Buffer *reference):
 		self.page.stream.position = self.page.tail - self.page.itemSize
-		# print(643, self.page)
 		cdef i32 tail = self.compare(reference, &self.page.stream)
 		return tail > 0
 
@@ -340,7 +333,7 @@ cdef class PageSearch:
 			if position < self.page.n-1: return position+1
 			else: return -1
 		cdef int compared
-		while True:
+		while position < self.page.n:
 			self.page.stream.position = self.position[position]
 			compared = self.compare(reference, &self.page.stream)
 			if compared < 1: return position
@@ -355,7 +348,7 @@ cdef class PageSearch:
 			if position > 1: return position-1
 			else: return -1
 		cdef int compared
-		while True:
+		while position >= 0:
 			self.page.stream.position = self.position[position]
 			compared = self.compare(reference, &self.page.stream)
 			if compared > 0: return position
@@ -368,7 +361,7 @@ cdef class PageSearch:
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound: return position
 		cdef int compared
-		while True:
+		while position < self.page.n:
 			self.page.stream.position = self.position[position]
 			compared = self.compare(reference, &self.page.stream)
 			if compared <= 0: return position
@@ -381,7 +374,7 @@ cdef class PageSearch:
 		cdef i32 position = self.search(reference, &isFound)
 		if isFound: return position
 		cdef int compared
-		while True:
+		while position >= 0:
 			self.page.stream.position = self.position[position]
 			compared = self.compare(reference, &self.page.stream)
 			if compared >= 0: return position
@@ -394,11 +387,9 @@ cdef class PageSearch:
 		cdef i32 high = n - 1
 		cdef i32 i = 0
 		cdef i32 compared
-		# print(620)
 		while low <= high:
 			i = (high + low) // 2
 			self.page.stream.position = self.position[i]
-			# print(621, i, self.position[i])
 			compared = self.compare(reference, &self.page.stream)
 			if compared > 0 :
 				low = i + 1
@@ -417,11 +408,9 @@ cdef class PageSearch:
 		cdef i32 i = 0
 		cdef i32 compared
 		cdef i64 position
-		# print(610)
 		while low <= high:
 			i = (high + low) // 2
 			position = self.topLayer[i].position
-			# print(611, i, position)
 			compared = self.compare(reference, &self.topLayer[i].head)
 			if compared > 0 :
 				low = i + 1
