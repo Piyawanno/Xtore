@@ -15,9 +15,9 @@ cdef class HashDoubleLayerStorage(HashStorage):
 	cdef Buffer searchStream
 	cdef LinkedPageStorage itemStorage
 	cdef LinkedPage upper
-	cdef LinkedPage splittedUpper
+	cdef LinkedPage upperPage
 	cdef Page lower
-	cdef Page splittedLower
+	cdef Page lowerPage
 
 	cdef HashPageNode tail
 	cdef HashPageNode existing

@@ -3,12 +3,15 @@ from xtore.common.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, relea
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.TimeUtil cimport getMicroTime
 from xtore.instance.LinkedPage cimport LinkedPage
+
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcmp
+
 
 cdef char *MAGIC = "@XT_PAGE"
 cdef i32 MAGIC_LENGTH = 8
 cdef i32 HEADER_SIZE = 32 + MAGIC_LENGTH
+
 cdef class LinkedPageStorage:
 	def __init__(self, StreamIOHandler io, i32 pageSize, i32 itemSize):
 		self.io = io

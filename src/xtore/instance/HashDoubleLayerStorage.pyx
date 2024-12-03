@@ -23,10 +23,10 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		HashStorage.__init__(self, io, mode)
 		self.upperSearch = upperSearch
 		self.upper = self.upperSearch.page
-		self.splittedUpper = LinkedPage(self.io, self.upper.pageSize, self.upper.itemSize)
+		self.upperPage = LinkedPage(self.io, self.upper.pageSize, self.upper.itemSize)
 		self.lowerSearch = lowerSearch
 		self.lower = self.lowerSearch.page
-		self.splittedLower = Page(self.io, self.lower.pageSize, self.lower.itemSize)
+		self.lowerPage = Page(self.io, self.lower.pageSize, self.lower.itemSize)
 		self.itemStorage = LinkedPageStorage(self.io, self.upper.pageSize, self.upper.itemSize)
 
 		self.existing = self.createNode()
@@ -271,7 +271,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		cdef LinkedPage splitted
 		cdef bint isTail = self.upper.position == self.itemStorage.tail.position
 		if isTail: splitted = self.itemStorage.tail
-		else: splitted = self.splittedUpper
+		else: splitted = self.upperPage
 
 		splittedLower.stream.position = PAGE_HEADER_SIZE
 		self.existing.readItem(&splittedLower.stream)
@@ -371,7 +371,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 
 	cdef Page splitLower(self, DoubleLayerIndex target, Buffer *lower):
 		cdef i32 itemSize = self.lower.itemSize
-		cdef Page splitted = self.splittedLower
+		cdef Page splitted = self.lowerPage
 		splitted.create()
 		self.lower.read(target.lowerPosition)
 		cdef i32 n = self.lower.n // 2
