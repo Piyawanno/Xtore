@@ -1,17 +1,17 @@
-from xtore.instance.HashNode cimport HashNode
+from xtore.instance.RecordNode cimport RecordNode
 from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, getString, setString
 from xtore.BaseType cimport i16, i64, u64
 
 cdef i32 PEOPLE_ENTRY_KEY_SIZE = 8
 
-cdef class People (HashNode):
+cdef class People (RecordNode):
 	def __repr__(self):
 		return f'<People ID={self.ID} name={self.name} {self.surname}>'
 
 	cdef i64 hash(self):
 		return <i64> self.ID
 
-	cdef bint isEqual(self, HashNode other):
+	cdef bint isEqual(self, RecordNode other):
 		cdef People otherPeople = <People> other
 		return self.ID == otherPeople.ID
 
@@ -19,11 +19,13 @@ cdef class People (HashNode):
 		self.ID = (<i64*> getBuffer(stream, 8))[0]
 
 	cdef readValue(self, i16 version, Buffer *stream):
+		self.income = (<i64 *> getBuffer(stream, 8))[0]
 		self.name = getString(stream)
 		self.surname = getString(stream)
 
 	cdef write(self, Buffer *stream):
 		setBuffer(stream, <char *> &self.ID, 8)
+		setBuffer(stream, <char *> &self.income, 8)
 		cdef i32 start = stream.position
 		stream.position += 4
 		setString(stream, self.name)
@@ -33,3 +35,9 @@ cdef class People (HashNode):
 		stream.position = start
 		setBuffer(stream, <char *> &valueSize, 4)
 		stream.position = end
+	
+	cdef i32 compare(self, RecordNode other):
+		cdef People otherPeople = <People> other
+		if self.income == otherPeople.income: return 0
+		elif self.income > otherPeople.income: return 1
+		else: return -1

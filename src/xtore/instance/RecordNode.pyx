@@ -1,17 +1,17 @@
 from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i16, i64
 
-cdef class HashNodeKey:
+cdef class RecordNodeKey:
 	pass
 
-cdef class HashNode:
+cdef class RecordNode:
 	def __init__(self):
 		self.position = -1
 
 	cdef i64 hash(self):
 		raise NotImplementedError
 
-	cdef bint isEqual(self, HashNode other):
+	cdef bint isEqual(self, RecordNode other):
 		raise NotImplementedError
 
 	cdef readKey(self, i16 version, Buffer *stream):
@@ -23,8 +23,8 @@ cdef class HashNode:
 	cdef write(self, Buffer *stream):
 		raise NotImplementedError
 	
-	cdef i32 compare(self, HashNode other):
+	cdef i32 compare(self, RecordNode other):
 		raise NotImplementedError
 	
-	cdef copyKey(self, HashNode other):
+	cdef copyKey(self, RecordNode other):
 		raise NotImplementedError

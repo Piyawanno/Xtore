@@ -2,7 +2,7 @@ from xtore.BaseType cimport i32, i64
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.Page cimport Page
 from xtore.instance.LinkedPage cimport LinkedPage
-from xtore.instance.HashPageNode cimport HashPageNode
+from xtore.instance.RecordPageNode cimport RecordPageNode
 from xtore.common.Buffer cimport Buffer
 
 ctypedef struct DoubleLayerIndex:
@@ -28,7 +28,7 @@ cdef class DoubleLayerIterator:
 	cdef i32 currentSubIndex
 
 	cdef start(self, i64 headPosition)
-	cdef bint getNext(self, HashPageNode entry)
+	cdef bint getNext(self, RecordPageNode entry)
 	cdef bint move(self, DoubleLayerIndex *index)
 	cdef i64 getLowerPosition(self, i32 index)
 	cdef setPosition(self, DoubleLayerIndex index)

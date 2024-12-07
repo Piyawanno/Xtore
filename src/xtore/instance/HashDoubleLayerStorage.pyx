@@ -1,6 +1,6 @@
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.HashStorage cimport HashStorage
-from xtore.instance.HashPageNode cimport HashPageNode
+from xtore.instance.RecordPageNode cimport RecordPageNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.Page cimport Page, PAGE_HEADER_SIZE
 from xtore.instance.LinkedPage cimport LinkedPage, LINKED_PAGE_HEADER_SIZE
@@ -42,8 +42,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		releaseBuffer(&self.searchStream)
 		releaseBuffer(&self.entryStream)
 	
-	cdef appendPageNode(self, HashPageNode entry):
-		cdef HashPageNode existing = None
+	cdef appendPageNode(self, RecordPageNode entry):
+		cdef RecordPageNode existing = None
 		if entry.position < 0:
 			existing = self.get(entry, self.existing)
 			if existing is not None:
@@ -83,8 +83,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 			entry.writeUpperItem(&self.upperPageStream, pagePosition)
 			self.itemStorage.appendValue(self.upperPageStream.buffer)
 	
-	cdef insertPageNode(self, HashPageNode entry):
-		cdef HashPageNode existing = None
+	cdef insertPageNode(self, RecordPageNode entry):
+		cdef RecordPageNode existing = None
 		cdef LinkedPage tail
 		cdef i64 pagePosition
 		if entry.position < 0:
@@ -127,8 +127,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		else:
 			self.split(target, &self.upperPageStream, &self.searchStream)
 
-	cdef HashPageNode getPageNode(self, HashPageNode reference):
-		cdef HashPageNode found = self.get(reference, self.existing)
+	cdef RecordPageNode getPageNode(self, RecordPageNode reference):
+		cdef RecordPageNode found = self.get(reference, self.existing)
 		if found is None: return None
 		reference.writeUpperItem(&self.searchStream, -1)
 		self.searchStream.position = 0
@@ -148,8 +148,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		found.readItem(&self.lower.stream)
 		return found
 
-	cdef DoubleLayerRangeResult getRange(self, HashPageNode start, HashPageNode end):
-		cdef HashPageNode found = self.get(start, self.existing)
+	cdef DoubleLayerRangeResult getRange(self, RecordPageNode start, RecordPageNode end):
+		cdef RecordPageNode found = self.get(start, self.existing)
 		if found is None: return None
 
 		self.itemStorage.readHeader(found.pagePosition)
@@ -205,8 +205,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		result.endSubIndex = endLower + 1
 		return result
 
-	cdef HashPageNode getLatestPageNode(self, HashPageNode reference):
-		cdef HashPageNode found = self.get(reference, self.existing)
+	cdef RecordPageNode getLatestPageNode(self, RecordPageNode reference):
+		cdef RecordPageNode found = self.get(reference, self.existing)
 		if found is None: return None
 		self.itemStorage.readHeader(found.pagePosition)
 		self.upper.read(self.itemStorage.tailPosition)
@@ -220,8 +220,8 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		found.readItem(&self.lower.stream)
 		return found
 	
-	cdef HashPageNode getFirstPageNode(self, HashPageNode reference):
-		cdef HashPageNode found = self.get(reference, self.existing)
+	cdef RecordPageNode getFirstPageNode(self, RecordPageNode reference):
+		cdef RecordPageNode found = self.get(reference, self.existing)
 		if found is None: return None
 		self.itemStorage.readHeader(found.pagePosition)
 		self.upper.read(self.itemStorage.headPosition)
@@ -413,7 +413,7 @@ cdef class HashDoubleLayerStorage(HashStorage):
 		self.io.write(&split.stream)
 		return split
 
-	cdef DoubleLayerIndex searchInsertPosition(self, HashPageNode entry, HashPageNode found):
+	cdef DoubleLayerIndex searchInsertPosition(self, RecordPageNode entry, RecordPageNode found):
 		cdef DoubleLayerIndex target
 		if self.itemStorage.rootPosition != found.pagePosition:
 			self.itemStorage.readHeader(found.pagePosition)

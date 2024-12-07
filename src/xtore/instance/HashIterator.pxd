@@ -1,5 +1,5 @@
 from xtore.instance.HashStorage cimport HashStorage
-from xtore.instance.HashNode cimport HashNode
+from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.LinkedPageIterator cimport LinkedPageIterator
 
 
@@ -9,4 +9,4 @@ cdef class HashIterator:
 	cdef char *buffer
 
 	cdef start(self)
-	cdef bint getNext(self, HashNode node)
+	cdef bint getNext(self, RecordNode node)

@@ -1,5 +1,5 @@
 from xtore.instance.HashStorage cimport HashStorage
-from xtore.instance.HashPageNode cimport HashPageNode
+from xtore.instance.RecordPageNode cimport RecordPageNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.LinkedPage cimport LinkedPage
 from xtore.instance.PageSearch cimport PageSearch
@@ -11,10 +11,10 @@ cdef class HashPageStorage(HashStorage):
 	cdef LinkedPageStorage itemStorage
 	cdef LinkedPage page
 
-	cdef HashPageNode existing
+	cdef RecordPageNode existing
 	cdef PageSearch search
 	
-	cdef appendPageNode(self, HashPageNode entry)
-	#cdef HashPageNode getPageNode(self, HashPageNode reference)
-	#cdef PageRangeResult getRange(self, HashPageNode start, HashPageNode end)
-	#cdef HashPageNode getLatestPageNode(self, HashPageNode reference)
+	cdef appendPageNode(self, RecordPageNode entry)
+	#cdef RecordPageNode getPageNode(self, RecordPageNode reference)
+	#cdef PageRangeResult getRange(self, RecordPageNode start, RecordPageNode end)
+	#cdef RecordPageNode getLatestPageNode(self, RecordPageNode reference)

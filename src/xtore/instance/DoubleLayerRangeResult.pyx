@@ -1,7 +1,7 @@
 from xtore.BaseType cimport i32, i64
 from xtore.instance.Page cimport Page
 from xtore.instance.LinkedPage cimport LinkedPage
-from xtore.instance.HashPageNode cimport HashPageNode
+from xtore.instance.RecordPageNode cimport RecordPageNode
 
 from libc.stdlib cimport malloc, free
 
@@ -44,7 +44,7 @@ cdef class DoubleLayerRangeResult:
 		cdef i64 lowerPosition = self.getLowerPosition(self.startIndex)
 		self.lower.read(lowerPosition)
 
-	cdef bint getNext(self, HashPageNode entry):
+	cdef bint getNext(self, RecordPageNode entry):
 		cdef i32 offset
 		cdef i64 lowerPosition
 		cdef bint result = self.currentPosition >= self.endPosition

@@ -2,7 +2,7 @@ from xtore.BaseType cimport i32, i64
 from xtore.instance.Page cimport Page
 from xtore.instance.LinkedPage cimport LinkedPage
 from xtore.common.Buffer cimport Buffer
-from xtore.instance.HashPageNode cimport HashPageNode
+from xtore.instance.RecordPageNode cimport RecordPageNode
 
 cdef class DoubleLayerRangeResult:
 	cdef LinkedPage upper
@@ -24,5 +24,5 @@ cdef class DoubleLayerRangeResult:
 	cdef i32 currentSubIndex
 
 	cdef start(self)
-	cdef bint getNext(self, HashPageNode entry)
+	cdef bint getNext(self, RecordPageNode entry)
 	cdef i64 getLowerPosition(self, i32 index)

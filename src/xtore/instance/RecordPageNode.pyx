@@ -1,10 +1,10 @@
-from xtore.instance.HashNode cimport HashNode
+from xtore.instance.RecordNode cimport RecordNode
 from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i64
 
-cdef class HashPageNode(HashNode):
+cdef class RecordPageNode(RecordNode):
 	def __init__(self):
-		HashNode.__init__(self)
+		RecordNode.__init__(self)
 		self.pagePosition = -1
 		
 	cdef readItem(self, Buffer *stream):
@@ -16,8 +16,8 @@ cdef class HashPageNode(HashNode):
 	cdef writeItem(self, Buffer *stream):
 		raise NotImplementedError
 	
-	cdef i32 comparePage(self, HashPageNode other):
+	cdef i32 comparePage(self, RecordPageNode other):
 		raise NotImplementedError
 	
-	cdef copyPageKey(self, HashPageNode other):
+	cdef copyPageKey(self, RecordPageNode other):
 		raise NotImplementedError
