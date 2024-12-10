@@ -9,6 +9,7 @@ setup.py
 ./src/xtore.egg-info/requires.txt
 ./src/xtore.egg-info/top_level.txt
 ./src/xtore/common/Buffer.pxd
+./src/xtore/common/Comparator.pxd
 ./src/xtore/common/StreamIOHandler.pxd
 ./src/xtore/common/TimeUtil.pxd
 ./src/xtore/instance/BasicStorage.pxd
