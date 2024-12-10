@@ -1,7 +1,6 @@
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 from xtore.test.PeopleBSTStorage cimport PeopleBSTStorage
 from xtore.test.PeopleRTStorage cimport PeopleRTStorage
-from xtore.test.PeopleRTPStorage cimport PeopleRTPStorage
 from xtore.test.People cimport People
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.HashIterator cimport HashIterator
@@ -33,7 +32,6 @@ cdef class StorageTestCLI:
 			'People.Hash',
 			'People.BST',
 			'People.RT',
-			'People.RTP',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=True, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -44,25 +42,6 @@ cdef class StorageTestCLI:
 		if self.option.test == 'People.Hash': self.testPeopleHashStorage()
 		elif self.option.test == 'People.BST': self.testPeopleBSTStorage()
 		elif self.option.test == 'People.RT': self.testPeopleRTStorage()
-		elif self.option.test == 'People.RTP': self.testPeopleRTPStorage()
-
-	cdef testPeopleRTPStorage(self):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.RTP.bin'
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleRTPStorage storage = PeopleRTPStorage(io)
-		cdef bint isNew = not os.path.isfile(path)
-		io.open()
-		try:
-			if isNew: storage.create()
-			else: storage.readHeader(0)
-			peopleList = self.writePeople(storage)
-			storedList = self.readPeople(storage, peopleList)
-			self.comparePeople(peopleList, storedList)
-			storage.writeHeader()
-		except:
-			print(traceback.format_exc())
-		io.close()
 
 	cdef testPeopleRTStorage(self):
 		cdef str resourcePath = self.getResourcePath()
