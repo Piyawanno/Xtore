@@ -19,11 +19,12 @@ cdef i32 BUFFER_SIZE = 1 << 13
 
 cdef class BinarySearchTreeStorage (BasicStorage):
 	def __init__(self, StreamIOHandler io, CollisionMode mode):
+		self.io = io
 		self.mode = mode
 		self.headerSize = BST_STORAGE_HEADER_SIZE
 		initBuffer(&self.headerStream, <char *> malloc(BST_STORAGE_HEADER_SIZE), BST_STORAGE_HEADER_SIZE)
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
-		self.comparingNode = RecordNode()
+		self.comparingNode = self.createNode()
 
 	def __dealloc__(self):
 		releaseBuffer(&self.headerStream)
@@ -32,6 +33,7 @@ cdef class BinarySearchTreeStorage (BasicStorage):
 	cdef i64 create(self):
 		self.rootPosition = self.io.getTail()
 		self.rootNodePosition = -1
+		self.writeHeader()
 		return self.rootPosition
 
 	cdef RecordNode createNode(self):
@@ -61,12 +63,6 @@ cdef class BinarySearchTreeStorage (BasicStorage):
 			raise ValueError('Wrong Magic for BinarySearchTreeStorage')
 		self.rootNodePosition = (<i64*> getBuffer(&self.headerStream, 8))[0]
 
-	cdef setHeaderSize(self, i32 headerSize):
-		self.headerSize = headerSize
-
-	cdef setName(self, str name):
-		self.name = name
-	
 	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 		if self.rootNodePosition < 0: return None
 		cdef i64 position = self.rootNodePosition
@@ -86,7 +82,7 @@ cdef class BinarySearchTreeStorage (BasicStorage):
 			compareResult = reference.compare(stored)
 			if compareResult == 0:
 				self.readNodeValue(stored)
-				return
+				return stored
 			elif compareResult > 0:
 				if right > 0: position = right
 			else:
@@ -121,6 +117,7 @@ cdef class BinarySearchTreeStorage (BasicStorage):
 			if compareResult == 0:
 				reference.position = nodePosition
 				self.writeNode(reference)
+				break
 			elif compareResult > 0:
 				if right > 0:
 					position = right

@@ -1,5 +1,5 @@
 from xtore.common.Buffer cimport Buffer
-from xtore.BaseType cimport i16, i32, i64, u8, u32
+from xtore.BaseType cimport i16, i32, i64, u8, u32, f128
 
 cdef inline i64 hashDJB(char *key, u32 klen):
 	cdef i64 hashed = 5381
@@ -22,3 +22,5 @@ cdef class RecordNode:
 	#  1 : self >  other
 	cdef i32 compare(self, RecordNode other)
 	cdef copyKey(self, RecordNode other)
+	# NOTE For RangeTreeStorage
+	cdef f128 getRangeValue(self)

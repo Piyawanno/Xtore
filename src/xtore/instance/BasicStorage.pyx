@@ -24,10 +24,10 @@ cdef class BasicStorage:
 		raise NotImplementedError
 		
 	cdef setHeaderSize(self, i32 headerSize):
-		raise NotImplementedError
-		
+		self.headerSize = headerSize
+
 	cdef setName(self, str name):
-		raise NotImplementedError
+		self.name = name
 
 	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 		raise NotImplementedError

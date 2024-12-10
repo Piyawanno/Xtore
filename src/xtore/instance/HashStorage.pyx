@@ -129,12 +129,6 @@ cdef class HashStorage (BasicStorage):
 		self.lastUpdate = (<f64 *> getBuffer(&self.headerStream, 8))[0]
 		self.isIterable = getBoolean(&self.headerStream)
 		memcpy(self.layerPosition, getBuffer(&self.headerStream, 8*HASH_LAYER), 8*HASH_LAYER)
-	
-	cdef setHeaderSize(self, i32 headerSize):
-		self.headerSize = headerSize
-
-	cdef setName(self, str name):
-		self.name = name
 
 	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 		if self.layer < 0: return None

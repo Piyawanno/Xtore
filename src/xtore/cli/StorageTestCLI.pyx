@@ -1,4 +1,7 @@
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
+from xtore.test.PeopleBSTStorage cimport PeopleBSTStorage
+from xtore.test.PeopleRTStorage cimport PeopleRTStorage
+from xtore.test.PeopleRTPStorage cimport PeopleRTPStorage
 from xtore.test.People cimport People
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.HashIterator cimport HashIterator
@@ -27,7 +30,10 @@ cdef class StorageTestCLI:
 	def getParser(self, list argv):
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("test", help="Name of test", choices=[
-			'People',
+			'People.Hash',
+			'People.BST',
+			'People.RT',
+			'People.RTP',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=True, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -35,11 +41,68 @@ cdef class StorageTestCLI:
 	cdef run(self, list argv):
 		self.getParser(argv)
 		self.checkPath()
-		if self.option.test == 'People': self.testPeopleStorage()
-	
-	cdef testPeopleStorage(self):
+		if self.option.test == 'People.Hash': self.testPeopleHashStorage()
+		elif self.option.test == 'People.BST': self.testPeopleBSTStorage()
+		elif self.option.test == 'People.RT': self.testPeopleRTStorage()
+		elif self.option.test == 'People.RTP': self.testPeopleRTPStorage()
+
+	cdef testPeopleRTPStorage(self):
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.bin'
+		cdef str path = f'{resourcePath}/People.RTP.bin'
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef PeopleRTPStorage storage = PeopleRTPStorage(io)
+		cdef bint isNew = not os.path.isfile(path)
+		io.open()
+		try:
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			peopleList = self.writePeople(storage)
+			storedList = self.readPeople(storage, peopleList)
+			self.comparePeople(peopleList, storedList)
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
+
+	cdef testPeopleRTStorage(self):
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/People.RT.bin'
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef PeopleRTStorage storage = PeopleRTStorage(io)
+		cdef bint isNew = not os.path.isfile(path)
+		io.open()
+		try:
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			peopleList = self.writePeople(storage)
+			storedList = self.readPeople(storage, peopleList)
+			self.comparePeople(peopleList, storedList)
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
+
+	cdef testPeopleBSTStorage(self):
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/People.BST.bin'
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef PeopleBSTStorage storage = PeopleBSTStorage(io)
+		cdef bint isNew = not os.path.isfile(path)
+		io.open()
+		try:
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			peopleList = self.writePeople(storage)
+			storedList = self.readPeople(storage, peopleList)
+			self.comparePeople(peopleList, storedList)
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
+
+	cdef testPeopleHashStorage(self):
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/People.Hash.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleHashStorage storage = PeopleHashStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
@@ -66,6 +129,7 @@ cdef class StorageTestCLI:
 		cdef double start = time.time()
 		for i in range(n):
 			people = People()
+			people.position = -1
 			people.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
 			people.name = fake.first_name()
 			people.surname = fake.last_name()
@@ -97,6 +161,7 @@ cdef class StorageTestCLI:
 		for reference, comparing in zip(referenceList, comparingList):
 			try:
 				assert(reference.ID == comparing.ID)
+				assert(reference.income == comparing.income)
 				assert(reference.name == comparing.name)
 				assert(reference.surname == comparing.surname)
 			except Exception as error:

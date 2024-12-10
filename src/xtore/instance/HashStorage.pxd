@@ -12,7 +12,6 @@ cdef class HashStorage (BasicStorage):
 	cdef i64 pagePosition
 	cdef f64 lastUpdate
 	cdef i32 layer
-	cdef i32 headerSize
 	cdef i32 n
 	cdef LinkedPageStorage pageStorage
 	cdef RecordNode comparingNode

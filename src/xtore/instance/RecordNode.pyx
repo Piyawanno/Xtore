@@ -28,3 +28,6 @@ cdef class RecordNode:
 	
 	cdef copyKey(self, RecordNode other):
 		raise NotImplementedError
+
+	cdef f128 getRangeValue(self):
+		raise NotImplementedError

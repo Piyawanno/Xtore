@@ -25,12 +25,15 @@ setup.py
 ./src/xtore/instance/LinkedPageStorage.pxd
 ./src/xtore/instance/Page.pxd
 ./src/xtore/instance/PageSearch.pxd
+./src/xtore/instance/RangeTreePlusStorage.pxd
 ./src/xtore/instance/RangeTreeStorage.pxd
 ./src/xtore/instance/RecordNode.pxd
 ./src/xtore/instance/RecordPageNode.pxd
 ./src/xtore/test/People.pxd
 ./src/xtore/test/PeopleBSTStorage.pxd
 ./src/xtore/test/PeopleHashStorage.pxd
+./src/xtore/test/PeopleRTPStorage.pxd
+./src/xtore/test/PeopleRTStorage.pxd
 src/xtore/BaseType.pxd
 src/xtore.egg-info/PKG-INFO
 src/xtore.egg-info/SOURCES.txt
@@ -67,6 +70,7 @@ src/xtore/instance/Page.cpp
 src/xtore/instance/Page.pxd
 src/xtore/instance/PageSearch.cpp
 src/xtore/instance/PageSearch.pxd
+src/xtore/instance/RangeTreePlusStorage.cpp
 src/xtore/instance/RangeTreeStorage.cpp
 src/xtore/instance/RecordNode.cpp
 src/xtore/instance/RecordNode.pxd
@@ -76,3 +80,5 @@ src/xtore/test/People.cpp
 src/xtore/test/People.pxd
 src/xtore/test/PeopleBSTStorage.cpp
 src/xtore/test/PeopleHashStorage.cpp
+src/xtore/test/PeopleRTPStorage.cpp
+src/xtore/test/PeopleRTStorage.cpp

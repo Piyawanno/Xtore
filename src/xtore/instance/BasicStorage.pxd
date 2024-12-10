@@ -8,6 +8,7 @@ cdef class BasicStorage:
 	cdef StreamIOHandler io
 	cdef str name
 	cdef CollisionMode mode
+	cdef i32 headerSize
 
 	cdef i64 create(self)
 	cdef RecordNode createNode(self)
