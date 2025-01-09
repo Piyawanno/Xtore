@@ -1,4 +1,4 @@
-ctypedef char i8
+ctypedef signed char i8
 ctypedef short i16 
 ctypedef int i32
 ctypedef long i64
@@ -10,7 +10,6 @@ ctypedef unsigned short u16
 ctypedef unsigned int u32
 ctypedef unsigned long u64
 ctypedef unsigned char byte
-
 
 ctypedef enum DataType:
 	I8   = 11
