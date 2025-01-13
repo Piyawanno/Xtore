@@ -50,6 +50,7 @@ class XtoreSetup :
 		
 		self.script = [
 			'xt-test',
+			'xt-service',
 		]
 
 		self.configList = [
