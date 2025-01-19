@@ -1,7 +1,7 @@
 from xtore.BaseType cimport i32, i64
 from xtore.common.Buffer cimport initBuffer, getBuffer, releaseBuffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.instance.RangeTreeStorage cimport RangeTreeStorage
+from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.test.People cimport People, PEOPLE_ENTRY_KEY_SIZE
@@ -10,9 +10,9 @@ from libc.stdlib cimport malloc
 
 cdef i32 BUFFER_SIZE = 1 << 12
 
-cdef class PeopleRTStorage(RangeTreeStorage):
+cdef class PeopleRTStorage(ScopeTreeStorage):
 	def __init__(self, StreamIOHandler io):
-		RangeTreeStorage.__init__(self, io, CollisionMode.REPLACE, 64, 0, 1 << 44)
+		ScopeTreeStorage.__init__(self, io, CollisionMode.REPLACE, 64, 0, 1 << 44)
 		initBuffer(&self.entryStream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		self.comparingNode = People()
 	

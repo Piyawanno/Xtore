@@ -22,5 +22,5 @@ cdef class RecordNode:
 	#  1 : self >  other
 	cdef i32 compare(self, RecordNode other)
 	cdef copyKey(self, RecordNode other)
-	# NOTE For RangeTreeStorage
+	# NOTE For ScopeTreeStorage
 	cdef f128 getRangeValue(self)

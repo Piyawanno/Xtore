@@ -15,20 +15,20 @@ cdef i32 MAGIC_LENGTH = 8
 
 cdef i32 RANGE_TREE_STORAGE_HEADER_SIZE = 56
 
-cdef inline i64 normalizeIndex(RangeTreePlusStorage self, i32 maxDepth, f128 key):
+cdef inline i64 normalizeIndex(ScopeTreePlusStorage self, i32 maxDepth, f128 key):
 	cdef i64 segment = 1
 	# NOTE Use for loop to avoid multiplication
 	for i in range(maxDepth-1):
 		segment = segment << self.potence
 	return <i64> (segment*(key - self.min)/self.width)
 
-cdef inline i64 calculateLayerIndex(RangeTreePlusStorage self, i32 maxDepth, i64 normalized, i32 layer):
+cdef inline i64 calculateLayerIndex(ScopeTreePlusStorage self, i32 maxDepth, i64 normalized, i32 layer):
 	cdef i64 shifted = normalized
 	for i in range(maxDepth-1-layer):
 		shifted = shifted >> self.potence
 	return shifted & self.modulus
 
-cdef class RangeTreePlusStorage (BasicStorage):
+cdef class ScopeTreePlusStorage (BasicStorage):
 	def __init__(self, StreamIOHandler io, CollisionMode mode, i32 pageSize, f128 min, f128 max):
 		self.io = io
 		self.mode = mode

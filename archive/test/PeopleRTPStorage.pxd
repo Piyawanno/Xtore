@@ -1,5 +1,5 @@
-from xtore.instance.RangeTreePlusStorage cimport RangeTreePlusStorage
+from xtore.instance.ScopeTreePlusStorage cimport ScopeTreePlusStorage
 from xtore.common.Buffer cimport Buffer
 
-cdef class PeopleRTPStorage(RangeTreePlusStorage):
+cdef class PeopleRTPStorage(ScopeTreePlusStorage):
 	cdef Buffer entryStream

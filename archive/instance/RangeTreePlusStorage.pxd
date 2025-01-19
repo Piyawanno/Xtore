@@ -3,7 +3,7 @@ from xtore.common.Buffer cimport Buffer
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
 
-cdef class RangeTreePlusStorage (BasicStorage):
+cdef class ScopeTreePlusStorage (BasicStorage):
 	cdef i64 rootPosition
 	cdef i64 rootPagePosition
 	cdef bint isCreated

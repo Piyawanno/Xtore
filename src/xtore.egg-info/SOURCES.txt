@@ -47,12 +47,12 @@ src/xtore/instance/Page.cpp
 src/xtore/instance/Page.pxd
 src/xtore/instance/PageSearch.cpp
 src/xtore/instance/PageSearch.pxd
-src/xtore/instance/RangeTreeStorage.cpp
-src/xtore/instance/RangeTreeStorage.pxd
 src/xtore/instance/RecordNode.cpp
 src/xtore/instance/RecordNode.pxd
 src/xtore/instance/RecordPageNode.cpp
 src/xtore/instance/RecordPageNode.pxd
+src/xtore/instance/ScopeTreeStorage.cpp
+src/xtore/instance/ScopeTreeStorage.pxd
 src/xtore/service/StorageService.cpp
 src/xtore/test/People.cpp
 src/xtore/test/People.pxd
