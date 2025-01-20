@@ -1,0 +1,7 @@
+{
+	"node" : [{
+		"id" : 1,
+		"host" : "localhost",
+		"port" : 7410
+	}]
+}

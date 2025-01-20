@@ -13,10 +13,16 @@ src/xtore.egg-info/SOURCES.txt
 src/xtore.egg-info/dependency_links.txt
 src/xtore.egg-info/requires.txt
 src/xtore.egg-info/top_level.txt
+src/xtore/cli/MasterStoreCLI.cpp
+src/xtore/cli/NodeStoreCLI.cpp
 src/xtore/cli/StorageServiceCLI.cpp
 src/xtore/cli/StorageTestCLI.cpp
 src/xtore/common/Buffer.pxd
+src/xtore/common/ClientHandler.cpp
+src/xtore/common/ClientHandler.pxd
 src/xtore/common/Comparator.pxd
+src/xtore/common/ServerHandler.cpp
+src/xtore/common/ServerHandler.pxd
 src/xtore/common/StreamIOHandler.cpp
 src/xtore/common/StreamIOHandler.pxd
 src/xtore/common/TimeUtil.pxd
