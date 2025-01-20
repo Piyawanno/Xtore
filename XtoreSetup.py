@@ -51,9 +51,12 @@ class XtoreSetup :
 		self.script = [
 			'xt-test',
 			'xt-service',
+			'xt-master',
+			'xt-node',
 		]
 
 		self.configList = [
+			("XtoreNetwork.json", "XtoreNetwork.json")
 		]
 
 		self.installPathList = [
