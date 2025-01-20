@@ -9,19 +9,11 @@ cdef class ServerHandler :
 		self.host = self.config["host"]
 		self.port = self.config["port"]
 	
-	def run(self) -> None :
-		asyncio.run(self.serve())
+	def run(self, handle) -> None :
+		asyncio.run(self.serve(handle))
 
-	async def serve(self) -> None :
-		server:object = await asyncio.start_server(self.handle, self.host, self.port)
+	async def serve(self, handle) -> None :
+		server:object = await asyncio.start_server(handle, self.host, self.port)
 		async with server :
 			print(f"Start Socket Server @ {self.host}:{self.port}")
 			await server.serve_forever()
-
-	async def handle(self, reader:object, writer:object) -> None :
-		message:bytes = await reader.read(1024)
-		print(message)
-		writer.write(message)
-		await writer.drain()
-		writer.close()
-		await writer.wait_closed()

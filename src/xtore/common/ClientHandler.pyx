@@ -9,14 +9,14 @@ cdef class ClientHandler :
 		self.host = self.config["host"]
 		self.port = self.config["port"]
 	
-	def send(self) -> None :
-		asyncio.run(self.connect())
+	def send(self, bytes message) -> None :
+		asyncio.run(self.connect(message))
 
-	async def connect(self) -> None :
+	async def connect(self, bytes message) -> None :
 		reader, writer = await asyncio.open_connection(self.host, self.port)
-		writer.write(b"\n\n\n")
+		writer.write(message)
 		await writer.drain()
-		message:bytes = await reader.read(1024)
-		print(message)
+		received:bytes = await reader.read(1024)
+		print(received)
 		writer.close()
 		await writer.wait_closed()

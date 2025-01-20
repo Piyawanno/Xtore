@@ -6,7 +6,7 @@ cdef i32 PEOPLE_ENTRY_KEY_SIZE = 8
 
 cdef class People (RecordNode):
 	def __repr__(self):
-		return f'<People ID={self.ID} name={self.name} {self.surname}>'
+		return f'<People ID={self.ID} income={self.income} name={self.name} {self.surname}>'
 
 	cdef i64 hash(self):
 		return <i64> self.ID
