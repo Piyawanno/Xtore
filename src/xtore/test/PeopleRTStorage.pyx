@@ -12,7 +12,7 @@ cdef i32 BUFFER_SIZE = 1 << 12
 
 cdef class PeopleRTStorage(ScopeTreeStorage):
 	def __init__(self, StreamIOHandler io):
-		ScopeTreeStorage.__init__(self, io, CollisionMode.REPLACE, 64, 0, 1 << 44)
+		ScopeTreeStorage.__init__(self, io, 64, 0, 1 << 44)
 		initBuffer(&self.entryStream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		self.comparingNode = People()
 	
