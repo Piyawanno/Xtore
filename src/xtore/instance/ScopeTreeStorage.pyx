@@ -34,9 +34,18 @@ cdef inline i64 calculateLayerIndex(ScopeTreeStorage self, i32 maxDepth, i64 nor
 	return shifted & self.modulus
 
 cdef class ScopeTreeStorage (BasicStorage):
-	def __init__(self, StreamIOHandler io, CollisionMode mode, i32 pageSize, f128 min, f128 max):
+	def __init__(
+		self,
+		StreamIOHandler io,
+		i32 pageSize,
+		f128 min,
+		f128 max,
+		ScopeRootMode rootMode=ScopeRootMode.MIDDLE,
+		CollisionMode mode=CollisionMode.REPLACE,
+	):
 		self.io = io
 		self.mode = mode
+		self.rootMode = rootMode
 		self.headerSize = RANGE_TREE_STORAGE_HEADER_SIZE
 		self.pageSize = pageSize
 		self.maxDepth = 1
@@ -114,7 +123,6 @@ cdef class ScopeTreeStorage (BasicStorage):
 
 	cdef u64 createPage(self):
 		cdef i64 position = self.io.getTail()
-		self.pageStream.position = 0
 		self.pageStream.position = self.pageBufferSize
 		self.io.append(&self.pageStream)
 		return <u64> position
@@ -147,8 +155,11 @@ cdef class ScopeTreeStorage (BasicStorage):
 				return None
 	
 	cdef set(self, RecordNode reference):
+		cdef f128 key = reference.getRangeValue()
+		while key < self.root.min or key >= self.max:
+			self.createParent()
 		cdef i32 depth
-		cdef i64 normalized = normalizeIndex(self, self.maxDepth, reference.getRangeValue())
+		cdef i64 normalized = normalizeIndex(self, self.maxDepth, key)
 		cdef i64 current = self.rootPagePosition
 		cdef i64 index
 		cdef i64 position
@@ -196,6 +207,32 @@ cdef class ScopeTreeStorage (BasicStorage):
 				child = self.insertNode(child, reference, &depth)
 				if depth > self.maxDepth: self.maxDepth = depth
 				break
+	
+	cdef u64 createParent(self):
+		cdef u64 position = self.createPage()
+		cdef i32 half = self.pageSize >> 1
+		cdef i32 index
+		self.width = self.width*self.pageSize
+		if self.rootMode == ScopeRootMode.RIGHT: self.min = self.min + self.width*half
+		elif self.rootMode == ScopeRootMode.MIDDLE: self.min = self.min - self.width*half	
+		cdef u64 nodePosition
+		if self.rootMode == ScopeRootMode.LEFT:
+			nodePosition = position
+		elif self.rootMode == ScopeRootMode.RIGHT:
+			nodePosition = position + ((self.pageSize - 1) << 3)
+		else:
+			nodePosition = position + (half) << 3
+		cdef u8 state = OccupationState.PAGE
+		cdef u64 meta = (self.rootPagePosition << 2) | state
+		self.positionStream.position = 0
+		setBuffer(&self.positionStream, <char *> &meta, 8)
+		self.io.seek(nodePosition)
+		self.io.write(&self.positionStream)
+		self.rootPagePosition = position
+		self.max = self.min + self.width*self.pageSize
+		self.maxDepth = self.maxDepth + 1
+		self.writeHeader()
+		return position
 	
 	cdef u64 insertNode(self, u64 page, RecordNode node, i32 *depth):
 		cdef f128 rangeValue = node.getRangeValue()
