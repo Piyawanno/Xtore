@@ -7,6 +7,4 @@ cdef i32 PEOPLE_ENTRY_KEY_SIZE
 cdef class Package (RecordNode):
 	cdef u64 ID
 	cdef str method
-	cdef i64 income
-	cdef str name
-	cdef str surname
+	cdef str data

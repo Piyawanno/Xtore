@@ -1,8 +1,10 @@
 from xtore.common.ServerHandler cimport ServerHandler
 from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.HashIterator cimport HashIterator
-from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
+from xtore.instance.RecordNode cimport RecordNode
+from xtore.instance.HashStorage cimport HashStorage
 from xtore.BaseType cimport i32, u64
 
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
@@ -12,7 +14,7 @@ from xtore.test.Package cimport Package
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
 from cpython cimport PyBytes_FromStringAndSize
-import os, sys, argparse, json, traceback, random, time
+import os, sys, argparse, json, traceback, random, time, importlib
 
 from faker import Faker
 from argparse import RawTextHelpFormatter
@@ -26,6 +28,22 @@ cdef i32 BUFFER_SIZE = 1 << 16
 def run():
 	cli = DBServiceCLI()
 	cli.run(sys.argv[1:])
+
+cdef initPeople(str name,str surname):
+	cdef People people = People()
+	people.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
+	people.name = name
+	people.surname = surname
+	return people
+
+cdef initStorage(StreamIOHandler io):
+	cdef PeopleHashStorage storage = PeopleHashStorage(io)
+	return storage
+
+cdef dict CLASS_INIT = {
+	"People": initPeople,
+	"PeopleHashStorage": initStorage
+}
 
 cdef class DBServiceCLI:
 	cdef object parser
@@ -61,61 +79,77 @@ cdef class DBServiceCLI:
 		self.stream.position += 4
 		package.readValue(0, &self.stream)
 		print(package)
-		if package.method == 'Set': self.setPersonHashStorage(package)
-		else: self.getPeople(package)
+		if package.method == 'Set':
+			self.setHashStorage(package.data)
+		elif package.method == 'Get':
+			self.getData(package.data)
+		else: 
+			print('Unknown Method')
 		writer.write(message)
 		await writer.drain()
 		writer.close()
 		await writer.wait_closed()
 
-	cdef setPersonHashStorage(self, Package package):
+	cdef handleData(self, str data):
+		cdef dict data_dict = json.loads(data)
+		cdef str table_name = data_dict.pop('table_name', None)
+		cdef str storage_method = data_dict.pop('storage_method', None)
+
+		cdef object table = CLASS_INIT.get(table_name)(**data_dict)
+		print(table)
+		
+		return {
+			"table" : table,
+			"table_type" : type(table),
+			"storage_method" : CLASS_INIT.get(storage_method)
+		}
+
+	cdef setHashStorage(self, str data):
+		cdef object tableInfo = self.handleData(data)
+		cdef type Table = tableInfo["table_type"]
+		cdef object table = tableInfo["table"]
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.Hash.bin'
+		cdef str path = f'{resourcePath}/{table.__class__.__name__}.Hash.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleHashStorage storage = PeopleHashStorage(io)
+		cdef HashStorage storage = tableInfo["storage_method"](io)
 		cdef bint isNew = not os.path.isfile(path)
 		io.open()
 		try:
 			storage.enableIterable()
 			if isNew: storage.create()
 			else: storage.readHeader(0)
-			peopleList = self.writePeople(storage, package)
+			dataList = self.writeData(storage, table)
 			storage.writeHeader()
-			if isNew: self.iteratePeople(storage, peopleList)
+			if isNew: self.iterateData(storage, dataList, Table)
 		except:
 			print(traceback.format_exc())
 		io.close()
 
-	cdef getPeople(self, Package Package):
+	cdef getData(self, Package Package):
 		print('to be continue...')
 		pass
 
-	cdef list writePeople(self, BasicStorage storage, Package package):
-		cdef list peopleList = []
-		cdef People people = People()
+	cdef list writeData(self, BasicStorage storage, object data):
+		cdef list dataList = []
 		cdef int i
-		people.position = -1
-		people.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
-		people.name = package.name
-		people.surname = package.surname
-		peopleList.append(people)
-		for people in peopleList:
-			storage.set(people)
+		dataList.append(data)
+		for data in dataList:
+			storage.set(data)
 			print('set success!')
-		return peopleList
+		return dataList
 	
-	cdef list readPeople(self, BasicStorage storage, list peopleList):
+	cdef list readData(self, BasicStorage storage, list dataList):
 		cdef list storedList = []
-		cdef People stored
-		for people in peopleList:
-			stored = storage.get(people, None)
+		cdef object stored
+		for data in dataList:
+			stored = storage.get(data, None)
 			storedList.append(stored)
 		return storedList
 
-	cdef iteratePeople(self, PeopleHashStorage storage, list referenceList):
+	cdef iterateData(self, object storage, list referenceList, type Table):
 		cdef HashIterator iterator
-		cdef People entry = People()
-		cdef People comparing
+		cdef type entry = Table()
+		cdef object comparing
 		cdef int i
 		cdef int n = len(referenceList)
 		cdef double start = time.time()
@@ -126,7 +160,7 @@ cdef class DBServiceCLI:
 			while iterator.getNext(entry):
 				continue
 			elapsed = time.time() - start
-			print(f'>>> People Data of {n} are iterated in {elapsed:.3}s ({(n/elapsed)} r/s)')
+			print(f'>>> Table Data of {n} are iterated in {elapsed:.3}s ({(n/elapsed)} r/s)')
 
 			i = 0
 			iterator.start()
@@ -141,7 +175,7 @@ cdef class DBServiceCLI:
 					raise error
 				i += 1
 			elapsed = time.time() - start
-			print(f'>>> People Data of {n} are checked in {elapsed:.3}s')
+			print(f'>>> Table Data of {n} are checked in {elapsed:.3}s')
 
 	cdef checkPath(self):
 		cdef str resourcePath = self.getResourcePath()

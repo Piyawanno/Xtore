@@ -6,7 +6,7 @@ cdef i32 PEOPLE_ENTRY_KEY_SIZE = 8
 
 cdef class Package (RecordNode):
 	def __repr__(self):
-		return f'Method={self.method} <Package ID={self.ID} income={self.income} name={self.name} {self.surname}>'
+		return f'Method={self.method} <Package ID={self.ID} value={self.data}>'
 
 	cdef i64 hash(self):
 		return <i64> self.ID
@@ -20,18 +20,14 @@ cdef class Package (RecordNode):
 
 	cdef readValue(self, i16 version, Buffer *stream):
 		self.method = getString(stream)
-		self.income = (<i64 *> getBuffer(stream, 8))[0]
-		self.name = getString(stream)
-		self.surname = getString(stream)
+		self.data = getString(stream)
 
 	cdef write(self, Buffer *stream):
 		setBuffer(stream, <char *> &self.ID, 8)
 		cdef i32 start = stream.position
 		stream.position += 4
 		setString(stream, self.method)
-		setBuffer(stream, <char *> &self.income, 8)
-		setString(stream, self.name)
-		setString(stream, self.surname)
+		setString(stream, self.data)
 		cdef i32 end = stream.position
 		cdef i32 valueSize = end - start
 		stream.position = start

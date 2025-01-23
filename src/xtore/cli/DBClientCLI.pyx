@@ -54,8 +54,12 @@ cdef class DBClientCLI:
 		package.position = -1
 		package.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
 		package.method = self.option.method
-		package.name = self.option.message or fake.first_name()
-		package.surname = fake.last_name()
+		package.data = self.option.message or json.dumps({
+			"table_name" : "People",
+			"storage_method" : "PeopleHashStorage",
+			"name" : fake.first_name(),
+			"surname" : fake.last_name()
+		})
 		print(package)
 		package.write(&self.stream)
 		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
