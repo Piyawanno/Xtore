@@ -3,6 +3,9 @@ from xtore.common.Buffer cimport Buffer
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
+from xtore.instance.ScopeIterator cimport ScopeIterator
+from xtore.instance.ScopeBackwardIterator cimport ScopeBackwardIterator
+from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBoolean, initBuffer, releaseBuffer
 
@@ -14,11 +17,6 @@ cdef char *MAGIC = "@XT_RTST"
 cdef i32 MAGIC_LENGTH = 8
 
 cdef i32 RANGE_TREE_STORAGE_HEADER_SIZE = 56
-
-ctypedef enum OccupationState:
-	FREE = 1
-	NODE = 2
-	PAGE = 3
 
 cdef inline i64 normalizeIndex(ScopeTreeStorage self, i32 maxDepth, f128 key):
 	cdef i64 segment = 1
@@ -37,9 +35,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 	def __init__(
 		self,
 		StreamIOHandler io,
-		i32 pageSize,
-		f128 min,
-		f128 max,
+		i32 pageSize=64,
 		ScopeRootMode rootMode=ScopeRootMode.MIDDLE,
 		CollisionMode mode=CollisionMode.REPLACE,
 	):
@@ -55,9 +51,6 @@ cdef class ScopeTreeStorage (BasicStorage):
 			raise ValueError("pageSize must be potent of 2 e.g. 2, 4, 8, 16, ...")
 		self.potence = <i32> potence
 		self.modulus = pageSize - 1
-		self.min = min
-		self.max = max
-		self.width = (max - min)/pageSize
 		self.pageBufferSize = pageSize*sizeof(i64)
 		self.comparingNode = self.createNode()
 		initBuffer(&self.headerStream, <char *> malloc(RANGE_TREE_STORAGE_HEADER_SIZE), RANGE_TREE_STORAGE_HEADER_SIZE)
@@ -77,14 +70,17 @@ cdef class ScopeTreeStorage (BasicStorage):
 		releaseBuffer(&self.positionStream)
 
 	cdef i64 create(self):
+		self.min = self.getInitialMinValue()
+		self.max = self.getInitialMaxValue()
+		self.width = (self.max - self.min)/self.pageSize
 		self.rootPosition = self.io.getTail()
 		self.writeHeader()
 		self.rootPagePosition = self.createPage()
 		self.writeHeader()
 		return self.rootPosition
 
-	cdef RecordNode createNode(self):
-		raise NotImplementedError
+	cdef BasicIterator createIterator(self):
+		return ScopeBackwardIterator(self)
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
@@ -111,7 +107,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 		cdef bint isMagic = memcmp(MAGIC, self.headerStream.buffer, MAGIC_LENGTH)
 		self.headerStream.position += MAGIC_LENGTH
 		if isMagic != 0:
-			raise ValueError('Wrong Magic for RageTreeStorage')
+			raise ValueError('Wrong Magic for ScopeTreeStorage')
 		cdef i32 pageSize = (<i32 *> getBuffer(stream, 4))[0]
 		if self.pageSize != pageSize:
 			raise ValueError('PageSize mismatched')
@@ -126,6 +122,15 @@ cdef class ScopeTreeStorage (BasicStorage):
 		self.pageStream.position = self.pageBufferSize
 		self.io.append(&self.pageStream)
 		return <u64> position
+	
+	cdef f128 getInitialMinValue(self):
+		raise NotImplementedError
+
+	cdef f128 getInitialMaxValue(self):
+		raise NotImplementedError
+	
+	cdef i32 getDepth(self):
+		return self.maxDepth
 	
 	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 		cdef i32 maxDepth = self.maxDepth
@@ -156,7 +161,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 	
 	cdef set(self, RecordNode reference):
 		cdef f128 key = reference.getRangeValue()
-		while key < self.root.min or key >= self.max:
+		while key < self.min or key >= self.max:
 			self.createParent()
 		cdef i32 depth
 		cdef i64 normalized = normalizeIndex(self, self.maxDepth, key)

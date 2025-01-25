@@ -5,6 +5,7 @@ from xtore.test.People cimport People
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.HashIterator cimport HashIterator
 from xtore.instance.BasicStorage cimport BasicStorage
+from xtore.instance.BasicIterator cimport BasicIterator
 
 from faker import Faker
 from argparse import RawTextHelpFormatter
@@ -56,6 +57,7 @@ cdef class StorageTestCLI:
 			peopleList = self.writePeople(storage)
 			storedList = self.readPeople(storage, peopleList)
 			self.comparePeople(peopleList, storedList)
+			self.iteratePeople(storage)
 			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
@@ -93,7 +95,7 @@ cdef class StorageTestCLI:
 			peopleList = self.writePeople(storage)
 			storedList = self.readPeople(storage, peopleList)
 			self.comparePeople(peopleList, storedList)
-			if isNew: self.iteratePeople(storage, peopleList)
+			self.iteratePeople(storage)
 			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
@@ -150,36 +152,19 @@ cdef class StorageTestCLI:
 		cdef int n = len(referenceList)
 		print(f'>>> People Data of {n} are checked in {elapsed:.3}s')
 	
-	cdef iteratePeople(self, PeopleHashStorage storage, list referenceList):
-		cdef HashIterator iterator
+	cdef iteratePeople(self, BasicStorage storage):
+		cdef BasicIterator iterator
 		cdef People entry = People()
 		cdef People comparing
-		cdef int i
-		cdef int n = len(referenceList)
+		cdef int n = 0
 		cdef double start = time.time()
 		cdef double elapsed
-		if storage.isIterable:
-			iterator = HashIterator(storage)
-			iterator.start()
-			while iterator.getNext(entry):
-				continue
-			elapsed = time.time() - start
-			print(f'>>> People Data of {n} are iterated in {elapsed:.3}s ({(n/elapsed)} r/s)')
-
-			i = 0
-			iterator.start()
-			while iterator.getNext(entry):
-				comparing = referenceList[i]
-				try:
-					assert(entry.ID == comparing.ID)
-					assert(entry.name == comparing.name)
-					assert(entry.surname == comparing.surname)
-				except Exception as error:
-					print(entry, comparing)
-					raise error
-				i += 1
-			elapsed = time.time() - start
-			print(f'>>> People Data of {n} are checked in {elapsed:.3}s')
+		iterator = storage.createIterator()
+		iterator.start()
+		while iterator.getNext(entry):
+			n += 1
+		elapsed = time.time() - start
+		print(f'>>> People Data of {n} are iterated in {elapsed:.3}s ({(n/elapsed)} r/s)')
 
 	cdef checkPath(self):
 		cdef str resourcePath = self.getResourcePath()

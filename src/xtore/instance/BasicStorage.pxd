@@ -3,6 +3,7 @@ from xtore.common.Buffer cimport Buffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
+from xtore.instance.BasicIterator cimport BasicIterator
 
 cdef class BasicStorage:
 	cdef StreamIOHandler io
@@ -26,3 +27,5 @@ cdef class BasicStorage:
 	cdef RecordNode readNodeKey(self, i64 position, RecordNode node)
 	cdef readNodeValue(self, RecordNode node)
 	cdef writeNode(self, RecordNode node)
+
+	cdef BasicIterator createIterator(self)

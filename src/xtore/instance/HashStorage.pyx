@@ -3,6 +3,8 @@ from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.CollisionMode cimport CollisionMode
+from xtore.instance.BasicIterator cimport BasicIterator
+from xtore.instance.HashIterator cimport HashIterator
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.TimeUtil cimport getMicroTime
 from xtore.BaseType cimport u32, i32, i64, f64
@@ -92,9 +94,6 @@ cdef class HashStorage (BasicStorage):
 		self.isCreated = True
 		return self.rootPosition
 
-	cdef RecordNode createNode(self):
-		raise NotImplementedError
-
 	cdef writeHeader(self):
 		self.headerStream.position = 0
 		self.writeHeaderBuffer(&self.headerStream)
@@ -148,6 +147,9 @@ cdef class HashStorage (BasicStorage):
 		if self.isIterable and setResult == NOT_FOUND_AND_SET:
 			self.pageStorage.appendValue(<char *> &reference.position)
 		self.lastUpdate = getMicroTime()
+	
+	cdef BasicIterator createIterator(self):
+		return HashIterator(self)
 	
 	cdef setComparingNode(self, RecordNode comparingNode):
 		self.comparingNode = comparingNode
