@@ -19,4 +19,4 @@ cdef class ScopeIterator (BasicIterator):
 	cdef i32 currentDepth
 	cdef Buffer *currentStream
 
-	cdef bint moveNext(self, Buffer *stream, i32 depth, i32 start)
+	cdef bint moveNext(self, Buffer *stream, i32 depth, i32 start, u64 pagePosition)

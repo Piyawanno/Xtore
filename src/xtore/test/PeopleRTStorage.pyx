@@ -23,7 +23,7 @@ cdef class PeopleRTStorage(ScopeTreeStorage):
 		return <f128> 0
 
 	cdef f128 getInitialMaxValue(self):
-		return <f128> (1 << 44)
+		return <f128> (1 << 36)
 
 	cdef RecordNode createNode(self):
 		return People()

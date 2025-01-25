@@ -28,29 +28,31 @@ cdef class ScopeIterator (BasicIterator):
 		free(self.streamList)
 
 	cdef start(self):
-		self.storage.io.seek(self.storage.rootPosition)
+		self.storage.io.seek(self.storage.rootPagePosition)
 		self.storage.io.read(&self.streamList[0], self.pageBufferSize)
-		self.hasNext = self.moveNext(&self.streamList[0], 0, 0)
+		self.hasNext = self.moveNext(&self.streamList[0], 0, 0, self.storage.rootPagePosition)
 
 	cdef bint getNext(self, RecordNode node):
 		if not self.hasNext: return self.hasNext
 		self.storage.readNodeKey(self.currentPosition, node)
 		self.storage.readNodeValue(node)
-		cdef bint hasNext = self.moveNext(self.currentStream, self.currentDepth, self.currentIndex+1)
+		cdef bint hasNext = self.moveNext(self.currentStream, self.currentDepth, self.currentIndex+1, 0)
 		if hasNext: return True
 		for i in range(self.currentDepth-1, -1, -1):
-			hasNext = self.moveNext(&self.streamList[i], i, self.index[i]+1)
+			hasNext = self.moveNext(&self.streamList[i], i, self.index[i]+1, 0)
 			if hasNext: break
 		self.hasNext = hasNext
 		return True
 	
-	cdef bint moveNext(self, Buffer *stream, i32 depth, i32 start):
+	cdef bint moveNext(self, Buffer *stream, i32 depth, i32 start, u64 pagePosition):
 		if depth >= self.depth: return False
 		cdef i32 position
 		cdef u64 meta
 		cdef u64 child
 		cdef u8 state
 		cdef bint isFound
+		cdef Buffer *childStream
+
 		for i in range(start, self.storage.pageSize):
 			position = i << 3
 			meta = (<u64 *> (stream.buffer+position))[0]
@@ -64,11 +66,10 @@ cdef class ScopeIterator (BasicIterator):
 				return True
 			elif state == OccupationState.PAGE:
 				if depth >= self.depth-1: return False
-				stream = &self.streamList[depth+1]
+				childStream = &self.streamList[depth+1]
 				self.storage.io.seek(child)
-				self.storage.io.read(stream, self.pageBufferSize)
-				isFound = self.moveNext(stream, depth+1, 0)
+				self.storage.io.read(childStream, self.pageBufferSize)
+				isFound = self.moveNext(childStream, depth+1, 0, child)
 				self.index[depth] = i
 				if isFound: return True
-				continue
 		return False

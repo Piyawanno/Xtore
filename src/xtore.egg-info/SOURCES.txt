@@ -34,6 +34,8 @@ setup.py
 ./src/xtore/instance/ScopeBackwardIterator.pxd
 ./src/xtore/instance/ScopeIterator.pxd
 ./src/xtore/instance/ScopeTreeStorage.pxd
+./src/xtore/test/Data.pxd
+./src/xtore/test/Package.pxd
 ./src/xtore/test/People.pxd
 ./src/xtore/test/PeopleBSTStorage.pxd
 ./src/xtore/test/PeopleHashStorage.pxd
@@ -44,6 +46,8 @@ src/xtore.egg-info/SOURCES.txt
 src/xtore.egg-info/dependency_links.txt
 src/xtore.egg-info/requires.txt
 src/xtore.egg-info/top_level.txt
+src/xtore/cli/DBClientCLI.cpp
+src/xtore/cli/DBServiceCLI.cpp
 src/xtore/cli/MasterStoreCLI.cpp
 src/xtore/cli/NodeStoreCLI.cpp
 src/xtore/cli/StorageServiceCLI.cpp
@@ -96,6 +100,8 @@ src/xtore/instance/ScopeIterator.pxd
 src/xtore/instance/ScopeTreeStorage.cpp
 src/xtore/instance/ScopeTreeStorage.pxd
 src/xtore/service/StorageService.cpp
+src/xtore/test/Data.cpp
+src/xtore/test/Package.cpp
 src/xtore/test/People.cpp
 src/xtore/test/People.pxd
 src/xtore/test/PeopleBSTStorage.cpp

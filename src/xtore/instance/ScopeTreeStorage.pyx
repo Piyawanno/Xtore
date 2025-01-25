@@ -80,7 +80,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 		return self.rootPosition
 
 	cdef BasicIterator createIterator(self):
-		return ScopeBackwardIterator(self)
+		return ScopeIterator(self)
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
@@ -141,6 +141,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 		cdef u64 meta
 		cdef u8 state
 		cdef RecordNode stored
+		
 		for i in range(maxDepth):
 			index = calculateLayerIndex(self, maxDepth, normalized, i)
 			position = current + (index << 3)
@@ -226,7 +227,8 @@ cdef class ScopeTreeStorage (BasicStorage):
 		elif self.rootMode == ScopeRootMode.RIGHT:
 			nodePosition = position + ((self.pageSize - 1) << 3)
 		else:
-			nodePosition = position + (half) << 3
+			nodePosition = position + ((half) << 3)
+
 		cdef u8 state = OccupationState.PAGE
 		cdef u64 meta = (self.rootPagePosition << 2) | state
 		self.positionStream.position = 0

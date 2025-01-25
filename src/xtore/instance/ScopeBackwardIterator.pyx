@@ -28,7 +28,7 @@ cdef class ScopeBackwardIterator (BasicIterator):
 		free(self.streamList)
 
 	cdef start(self):
-		self.storage.io.seek(self.storage.rootPosition)
+		self.storage.io.seek(self.storage.rootPagePosition)
 		self.storage.io.read(&self.streamList[0], self.pageBufferSize)
 		self.hasNext = self.moveNext(&self.streamList[0], 0, self.storage.pageSize-1)
 
@@ -51,6 +51,7 @@ cdef class ScopeBackwardIterator (BasicIterator):
 		cdef u64 child
 		cdef u8 state
 		cdef bint isFound
+		cdef Buffer *childStream
 		for i in range(start, -1, -1):
 			position = i << 3
 			meta = (<u64 *> (stream.buffer+position))[0]
@@ -64,10 +65,10 @@ cdef class ScopeBackwardIterator (BasicIterator):
 				return True
 			elif state == OccupationState.PAGE:
 				if depth >= self.depth-1: return False
-				stream = &self.streamList[depth+1]
+				childStream = &self.streamList[depth+1]
 				self.storage.io.seek(child)
-				self.storage.io.read(stream, self.pageBufferSize)
-				isFound = self.moveNext(stream, depth+1, self.storage.pageSize-1)
+				self.storage.io.read(childStream, self.pageBufferSize)
+				isFound = self.moveNext(childStream, depth+1, self.storage.pageSize-1)
 				self.index[depth] = i
 				if isFound: return True
 				continue
