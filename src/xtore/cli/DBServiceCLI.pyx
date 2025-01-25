@@ -7,6 +7,7 @@ from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.HashStorage cimport HashStorage
 from xtore.BaseType cimport i32, u64
 
+from xtore.test.Data cimport Data
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 from xtore.test.People cimport People
 from xtore.test.Package cimport Package
@@ -81,11 +82,13 @@ cdef class DBServiceCLI:
 		print(package)
 		if package.method == 'Set':
 			self.setHashStorage(package.data)
+			writer.write(message)
 		elif package.method == 'Get':
-			self.getData(package.data)
+			queryResult:str = repr(self.getByID(package.data))
+			returnMessage:bytes = queryResult.encode('utf-8')
+			writer.write(returnMessage)
 		else: 
 			print('Unknown Method')
-		writer.write(message)
 		await writer.drain()
 		writer.close()
 		await writer.wait_closed()
@@ -96,8 +99,6 @@ cdef class DBServiceCLI:
 		cdef str storage_method = data_dict.pop('storage_method', None)
 
 		cdef object table = CLASS_INIT.get(table_name)(**data_dict)
-		print(table)
-		
 		return {
 			"table" : table,
 			"table_type" : type(table),
@@ -111,7 +112,7 @@ cdef class DBServiceCLI:
 		cdef str resourcePath = self.getResourcePath()
 		cdef str path = f'{resourcePath}/{table.__class__.__name__}.Hash.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef HashStorage storage = tableInfo["storage_method"](io)
+		cdef PeopleHashStorage storage = tableInfo["storage_method"](io)
 		cdef bint isNew = not os.path.isfile(path)
 		io.open()
 		try:
@@ -120,14 +121,47 @@ cdef class DBServiceCLI:
 			else: storage.readHeader(0)
 			dataList = self.writeData(storage, table)
 			storage.writeHeader()
-			if isNew: self.iterateData(storage, dataList, Table)
+			if isNew: self.iterateData(storage, dataList)
 		except:
 			print(traceback.format_exc())
 		io.close()
 
-	cdef getData(self, Package Package):
-		print('to be continue...')
-		pass
+	cdef getPeopleDataByID(self, BasicStorage storage, u64 ID):
+		cdef People queryPeople = People()
+		queryPeople.ID = ID
+		cdef People result
+		result = storage.get(queryPeople, None)
+		print(f">> Query Result: {result}")
+		return result
+
+	cdef getData(self, str data):
+		cdef Data record = Data()
+		cdef dict raw = json.loads(data)
+		try:
+			del raw['table_name'], raw['storage_method']
+		except KeyError:
+			pass
+		record.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
+		record.fields = raw
+		return record
+
+	cdef getByID(self, str rawID):
+		cdef u64 castID = <u64> int(rawID)
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/People.Hash.bin'
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef PeopleHashStorage storage = PeopleHashStorage(io)
+		cdef bint isNew = not os.path.isfile(path)
+		if isNew: return '<Table not found>'
+		cdef People queryResult
+		io.open()
+		try:
+			storage.readHeader(0)
+			queryResult = self.getPeopleDataByID(storage, castID)
+		except:
+			print(traceback.format_exc())
+		io.close
+		return queryResult
 
 	cdef list writeData(self, BasicStorage storage, object data):
 		cdef list dataList = []
@@ -135,7 +169,7 @@ cdef class DBServiceCLI:
 		dataList.append(data)
 		for data in dataList:
 			storage.set(data)
-			print('set success!')
+			print(f'>> Recorded: {data}')
 		return dataList
 	
 	cdef list readData(self, BasicStorage storage, list dataList):
@@ -146,10 +180,10 @@ cdef class DBServiceCLI:
 			storedList.append(stored)
 		return storedList
 
-	cdef iterateData(self, object storage, list referenceList, type Table):
+	cdef iterateData(self, PeopleHashStorage storage, list referenceList):
 		cdef HashIterator iterator
-		cdef type entry = Table()
-		cdef object comparing
+		cdef People entry = People()
+		cdef People comparing
 		cdef int i
 		cdef int n = len(referenceList)
 		cdef double start = time.time()
