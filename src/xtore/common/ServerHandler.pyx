@@ -1,7 +1,7 @@
 from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport u16
 
-import os, asyncio
+import sys, os, asyncio, uvloop
 
 cdef class ServerHandler :
 	def __init__(self, dict config) :
@@ -10,6 +10,10 @@ cdef class ServerHandler :
 		self.port = self.config["port"]
 	
 	def run(self, handle) -> None :
+		if sys.version_info >= (3, 11):
+			with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
+				runner.run(self.serve(handle))
+		uvloop.install()
 		asyncio.run(self.serve(handle))
 
 	async def serve(self, handle) -> None :
