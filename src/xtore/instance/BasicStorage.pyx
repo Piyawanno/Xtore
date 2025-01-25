@@ -46,4 +46,6 @@ cdef class BasicStorage:
 		
 	cdef writeNode(self, RecordNode node):
 		raise NotImplementedError
-		
+	
+	cdef BasicIterator createIterator(self):
+		raise NotImplementedError

@@ -1,4 +1,4 @@
-from xtore.BaseType cimport i32, i64
+from xtore.BaseType cimport i32, i64, f128
 from xtore.common.Buffer cimport initBuffer, getBuffer, releaseBuffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
@@ -12,13 +12,19 @@ cdef i32 BUFFER_SIZE = 1 << 12
 
 cdef class PeopleRTStorage(ScopeTreeStorage):
 	def __init__(self, StreamIOHandler io):
-		ScopeTreeStorage.__init__(self, io, 64, 0, 1 << 44)
+		ScopeTreeStorage.__init__(self, io)
 		initBuffer(&self.entryStream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		self.comparingNode = People()
 	
 	def __dealloc__(self):
 		releaseBuffer(&self.entryStream)
 	
+	cdef f128 getInitialMinValue(self):
+		return <f128> 0
+
+	cdef f128 getInitialMaxValue(self):
+		return <f128> (1 << 44)
+
 	cdef RecordNode createNode(self):
 		return People()
 		
@@ -50,3 +56,4 @@ cdef class PeopleRTStorage(ScopeTreeStorage):
 		self.entryStream.position = 0
 		entry.write(&self.entryStream)
 		self.io.write(&self.entryStream)
+	

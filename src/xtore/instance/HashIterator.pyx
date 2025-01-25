@@ -1,3 +1,4 @@
+from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.instance.HashStorage cimport HashStorage
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.LinkedPageIterator cimport LinkedPageIterator
@@ -8,7 +9,7 @@ from libc.stdlib cimport malloc, free
 cdef i32 BUFFER_SIZE = 8
 
 
-cdef class HashIterator:
+cdef class HashIterator (BasicIterator):
 	def __init__(self, HashStorage storage):
 		self.storage = storage
 		self.iterator = LinkedPageIterator(self.storage.pageStorage)

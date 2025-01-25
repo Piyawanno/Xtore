@@ -8,6 +8,11 @@ ctypedef enum ScopeRootMode:
 	MIDDLE = 2
 	RIGHT = 3
 
+ctypedef enum OccupationState:
+	FREE = 1
+	NODE = 2
+	PAGE = 3
+
 cdef class ScopeTreeStorage (BasicStorage):
 	cdef ScopeRootMode rootMode
 	cdef i64 rootPosition
@@ -33,3 +38,6 @@ cdef class ScopeTreeStorage (BasicStorage):
 	cdef u64 createPage(self)
 	cdef u64 insertNode(self, u64 page, RecordNode node, i32 *depth)
 	cdef u64 createParent(self)
+	cdef f128 getInitialMinValue(self)
+	cdef f128 getInitialMaxValue(self)
+	cdef i32 getDepth(self)
