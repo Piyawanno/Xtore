@@ -5,9 +5,9 @@ from xtore.BaseType cimport i16, i32, i64, u64, f128
 cdef i32 DATA_ENTRY_KEY_SIZE = 8
 cdef class Data (RecordNode):
 	def __repr__(self):
-		return f'<RecordNode {self.fields}>'
+		return f'<ID={self.ID} fields={self.fields}>'
 
-	def __init__(self):
+	def __cinit__(self):
 		self.fields = {}
 
 	cdef i64 hash(self):
@@ -22,8 +22,9 @@ cdef class Data (RecordNode):
 
 	cdef readValue(self, i16 version, Buffer *stream):
 		cdef int i
-		fieldCount = (<i16 *> getBuffer(stream, 2))[0]
-		for i in range(fieldCount):
+		cdef str fieldName
+		cdef object value
+		for i in range(len(self.fields)):
 			fieldName = getString(stream)
 			if stream.position + 8 <= stream.capacity:
 				value = (<i64 *> getBuffer(stream, 8))[0]
@@ -33,16 +34,20 @@ cdef class Data (RecordNode):
 
 	cdef write(self, Buffer *stream):
 		setBuffer(stream, <char *> &self.ID, 8)
-		cdef i16 fieldCount = len(self.fields)
-		setBuffer(stream, <char *> &fieldCount, 2)
 		cdef i32 start = stream.position
 		stream.position += 4
+		cdef i64 temp
 		for fieldName, value in self.fields.items():
+			print(f"Key: {fieldName}, Type: {type(fieldName)}")
+			print(f"Value: {value}, Type: {type(value)}")
 			setString(stream, fieldName)
 			if isinstance(value, int):
-				setBuffer(stream, <char *> value, 8)
+				temp = value
+				setBuffer(stream, <char *> &temp, 8)
+				print('write integer success')
 			elif isinstance(value, str):
 				setString(stream, value)
+				print('write string success')
 		cdef i32 end = stream.position
 		cdef i32 valueSize = end - start
 		stream.position = start
