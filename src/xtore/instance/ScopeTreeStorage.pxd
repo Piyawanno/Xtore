@@ -13,6 +13,19 @@ ctypedef enum OccupationState:
 	NODE = 2
 	PAGE = 3
 
+cdef inline i64 normalizeIndex(ScopeTreeStorage self, i32 maxDepth, f128 key):
+	cdef i64 segment = 1
+	# NOTE Use for loop to avoid multiplication
+	for i in range(maxDepth-1):
+		segment = segment << self.potence
+	return <i64> (segment*(key - self.min)/self.width)
+
+cdef inline i64 calculateLayerIndex(ScopeTreeStorage self, i32 maxDepth, i64 normalized, i32 layer):
+	cdef i64 shifted = normalized
+	for i in range(maxDepth-1-layer):
+		shifted = shifted >> self.potence
+	return shifted & self.modulus
+
 cdef class ScopeTreeStorage (BasicStorage):
 	cdef ScopeRootMode rootMode
 	cdef i64 rootPosition

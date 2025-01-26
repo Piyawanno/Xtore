@@ -6,6 +6,9 @@ from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.HashIterator cimport HashIterator
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.BasicIterator cimport BasicIterator
+from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
+from xtore.instance.ScopeSearch cimport ScopeSearch
+from xtore.instance.ScopeSearchResult cimport ScopeSearchResult
 
 from faker import Faker
 from argparse import RawTextHelpFormatter
@@ -59,6 +62,7 @@ cdef class StorageTestCLI:
 			self.comparePeople(peopleList, storedList)
 			self.iteratePeople(storage)
 			storage.writeHeader()
+			self.searchPeople(storage, peopleList)
 		except:
 			print(traceback.format_exc())
 		io.close()
@@ -165,6 +169,48 @@ cdef class StorageTestCLI:
 			n += 1
 		elapsed = time.time() - start
 		print(f'>>> People Data of {n} are iterated in {elapsed:.3}s ({(n/elapsed)} r/s)')
+	
+	cdef searchPeople(self, ScopeTreeStorage storage, list[People] peopleList):
+		cdef People reference = People()
+		reference.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
+		cdef ScopeSearch search = ScopeSearch(storage)
+		cdef ScopeSearchResult result = search.getGreater(reference)
+		cdef People people = People()
+		while result.getNext(people):
+			assert people.ID > reference.ID
+		
+		result = search.getLess(reference)
+		while result.getNext(people):
+			assert people.ID < reference.ID
+
+		reference = random.choice(peopleList)
+		result = search.getGreaterEqual(reference)
+		while result.getNext(people):
+			assert people.ID >= reference.ID
+		
+		result = search.getLessEqual(reference)
+		while result.getNext(people):
+			assert people.ID <= reference.ID
+		
+		cdef People other = random.choice(peopleList)
+		cdef People start = reference if reference.ID < other.ID else other
+		cdef People end = reference if reference.ID >= other.ID else other
+		result = search.getRange(start, end, False, False)
+		while result.getNext(people):
+			assert people.ID > start.ID and people.ID < end.ID
+
+		result = search.getRange(start, end, True, False)
+		while result.getNext(people):
+			assert people.ID >= start.ID and people.ID < end.ID
+
+		result = search.getRange(start, end, False, True)
+		while result.getNext(people):
+			assert people.ID > start.ID and people.ID <= end.ID
+
+		result = search.getRange(start, end, True, True)
+		while result.getNext(people):
+			assert people.ID >= start.ID and people.ID <= end.ID
+			
 
 	cdef checkPath(self):
 		cdef str resourcePath = self.getResourcePath()
