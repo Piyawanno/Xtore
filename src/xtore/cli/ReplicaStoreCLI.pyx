@@ -14,10 +14,10 @@ cdef bint IS_VENV = sys.prefix != sys.base_prefix
 cdef i32 BUFFER_SIZE = 1 << 16
 
 def run():
-	cdef NodeStoreCLI service = NodeStoreCLI()
+	cdef ReplicaStoreCLI service = ReplicaStoreCLI()
 	service.run(sys.argv[1:])
 
-cdef class NodeStoreCLI :
+cdef class ReplicaStoreCLI :
 	cdef dict config
 	cdef object parser
 	cdef object option
@@ -33,7 +33,7 @@ cdef class NodeStoreCLI :
 	cdef run(self, list argv) :
 		self.getParser(argv)
 		self.getConfig()
-		self.service = ServerService(self.config["node"][0])
+		self.service = ServerService(self.config["replica"][0])
 		self.service.run(self.handle)
 
 	async def handle(self, reader:object, writer:object) -> None :

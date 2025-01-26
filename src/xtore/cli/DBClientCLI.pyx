@@ -1,4 +1,4 @@
-from xtore.common.ClientHandler cimport ClientHandler
+from xtore.service.ClientService cimport ClientService
 from xtore.test.Package cimport Package
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
@@ -24,7 +24,7 @@ def run():
 cdef class DBClientCLI:
 	cdef object parser
 	cdef object option
-	cdef ClientHandler handler
+	cdef ClientService service
 	cdef Buffer stream
 
 	def __init__(self):
@@ -45,8 +45,8 @@ cdef class DBClientCLI:
 		self.getParser(argv)
 		self.checkPath()
 		cdef bytes message = self.pack()
-		self.handler = ClientHandler(self.getConfig())
-		self.handler.send(message)
+		self.service = ClientService(self.getConfig())
+		self.service.send(message)
 
 	cdef bytes pack(self) :
 		cdef object fake = Faker()

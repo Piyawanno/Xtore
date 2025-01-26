@@ -53,6 +53,7 @@ class XtoreSetup :
 			'xt-service',
 			'xt-master',
 			'xt-node',
+			'xt-replica',
 			'xt-start-service',
 			'xt-cli'
 		]
