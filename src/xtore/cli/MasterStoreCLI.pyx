@@ -1,4 +1,4 @@
-from xtore.common.ClientHandler cimport ClientHandler
+from xtore.service.ClientService cimport ClientService
 from xtore.test.People cimport People
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, getBytes
 from xtore.BaseType cimport i32
@@ -21,11 +21,11 @@ cdef class MasterStoreCLI :
 	cdef dict config
 	cdef object parser
 	cdef object option
-	cdef ClientHandler handler
+	cdef ClientService service
 	cdef Buffer stream
 
 	def __init__(self):
-		pass
+		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
@@ -35,8 +35,8 @@ cdef class MasterStoreCLI :
 		self.getConfig()
 		self.checkPath()
 		cdef bytes message = self.getStoreMessage()
-		self.handler = ClientHandler(self.config["node"][0])
-		self.handler.send(message)
+		self.service = ClientService(self.config["replica"][0])
+		self.service.send(message, self.handle)
 	
 	cdef bytes getStoreMessage(self) :
 		cdef object fake = Faker()
@@ -46,7 +46,6 @@ cdef class MasterStoreCLI :
 		people.name = fake.first_name()
 		people.surname = fake.last_name()
 		print(people)
-		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		people.write(&self.stream)
 		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 
@@ -69,3 +68,6 @@ cdef class MasterStoreCLI :
 	cdef str getResourcePath(self) :
 		if IS_VENV: return os.path.join(sys.prefix, "var", "xtore")
 		else: return os.path.join('/', "var", "xtore")
+	
+	cdef handle(self, response:bytes) :
+		print(response)
