@@ -55,7 +55,8 @@ class XtoreSetup :
 			'xt-node',
 			'xt-replica',
 			'xt-start-service',
-			'xt-cli'
+			'xt-cli',
+			'xt-cluster'
 		]
 
 		self.configList = [
@@ -190,6 +191,12 @@ class XtoreSetup :
 			if not os.path.isfile(destinationPath) :
 				sourcePath = __conform__(f"{self.rootPath}/config/{source}")
 				command = f"{self.copyCommand} {sourcePath} {destinationPath}"
+				print(command)
+				os.system(command)
+			# for development
+			else:
+				sourcePath = __conform__(f"{self.rootPath}/config/{source}")
+				command = f"{self.copyCommand} -f {sourcePath} {destinationPath}"
 				print(command)
 				os.system(command)
 		

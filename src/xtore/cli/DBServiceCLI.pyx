@@ -10,7 +10,7 @@ from xtore.BaseType cimport i32, u64
 from xtore.test.Data cimport Data
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 from xtore.test.People cimport People
-from xtore.test.Package cimport Package
+from xtore.common.Package cimport Package
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -76,14 +76,15 @@ cdef class DBServiceCLI:
 		initBuffer(&self.stream, <char *> malloc(length), length)
 		memcpy(self.stream.buffer, <char *> message, length)
 		cdef Package package = Package()
-		package.readKey(0, &self.stream)
+		package.readKey(&self.stream)
 		self.stream.position += 4
-		package.readValue(0, &self.stream)
+		package.readValue(&self.stream)
 		print(package)
-		if package.method == 'Set':
+		cdef object header = package.getHeader()
+		if header["method"] == 'Set':
 			self.setHashStorage(package.data)
 			writer.write(message)
-		elif package.method == 'Get':
+		elif header["method"] == 'Get':
 			queryResult:str = repr(self.getByID(package.data))
 			returnMessage:bytes = queryResult.encode('utf-8')
 			writer.write(returnMessage)
