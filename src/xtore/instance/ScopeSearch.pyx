@@ -19,7 +19,6 @@ cdef class ScopeSearch:
 	def __init__(self, ScopeTreeStorage storage):
 		self.storage = storage
 		self.io = storage.io
-		self.depth = storage.getDepth()
 		self.stored = storage.createNode()
 		initBuffer(&self.positionStream, <char *> malloc(16), 16)
 	
@@ -29,6 +28,7 @@ cdef class ScopeSearch:
 	cdef ScopeSearchResult getGreater(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		self.depth = self.storage.getDepth()
 		result.getTail()
 		result.endPage = result.currentPage
 		result.endIndex = result.currentIndex
@@ -44,6 +44,7 @@ cdef class ScopeSearch:
 	cdef ScopeSearchResult getGreaterEqual(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		self.depth = self.storage.getDepth()
 		result.getTail()
 		result.endPage = result.currentPage
 		result.endIndex = result.currentIndex
@@ -59,6 +60,7 @@ cdef class ScopeSearch:
 	cdef ScopeSearchResult getLess(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		self.depth = self.storage.getDepth()
 		cdef bint isFound = self.search(reference, result, &position)
 		result.currentStream = position.stream
 		result.currentPage = position.page
@@ -95,6 +97,7 @@ cdef class ScopeSearch:
 	):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		self.depth = self.storage.getDepth()
 		cdef bint isFound = self.search(end, result, &position)
 		result.currentStream = position.stream
 		result.currentPage = position.page
