@@ -8,5 +8,27 @@
 		"id" : 1,
 		"host" : "localhost",
 		"port" : 7410
-	}]
+	}],
+	"cluster": {
+		"id" : 1,
+		"host" : "localhost",
+		"port" : 45001,
+		"nodes" : [
+			{
+				"id" : 0,
+				"host" : "localhost",
+				"port" : 7410
+			},
+			{
+				"id" : 1,
+				"host" : "localhost",
+				"port" : 7411
+			},
+			{
+				"id" : 2,
+				"host" : "localhost",
+				"port" : 7412
+			}
+	]
+	}
 }
