@@ -66,7 +66,7 @@ cdef class ClusterProtocol:
 	cdef data_received(self, bytes data):
 		cdef i32 length = len(data)
 		setBuffer(&self.stream, <char *> data, length)
-		cdef InternalStorageProtocol recieved = InternalStorageProtocol()
+		cdef ClusterProtocol recieved = ClusterProtocol()
 		self.stream.position -= length
 		recieved.getHeader(&self.stream)
 		if recieved.operation == GET:
