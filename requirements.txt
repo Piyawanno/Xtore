@@ -3,3 +3,4 @@ build
 setuptools
 wheel
 Faker
+uvloop
