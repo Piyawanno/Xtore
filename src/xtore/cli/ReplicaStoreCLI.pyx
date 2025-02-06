@@ -2,6 +2,7 @@ from xtore.service.ServerService cimport ServerService
 from xtore.test.People cimport People
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
+from xtore.protocol.ReplicaProtocol import ReplicaProtocol
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -19,41 +20,31 @@ def run():
 
 cdef class ReplicaStoreCLI :
 	cdef dict config
+	cdef str resourcePath
 	cdef object parser
 	cdef object option
 	cdef ServerService service
 	cdef Buffer stream
 
 	def __init__(self):
-		pass
+		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 	
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
 
 	cdef run(self, list argv) :
 		self.getParser(argv)
+		self.getResourcePath()
 		self.getConfig()
 		self.service = ServerService(self.config["replica"][0])
-		self.service.run(self.handle)
-
-	async def handle(self, reader:object, writer:object) -> None :
-		message:bytes = await reader.read(1024)
-		cdef i32 length = len(message)
-		initBuffer(&self.stream, <char *> malloc(length), length)
-		memcpy(self.stream.buffer, <char *> message, length)
-		cdef People people = People()
-		people.readKey(0, &self.stream)
-		self.stream.position += 4
-		people.readValue(0, &self.stream)
-		print(people)
-		writer.write(message)
-		await writer.drain()
-		writer.close()
-		await writer.wait_closed()
+		self.service.run(ReplicaProtocol)
 
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.option = self.parser.parse_args(argv)
+	
+	cdef getResourcePath(self) :
+		self.resourcePath = f"{sys.prefix}/var/xtore" if IS_VENV else "/var/xtore"
 
 	cdef getConfig(self) :
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")

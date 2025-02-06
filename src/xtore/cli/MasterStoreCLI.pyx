@@ -1,7 +1,11 @@
 from xtore.service.ClientService cimport ClientService
-from xtore.test.People cimport People
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, getBytes
+from xtore.common.ReplicaIOHandler cimport ReplicaIOHandler
+from xtore.protocol.MasterProtocol import MasterProtocol
+from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.BaseType cimport i32
+from xtore.test.People cimport People
+from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 
 from libc.stdlib cimport malloc
 from cpython cimport PyBytes_FromStringAndSize
@@ -21,7 +25,6 @@ cdef class MasterStoreCLI :
 	cdef dict config
 	cdef object parser
 	cdef object option
-	cdef ClientService service
 	cdef Buffer stream
 
 	def __init__(self):
@@ -33,25 +36,39 @@ cdef class MasterStoreCLI :
 	cdef run(self, list argv) :
 		self.getParser(argv)
 		self.getConfig()
-		self.checkPath()
-		cdef bytes message = self.getStoreMessage()
-		self.service = ClientService(self.config["replica"][0])
-		self.service.send(message, self.handle)
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/People.Hash.bin'
+		cdef ReplicaIOHandler io = ReplicaIOHandler(path, self.config.get("replica", []))
+		cdef PeopleHashStorage storage = PeopleHashStorage(io)
+		cdef bint isNew = not os.path.isfile(path)
+		io.open()
+		try:
+			storage.enableIterable()
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			self.writePeople(storage)
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
 	
-	cdef bytes getStoreMessage(self) :
+	cdef writePeople(self, BasicStorage storage) :
+		cdef People people
+		cdef int n = self.option.count
 		cdef object fake = Faker()
-		cdef People people = People()
-		people.position = -1
-		people.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
-		people.name = fake.first_name()
-		people.surname = fake.last_name()
-		print(people)
-		people.write(&self.stream)
-		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
+		for _ in range(n) :
+			people = People()
+			people.position = -1
+			people.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
+			people.income = random.randint(20_000, 100_000)
+			people.name = fake.first_name()
+			people.surname = fake.last_name()
+			storage.set(people)
+			print(f">>> {people}")
 
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
-		# self.parser.add_argument("-n", "--count", help="Number of record to test.", required=True, type=int)
+		self.parser.add_argument("-n", "--count", help="Number of record to test.", default=1, type=int)
 		self.option = self.parser.parse_args(argv)
 
 	cdef getConfig(self) :
@@ -61,13 +78,9 @@ cdef class MasterStoreCLI :
 			self.config = json.loads(fd.read())
 			fd.close()
 
-	cdef checkPath(self) :
-		cdef str resourcePath = self.getResourcePath()
-		if not os.path.isdir(resourcePath): os.makedirs(resourcePath)
-
 	cdef str getResourcePath(self) :
-		if IS_VENV: return os.path.join(sys.prefix, "var", "xtore")
-		else: return os.path.join('/', "var", "xtore")
-	
-	cdef handle(self, response:bytes) :
-		print(response)
+		cdef str resourcePath
+		if IS_VENV: resourcePath = os.path.join(sys.prefix, "var", "xtore")
+		else: resourcePath = os.path.join('/', "var", "xtore")
+		if not os.path.isdir(resourcePath): os.makedirs(resourcePath)
+		return resourcePath

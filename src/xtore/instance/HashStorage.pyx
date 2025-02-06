@@ -186,7 +186,6 @@ cdef class HashStorage (BasicStorage):
 		cdef i32 i
 		cdef i32 j
 		cdef i32 m
-		
 		for i in range(HASH_LAYER) :
 			m = self.layerModulus[i]
 			if i >= self.layer:
@@ -201,7 +200,6 @@ cdef class HashStorage (BasicStorage):
 				self.io.read(&self.stream, HASH_SIZE)
 				storedHash = (<i64 *> getBuffer(&self.stream, 8))[0]
 				storedNode = (<i64 *> getBuffer(&self.stream, 8))[0]
-
 			if storedHash == -1:
 				self.appendNode(node)
 				self.io.seek(position)
