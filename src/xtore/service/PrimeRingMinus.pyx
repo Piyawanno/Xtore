@@ -1,32 +1,35 @@
-from argparse import ArgumentParser, RawTextHelpFormatter
-import sys, random
+from xtore.BaseType cimport i32, u64
+import json
 
-cdef str __help__ =""
+cdef class PrimeRingMinus:
+	def __init__(self, list primeNumbers):
+		self.numLayers = 1
+		self.primeNumbers = primeNumbers
+		self.layers = [{}]
+		self.nodes = []
+		self.maxNodeLayer = primeNumbers[0]
 
-def run():
-    cdef TestCLI cli = TestCLI()
-    cli.run(sys.argv[1:])
+	cdef u64 getNode(self, u64 key):
+		cdef i32 layer, index
+		for layer in range(self.numLayers):
+			index = self.getIndex(key, layer)
+			if index in self.layers[layer]:
+				return self.layers[layer][index]
+		return -1
 
-cdef class TestCLI:
-    cdef object parser
-    cdef object option
+	cdef u64 getIndex(self, u64 key, i32 layer):
+		return key % self.primeNumbers[layer]
 
-    def __init__(self):
-        pass
+	cdef insertNode(self, dict info):
+		layer = info['layer']
+		nodeID = info['id']
+		if len(self.layers[layer]) >= self.primeNumbers[layer]:
+			self.insertLayer()
+			layer += 1
 
-    def getParser(self, list argv):
-        self.parser = ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
-        self.parser.add_argument("-r", "--range", help="Set the range of the random number (min,max).", default="1,100", type=str)
-        self.option = self.parser.parse_args(argv)
+		self.nodes.append(info)
+		self.layers[layer][nodeID] = info
 
-    cdef run(self, list argv):
-        self.getParser(argv)
-        
-        cdef list range_values = self.option.range.split(',')
-        cdef int min_value = int(range_values[0])
-        cdef int max_value = int(range_values[1])
-
-        random_number = random.randint(min_value, max_value)
-
-        print(f"random number between {min_value} and {max_value}:")
-        print(random_number)
+	cdef insertLayer(self):
+		self.layers.append({})
+		self.numLayers += 1
