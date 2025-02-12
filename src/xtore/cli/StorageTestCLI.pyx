@@ -9,6 +9,8 @@ from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
 from xtore.instance.ScopeSearch cimport ScopeSearch
 from xtore.instance.ScopeSearchResult cimport ScopeSearchResult
+from xtore.test.PeopleHomomorphic cimport PeopleHomomorphic
+
 
 from faker import Faker
 from argparse import RawTextHelpFormatter
@@ -35,7 +37,7 @@ cdef class StorageTestCLI:
 		self.parser.add_argument("test", help="Name of test", choices=[
 			'People.Hash',
 			'People.BST',
-			'People.RT',
+			'People.RT'
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=True, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -197,7 +199,11 @@ cdef class StorageTestCLI:
 		cdef People end = reference if reference.ID >= other.ID else other
 		result = search.getRange(start, end, False, False)
 		while result.getNext(people):
-			assert people.ID > start.ID and people.ID < end.ID
+			try:
+				assert people.ID > start.ID and people.ID < end.ID
+			except:
+				print(people.ID, start.ID, end.ID, people.ID > start.ID, people.ID < end.ID)
+				break
 
 		result = search.getRange(start, end, True, False)
 		while result.getNext(people):

@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.cpp
 
 # C extensions
 *.so
@@ -39,3 +38,5 @@ ENV/
 env.bak/
 venv.bak/
 *.venv/
+*.venv-master/
+venv-master/
