@@ -1,15 +1,15 @@
+# Homomorphic BST Storage
+
 from xtore.BaseType cimport i32, i64
 from xtore.common.Buffer cimport Buffer
+from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBoolean, initBuffer, releaseBuffer
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
-from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBoolean, initBuffer, releaseBuffer
 from xtore.instance.Homomorphic cimport Homomorphic
-
 from libc.stdlib cimport malloc
 from libc.string cimport memcmp
-
 
 cdef char *MAGIC = "@XT_BSTR"
 cdef i32 MAGIC_LENGTH = 0
@@ -64,15 +64,15 @@ cdef class HomomorphicBSTStorage (BasicStorage):
         if isMagic != 0:
             raise ValueError('Wrong Magic for BinarySearchTreeStorage')
         self.rootNodePosition = (<i64*> getBuffer(&self.headerStream, 8))[0]
-
+    
     cdef RecordNode get(self, RecordNode reference, RecordNode result):
+        print("Get Here")
         if self.rootNodePosition < 0: return None
         cdef i64 position = self.rootNodePosition
         cdef i64 nodePosition
         cdef i64 left
         cdef i64 right
         cdef i32 compareResult
-        cdef i64 difference
         cdef RecordNode stored
 
         while True:
@@ -83,20 +83,24 @@ cdef class HomomorphicBSTStorage (BasicStorage):
             right = (<i64*> getBuffer(&self.stream, 8))[0]
             stored = self.readNodeKey(nodePosition, result)
 
-            c1 = self.homomorphic.encrypt(reference.income)
-            c2 = self.homomorphic.encrypt(stored.income)
-            difference = self.homomorphic.diff(c1, c2)
-            compareResult = self.homomorphic.getSign(difference)
-
+            compareResult = reference.compare(stored)
+            
             if compareResult == 0:
                 self.readNodeValue(stored)
                 return stored
             elif compareResult > 0:
-                if right > 0: position = right
+                if right > 0:
+                    position = right
+                else:
+                    break  # No right child, exit loop
             else:
-                if left > 0: position = left
+                if left > 0:
+                    position = left
+                else:
+                    break  # No left child, exit loop
 
     cdef set(self, RecordNode reference):
+        print("Set Here")
         cdef i64 placeHolder = -1
         if self.rootNodePosition < 0:
             self.appendNode(reference)
@@ -113,7 +117,6 @@ cdef class HomomorphicBSTStorage (BasicStorage):
         cdef i64 left
         cdef i64 right
         cdef i32 compareResult
-        cdef i64 difference
         cdef RecordNode stored
         while True:
             self.io.seek(position)
@@ -123,10 +126,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
             right = (<i64*> getBuffer(&self.stream, 8))[0]
             stored = self.readNodeKey(nodePosition, self.comparingNode)
 
-            c1 = self.homomorphic.encrypt(reference)
-            c2 = self.homomorphic.encrypt(stored)
-            difference = self.homomorphic.diff(c1, c2)
-            compareResult = self.homomorphic.getSign(difference)
+            compareResult = reference.compare(stored)
 
             if compareResult == 0:
                 reference.position = nodePosition

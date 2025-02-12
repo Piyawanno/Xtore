@@ -13,8 +13,8 @@ from openfhe import (
 	ADVANCEDSHE, 
 	SCHEMESWITCH, 
 	TOY,
+	Plaintext,	
 )
-
 
 cdef class Homomorphic():
 	cdef createCKKS(self, i32 multDepth, i32 scaleModSize, i32 firstModSize, i32 ringDim, i32 batchSize):
@@ -68,6 +68,11 @@ cdef class Homomorphic():
 		cdef object plaintext = self.cc.MakeCKKSPackedPlaintext([ptxt])
 		return  self.cc.Encrypt(self.keys.publicKey, plaintext)
 
+	cdef f32 decrypt(self, object ctxt):
+		plainLWE = self.cc.Decrypt(self.keys.secretKey, ctxt)
+		cdef list dcryptedValues = Plaintext.GetRealPackedValue(plainLWE)
+		return dcryptedValues[0]
+
 	cdef object diff(self, object c1, object c2):
 		return  self.cc.EvalSub(c1, c2)
 
@@ -79,3 +84,5 @@ cdef class Homomorphic():
 			LWESign[i] = self.ccLWE.EvalSign(LWECiphertexts[i])
 			plainLWE = self.ccLWE.Decrypt(self.privateKeyFHEW, LWESign[i], 2)
 		return plainLWE
+
+		
