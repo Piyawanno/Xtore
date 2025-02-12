@@ -1,5 +1,5 @@
 import re
-from xtore.service.ClientService cimport ClientService
+from xtore.service.Client cimport Client
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, setBuffer
 from xtore.protocol.ListenProtocol cimport ListenProtocol
 from xtore.protocol.StorageCommunicateProtocol cimport StorageCommunicateProtocol, DatabaseOperation, InstanceType
@@ -32,7 +32,7 @@ def run():
 cdef class SendPeopleCLI :
 	cdef object parser
 	cdef object option
-	cdef ClientService service
+	cdef Client service
 	cdef Buffer stream
 	cdef Buffer received
 
@@ -117,7 +117,7 @@ cdef class SendPeopleCLI :
 		# self.showPeople(unpackpeopleList)
 		# self.handleEcho(new_stream)
 
-		self.service = ClientService({
+		self.service = Client({
 			"host": self.option.host,
 			"port": self.option.port
 		})
