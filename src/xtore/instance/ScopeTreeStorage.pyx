@@ -67,7 +67,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 		return self.rootPosition
 
 	cdef BasicIterator createIterator(self):
-		return ScopeBackwardIterator(self)
+		return ScopeIterator(self)
 
 	cdef writeHeader(self):
 		self.headerStream.position = 0
@@ -150,6 +150,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 	
 	cdef set(self, RecordNode reference):
 		cdef f128 key = reference.getRangeValue()
+		cdef i32 maxDepth = self.maxDepth
 		while key < self.min or key >= self.max:
 			self.createParent()
 		cdef i32 depth
@@ -201,6 +202,7 @@ cdef class ScopeTreeStorage (BasicStorage):
 				child = self.insertNode(child, reference, &depth)
 				if depth > self.maxDepth: self.maxDepth = depth
 				break
+		if self.maxDepth != maxDepth: self.writeHeader()
 	
 	cdef u64 createParent(self):
 		cdef u64 position = self.createPage()

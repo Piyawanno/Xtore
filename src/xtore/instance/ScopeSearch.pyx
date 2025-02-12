@@ -1,4 +1,4 @@
-from xtore.BaseType cimport u8, i32, i64, u64
+from xtore.BaseType cimport u8, i32, i64, u64, f128
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.Buffer cimport Buffer, getBuffer, initBuffer, releaseBuffer
 from xtore.instance.ScopeTreeStorage cimport (
@@ -28,63 +28,84 @@ cdef class ScopeSearch:
 	cdef ScopeSearchResult getGreater(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		cdef bint isFound
 		self.depth = self.storage.getDepth()
-		result.getTail()
-		result.endPage = result.currentPage
-		result.endIndex = result.currentIndex
-		cdef bint isFound = self.search(reference, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		result.hasNext = result.moveNextPage()
+		cdef f128 key = reference.getRangeValue()
+		if key > self.storage.min:
+			result.getTail()
+			result.endPage = result.currentPage
+			result.endIndex = result.currentIndex
+			isFound = self.search(reference, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			result.hasNext = result.moveNextPage()
+		else:
+			result.getHead()
 		return result
 
 	cdef ScopeSearchResult getGreaterEqual(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		cdef bint isFound
 		self.depth = self.storage.getDepth()
-		result.getTail()
-		result.endPage = result.currentPage
-		result.endIndex = result.currentIndex
-		cdef bint isFound = self.search(reference, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		if not isFound: result.hasNext = result.moveNextPage()
+		cdef f128 key = reference.getRangeValue()
+		if key > self.storage.min:
+			result.getTail()
+			result.endPage = result.currentPage
+			result.endIndex = result.currentIndex
+			isFound = self.search(reference, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			if not isFound: result.moveNextPage()
+		else:
+			result.getHead()
 		return result
 
 	cdef ScopeSearchResult getLess(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
+		cdef bint isFound
 		self.depth = self.storage.getDepth()
-		cdef bint isFound = self.search(reference, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		result.moveBackPage()
-		result.endPage = result.currentPage
-		result.endIndex = result.currentIndex
+		cdef f128 key = reference.getRangeValue()
+		if key < self.storage.max:
+			isFound = self.search(reference, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			result.moveBackPage()
+			result.endPage = result.currentPage
+			result.endIndex = result.currentIndex
+		else:
+			result.endIndex = -1
 		result.getHead()
 		return result
 
 	cdef ScopeSearchResult getLessEqual(self, RecordNode reference):
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
-		cdef bint isFound = self.search(reference, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		if not isFound: result.moveBackPage()
-		result.endPage = result.currentPage
-		result.endIndex = result.currentIndex
+		cdef bint isFound
+		self.depth = self.storage.getDepth()
+		cdef f128 key = reference.getRangeValue()
+		if key < self.storage.max:
+			isFound = self.search(reference, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			if not isFound: result.moveBackPage()
+			result.endPage = result.currentPage
+			result.endIndex = result.currentIndex
+		else:
+			result.endIndex = -1
 		result.getHead()
 		return result
 
@@ -98,29 +119,39 @@ cdef class ScopeSearch:
 		cdef ScopeSearchResult result = ScopeSearchResult(self.storage)
 		cdef NodePosition position
 		self.depth = self.storage.getDepth()
-		cdef bint isFound = self.search(end, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		if not isUpperIncluded or not isFound: result.moveBackPage()
-		result.endPage = result.currentPage
-		result.endIndex = result.currentIndex
+		cdef bint isFound
+		cdef f128 key = end.getRangeValue()
+		if key < self.storage.max:
+			isFound = self.search(end, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			if not isUpperIncluded or not isFound: result.moveBackPage()
+			result.endPage = result.currentPage
+			result.endIndex = result.currentIndex
+		else:
+			result.endIndex = -1
 
-		isFound = self.search(start, result, &position)
-		result.currentStream = position.stream
-		result.currentPage = position.page
-		result.currentPosition = position.position
-		result.currentIndex = position.index
-		result.currentDepth = position.depth
-		if not isLowerIncluded or not isFound: result.hasNext = result.moveNextPage()
-		else: result.hasNext = True
+		key = start.getRangeValue()
+		if key > self.storage.min:
+			isFound = self.search(start, result, &position)
+			result.currentStream = position.stream
+			result.currentPage = position.page
+			result.currentPosition = position.position
+			result.currentIndex = position.index
+			result.currentDepth = position.depth
+			if not isLowerIncluded or not isFound: result.hasNext = result.moveNextPage()
+			else: result.hasNext = True
+		else:
+			result.getHead()
 		return result
 	
 	cdef bint search(self, RecordNode reference, ScopeSearchResult result, NodePosition *position):
 		cdef i32 maxDepth = self.depth
-		cdef i64 normalized = normalizeIndex(self.storage, maxDepth, reference.getRangeValue())
+		cdef f128 key = reference.getRangeValue()
+		cdef i64 normalized = normalizeIndex(self.storage, maxDepth, key)
 		cdef i64 current = self.storage.rootPagePosition
 		cdef i64 index
 		cdef u64 child

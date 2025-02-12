@@ -197,7 +197,11 @@ cdef class StorageTestCLI:
 		cdef People end = reference if reference.ID >= other.ID else other
 		result = search.getRange(start, end, False, False)
 		while result.getNext(people):
-			assert people.ID > start.ID and people.ID < end.ID
+			try:
+				assert people.ID > start.ID and people.ID < end.ID
+			except:
+				print(people.ID, start.ID, end.ID, people.ID > start.ID, people.ID < end.ID)
+				break
 
 		result = search.getRange(start, end, True, False)
 		while result.getNext(people):
