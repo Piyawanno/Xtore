@@ -1,7 +1,5 @@
-from xtore.service.ClientService cimport ClientService
-from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, getBytes
+from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.common.ReplicaIOHandler cimport ReplicaIOHandler
-from xtore.protocol.MasterProtocol import MasterProtocol
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.BaseType cimport i32
 from xtore.test.People cimport People
@@ -37,8 +35,10 @@ cdef class MasterStoreCLI :
 		self.getParser(argv)
 		self.getConfig()
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.Hash.bin'
-		cdef ReplicaIOHandler io = ReplicaIOHandler(path, self.config.get("replica", []))
+		cdef str fileName = "People.Hash.bin"
+		cdef str path = os.path.join(resourcePath, fileName)
+		cdef list replicaList = self.config.get("replica", [])
+		cdef ReplicaIOHandler io = ReplicaIOHandler(fileName, path, replicaList)
 		cdef PeopleHashStorage storage = PeopleHashStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
 		io.open()
@@ -47,7 +47,6 @@ cdef class MasterStoreCLI :
 			if isNew: storage.create()
 			else: storage.readHeader(0)
 			self.writePeople(storage)
-			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
 		io.close()
@@ -64,7 +63,7 @@ cdef class MasterStoreCLI :
 			people.name = fake.first_name()
 			people.surname = fake.last_name()
 			storage.set(people)
-			print(f">>> {people}")
+			# print(f">>> {people}")
 
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)

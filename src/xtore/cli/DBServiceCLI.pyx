@@ -1,4 +1,4 @@
-from xtore.service.ServerService cimport ServerService
+from xtore.service.Server cimport Server
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.instance.BasicStorage cimport BasicStorage
@@ -49,7 +49,7 @@ cdef dict CLASS_INIT = {
 cdef class DBServiceCLI:
 	cdef object parser
 	cdef object option
-	cdef ServerService service
+	cdef Server service
 	cdef Buffer stream
 
 	def __init__(self):
@@ -67,7 +67,7 @@ cdef class DBServiceCLI:
 		self.startServer()
 
 	cdef startServer(self):
-		self.service = ServerService(self.getConfig())
+		self.service = Server(self.getConfig())
 		self.service.run(self.handlePackage)
 
 	async def handlePackage(self, reader:object, writer:object) -> None :

@@ -1,4 +1,4 @@
-from xtore.service.ClientService cimport ClientService
+from xtore.service.Client cimport Client
 from xtore.test.Package cimport Package
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
@@ -24,7 +24,7 @@ def run():
 cdef class ClientAllCLI:
 	cdef object parser
 	cdef object option
-	cdef ClientService service
+	cdef Client service
 	cdef Buffer stream
 
 	def __init__(self):
@@ -45,7 +45,7 @@ cdef class ClientAllCLI:
 		self.getParser(argv)
 		self.checkPath()
 		cdef bytes message = self.pack()
-		self.service = ClientService(self.getConfig())
+		self.service = Client(self.getConfig())
 		self.service.send(message)
 
 	cdef bytes pack(self) :

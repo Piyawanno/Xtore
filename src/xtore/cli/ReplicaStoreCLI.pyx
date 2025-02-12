@@ -1,18 +1,13 @@
-from xtore.service.ServerService cimport ServerService
+from xtore.service.Server cimport Server
 from xtore.test.People cimport People
-from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
 from xtore.protocol.ReplicaProtocol import ReplicaProtocol
 
-from libc.stdlib cimport malloc
-from libc.string cimport memcpy
-from cpython cimport PyBytes_FromStringAndSize
 from argparse import RawTextHelpFormatter
 import os, sys, argparse, json, traceback, random, time
 
-cdef str __help__ = ""
+cdef str __help__ = "\n\nFollowing Replica from Configuration :"
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
-cdef i32 BUFFER_SIZE = 1 << 16
 
 def run():
 	cdef ReplicaStoreCLI service = ReplicaStoreCLI()
@@ -20,31 +15,37 @@ def run():
 
 cdef class ReplicaStoreCLI :
 	cdef dict config
+	cdef str moreHelp
 	cdef str resourcePath
 	cdef object parser
 	cdef object option
-	cdef ServerService service
-	cdef Buffer stream
-
-	def __init__(self):
-		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
-	
-	def __dealloc__(self):
-		releaseBuffer(&self.stream)
+	cdef Server service
 
 	cdef run(self, list argv) :
+		self.getConfig()
 		self.getParser(argv)
 		self.getResourcePath()
-		self.getConfig()
-		self.service = ServerService(self.config["replica"][0])
-		self.service.run(ReplicaProtocol)
+		cdef dict config
+		cdef bint started = False
+		for config in self.config.get("replica", []) :
+			if self.option.id == config["id"] :
+				self.service = Server(config)
+				self.service.run(ReplicaProtocol)
+		print(self.moreHelp)
 
 	cdef getParser(self, list argv) :
-		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
+		self.moreHelp = __help__
+		for replica in self.config.get("replica", []) :
+			self.moreHelp += f"\n{replica['id']} : {replica['host']}@{replica['port']}"
+		self.moreHelp += "\n\n----------"
+		self.parser = argparse.ArgumentParser(usage=self.moreHelp, formatter_class=RawTextHelpFormatter)
+		self.parser.add_argument("id", help="Replication ID", type=int)
 		self.option = self.parser.parse_args(argv)
 	
 	cdef getResourcePath(self) :
-		self.resourcePath = f"{sys.prefix}/var/xtore" if IS_VENV else "/var/xtore"
+		if IS_VENV: self.resourcePath = os.path.join(sys.prefix, "var", "xtore")
+		else: self.resourcePath = os.path.join('/', "var", "xtore")
+		if not os.path.isdir(self.resourcePath): os.makedirs(self.resourcePath)
 
 	cdef getConfig(self) :
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")

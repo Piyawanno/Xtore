@@ -3,7 +3,7 @@ from xtore.BaseType cimport u16
 
 import sys, os, asyncio, uvloop
 
-cdef class ServerService :
+cdef class Server :
 	def __init__(self, dict config) :
 		self.config = config
 		self.host = self.config["host"]
@@ -13,6 +13,9 @@ cdef class ServerService :
 	def run(self, protocol:asyncio.Protocol) -> None :
 		self.loop = uvloop.new_event_loop()
 		asyncio.set_event_loop(self.loop)
+		# def createProtocol() :
+		# 	return ReplicaProtocol()
+		# colo = self.loop.create_server(createProtocol, self.host, self.port)
 		colo = self.loop.create_server(protocol, self.host, self.port)
 		self.loop.run_until_complete(colo)
 		print(f"Start Socket Server @ {self.host}:{self.port}")

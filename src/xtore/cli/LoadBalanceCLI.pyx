@@ -1,6 +1,6 @@
 import re
-from xtore.service.ClientService cimport ClientService
-from xtore.service.ServerService cimport ServerService
+from xtore.service.Client cimport Client
+from xtore.service.Server cimport Server
 from xtore.common.Buffer cimport Buffer, getBuffer, initBuffer, releaseBuffer, setBuffer
 from xtore.common.Package cimport Package
 from xtore.BaseType cimport i32
@@ -24,7 +24,7 @@ cdef class ClusterCLI :
 	cdef dict clusterConfig
 	cdef object parser
 	cdef object option
-	cdef ServerService serverService
+	cdef Server server
 	cdef Buffer stream
 	cdef Buffer sendBack
 
@@ -52,8 +52,8 @@ cdef class ClusterCLI :
 	cdef run(self, list argv) :
 		self.getParser(argv)
 		self.getConfig()
-		self.serverService = ServerService(self.config["cluster"])
-		self.serverService.run(self.handleServer)
+		self.server = Server(self.config["cluster"])
+		self.server.run(self.handleServer)
 
 	cdef bytes pack(self, Package receivedPackage) :
 		cdef Package package = Package()
@@ -81,12 +81,12 @@ cdef class ClusterCLI :
 		cdef object header = package.getHeader()
 		cdef str mode = self.option.mode if self.option.mode else header["mode"]
 		cdef i32 recieveNode
-		cdef ClientService clientService
+		cdef Client client
 		cdef i32 bufferPosition = self.sendBack.position
 		if mode == "hash":
 			recieveNode = package.ID % len(self.clusterConfig["nodes"])
-			clientService = ClientService(self.clusterConfig["nodes"][recieveNode])
-			await clientService.connect(self.pack(package), self.handleClient)
+			client = Client(self.clusterConfig["nodes"][recieveNode])
+			await client.connect(self.pack(package), self.handleClient)
 		elif mode == "consistent":
 			# not implemented yet
 			pass

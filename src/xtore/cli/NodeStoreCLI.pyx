@@ -1,4 +1,4 @@
-from xtore.service.ServerService cimport ServerService
+from xtore.service.Server cimport Server
 from xtore.test.People cimport People
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
@@ -21,7 +21,7 @@ cdef class NodeStoreCLI :
 	cdef dict config
 	cdef object parser
 	cdef object option
-	cdef ServerService service
+	cdef Server service
 	cdef Buffer stream
 
 	def __init__(self):
@@ -33,7 +33,7 @@ cdef class NodeStoreCLI :
 	cdef run(self, list argv) :
 		self.getParser(argv)
 		self.getConfig()
-		self.service = ServerService(self.config["node"][0])
+		self.service = Server(self.config["node"][0])
 		self.service.run(self.handle)
 
 	async def handle(self, reader:object, writer:object) -> None :
