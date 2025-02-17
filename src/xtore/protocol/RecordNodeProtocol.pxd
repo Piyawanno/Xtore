@@ -2,8 +2,6 @@ from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i16, i32
 from xtore.instance.RecordNode cimport RecordNode
 
-cdef i32 BUFFER_SIZE = 1 << 16
-
 ctypedef enum DatabaseOperation:
 	SET = 10
 	GET = 20
@@ -11,7 +9,7 @@ ctypedef enum DatabaseOperation:
 ctypedef enum InstanceType:
 	HASH = 10
 
-cdef class StorageCommunicateProtocol:
+cdef class RecordNodeProtocol:
 	cdef DatabaseOperation operation
 	cdef InstanceType type
 	cdef str tableName

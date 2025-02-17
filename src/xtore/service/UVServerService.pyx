@@ -10,13 +10,13 @@ cdef class UVServerService :
 		self.host = self.config["host"]
 		self.port = self.config["port"]
 	
-	def run(self, protocol) -> None :
+	def run(self, protocol) :
 		uvloop.install()
 		asyncio.run(self.serve(protocol))
 
 	async def serve(self, protocol) -> None :
 		loop = asyncio.get_event_loop()
-		server: object = await loop.create_server(lambda: protocol, self.host, self.port)
+		server: object = await loop.create_server(lambda: protocol(), self.host, self.port)
 		print(f"Start Socket Server @ {self.host}:{self.port}")
 		async with server:
 			await server.serve_forever()

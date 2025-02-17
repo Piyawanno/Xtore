@@ -6,11 +6,11 @@ from xtore.test.People cimport People
 
 from libc.stdlib cimport malloc
 
-import uuid
+from cpython cimport PyBytes_FromStringAndSize
 
-cdef i32 BUFFER_SIZE
+cdef i32 BUFFER_SIZE = 1 << 16
 
-cdef class StorageCommunicateProtocol:
+cdef class RecordNodeProtocol:
 	def __init__(self):
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		
@@ -73,13 +73,20 @@ cdef class StorageCommunicateProtocol:
 	cdef bytes handleRequest(self, Buffer *stream):
 		stream.position = 0
 		self.getHeader(stream)
+		print(f'>> Received {self.operation}')
+		cdef StorageService service = StorageService({})
 		if self.operation == DatabaseOperation.GET:
-			print(f'Not implemented yet !')
+			print(f'>> Reading BSTStorage {self.tableName}')
+			queryResponse = service.readBSTStorage(self.tableName)
+			print(f'>> Sending {len(queryResponse)} records')
+			self.encode(&self.stream, queryResponse)
+			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		elif self.operation == DatabaseOperation.SET:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} records')
-			service = StorageService({})
-			service.writeHashStorage(recordList)
+			service.writeBSTStorage(recordList)
+			self.encode(&self.stream, recordList)
+			return b'OK'
 		else:
 			print(f'Operation {self.operation} not found !')
 		return b'OK'

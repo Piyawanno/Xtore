@@ -1,8 +1,7 @@
 import re
-from xtore.service.Client cimport Client
+from xtore.service.RequestService cimport RequestService
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, setBuffer
-from xtore.protocol.ListenProtocol cimport ListenProtocol
-from xtore.protocol.StorageCommunicateProtocol cimport StorageCommunicateProtocol, DatabaseOperation, InstanceType
+from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOperation, InstanceType
 from xtore.test.People cimport People
 from xtore.BaseType cimport i32, i64
 
@@ -32,7 +31,7 @@ def run():
 cdef class SendPeopleCLI :
 	cdef object parser
 	cdef object option
-	cdef Client service
+	cdef RequestService service
 	cdef Buffer stream
 	cdef Buffer received
 
@@ -69,7 +68,7 @@ cdef class SendPeopleCLI :
 		return peopleList
 
 	cdef encodePeople(self, list peopleList) :
-		cdef StorageCommunicateProtocol protocol = StorageCommunicateProtocol()
+		cdef RecordNodeProtocol protocol = RecordNodeProtocol()
 		print(f"method: {self.option.method}")
 		print(f"method: {METHOD[self.option.method]}")
 		protocol.writeHeader(
@@ -83,7 +82,7 @@ cdef class SendPeopleCLI :
 		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 
 	cdef list[People] decodePeople(self, Buffer *stream) :
-		cdef StorageCommunicateProtocol protocol = StorageCommunicateProtocol()
+		cdef RecordNodeProtocol protocol = RecordNodeProtocol()
 		protocol.registerClass("People", People)
 		protocol.getHeader(stream)
 		print(f"Header: {protocol}")
@@ -93,9 +92,9 @@ cdef class SendPeopleCLI :
 		for people in peopleList:
 			print(people)
 
-	cdef handleEcho(self, bytes message) :
+	cdef handleGet(self, bytes message) :
 		cdef list[People] peopleList
-		print(f"Recieved Buffer: {message}")
+		# print(f"Recieved Buffer: {message}")
 		setBuffer(&self.received, <char *> message, len(message))
 		self.received.position -= len(message)
 		print(f"Decoded People: {self.received}")
@@ -103,7 +102,7 @@ cdef class SendPeopleCLI :
 		self.showPeople(peopleList)
 
 	cdef handleResponse(self, bytes message) :
-		print(f"Recieved Buffer: {message}")
+		# print(f"Recieved Buffer: {message}")
 		setBuffer(&self.received, <char *> message, len(message))
 		print(f"Message: {self.received}")
 
@@ -113,12 +112,15 @@ cdef class SendPeopleCLI :
 		new_stream = self.encodePeople(peopleList)
 
 		self.stream.position = 0
-		# unpackpeopleList = self.decodePeople(&self.stream)
-		# self.showPeople(unpackpeopleList)
-		# self.handleEcho(new_stream)
 
-		self.service = Client({
+		self.service = RequestService({
 			"host": self.option.host,
 			"port": self.option.port
 		})
-		self.service.send(ListenProtocol, new_stream)
+		self.service.send(new_stream)
+		if self.option.method == "GET":
+			response = self.service.received
+			self.handleGet(response)
+		else:
+			response = self.service.received
+			self.handleResponse(response)

@@ -1,15 +1,16 @@
 from xtore.BaseType cimport i32
 from xtore.common.Buffer cimport initBuffer, releaseBuffer, setBuffer
 from xtore.protocol.AsyncProtocol cimport AsyncProtocol
-from xtore.protocol.StorageCommunicateProtocol cimport StorageCommunicateProtocol
+from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol
 
 from libc.stdlib cimport malloc
 
-cdef i32 BUFFER_SIZE
+cdef i32 BUFFER_SIZE = 1 << 16
 
 cdef class StorageTransferProtocol (AsyncProtocol):
 	def __init__(self):
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
+		print("new protocol create!")
 
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
@@ -33,10 +34,10 @@ cdef class StorageTransferProtocol (AsyncProtocol):
 		print(f'Cluster Received {dataLength} bytes')
 		setBuffer(&self.stream, <char *> data, dataLength)
 
-		# Initial the StorageCommunicateProtocol
-		cdef StorageCommunicateProtocol received = StorageCommunicateProtocol()
+		# Initial the RecordNodeProtocol
+		cdef RecordNodeProtocol received = RecordNodeProtocol()
 		cdef bytes response = received.handleRequest(&self.stream)
 
 		# Send back the response
-		# self.transport.write(response)
-		# print(f'Cluster Sent Response {len(response)} bytes')
+		self.transport.write(response)
+		print(f'Cluster Sent Response {len(response)} bytes')
