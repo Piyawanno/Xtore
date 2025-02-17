@@ -57,6 +57,7 @@ class XtoreSetup :
 			'xt-start-service',
 			'xt-cli',
 			'xt-cluster',
+			'xt-test-primeRing,
 			'xt-send',
 			'xt-server'
 		]
