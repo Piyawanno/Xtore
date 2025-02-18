@@ -4,6 +4,7 @@ from xtore.service.Client cimport Client
 from xtore.BaseType cimport u8
 
 from cpython cimport PyBytes_FromStringAndSize
+from posix cimport fcntl, unistd
 import os
 
 cdef class ReplicaIOHandler(StreamIOHandler) :
@@ -14,8 +15,22 @@ cdef class ReplicaIOHandler(StreamIOHandler) :
 
 	cdef write(self, Buffer *stream) :
 		StreamIOHandler.write(self, stream)
+		self.replicate(stream, 0, stream.position)
+	
+	cdef writeOffset(self, Buffer *stream, i32 offset, i32 size) :
+		StreamIOHandler.writeOffset(self, stream, offset, size)
+		self.replicate(stream, offset, size)
+	
+	cdef i64 fill(self, Buffer *stream) :
+		self.tail = unistd.lseek(self.fd, 0, fcntl.SEEK_END)
+		unistd.write(self.fd, stream.buffer, stream.position)
+		self.tail = unistd.lseek(self.fd, 0, fcntl.SEEK_END)
+		self.replicate(stream, 0, stream.position)
+		return self.tail
+	
+	cdef replicate(self, Buffer *stream, i32 offset, i32 size) :
 		cdef bytes encoded = self.fileName.encode()
-		cdef bytes data = PyBytes_FromStringAndSize(stream.buffer, stream.position)
+		cdef bytes data = PyBytes_FromStringAndSize(stream.buffer + offset, size)
 		cdef bytes message = len(encoded).to_bytes(2, "little") + encoded + data
 		cdef dict replica
 		cdef Client service
