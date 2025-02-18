@@ -9,7 +9,6 @@ cdef class PrimeRing:
 	cdef i32 replicaNumber
 	cdef list nodes
 	cdef i32 layer
-	cdef i32 count
 
 	cdef getConfig(self)
 	cdef initialize(self)
