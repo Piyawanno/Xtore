@@ -26,4 +26,5 @@ cdef class InitPrimeRingCLI:
 	cdef run(self, list argv):
 		self.getParser(argv)
 		ring = PrimeRing()
-		ring.initialize()
+		ring.loadData()
+		print(ring.getNodeForSet('ab12'))

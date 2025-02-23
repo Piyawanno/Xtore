@@ -5,7 +5,7 @@
 			"childStorageUnit": [
 				{
 					"ringId": 0,
-					"StorageUnit": {
+					"storageUnit": {
 						"master": {
 							"host": "localhost",
 							"port": 7410
@@ -24,7 +24,7 @@
 				},
 				{
 					"ringId": 1,
-					"StorageUnit": {
+					"storageUnit": {
 						"master": {
 							"host": "localhost",
 							"port": 7420
