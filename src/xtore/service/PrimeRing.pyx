@@ -115,7 +115,21 @@ cdef class PrimeRing:
 		return {
 			"host": nodeConfig[position]["host"],
 			"port": nodeConfig[position]["port"]
-			}
+		}
+	
+	cdef dict getNodeForGet(self, i32 index):
+		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "PrimeRing.json")
+		cdef object fd
+		cdef dict config
+		cdef list nodeConfig
+		with open(configPath, "rt") as fd:
+			config = json.loads(fd.read())
+			nodeConfig = config["PrimeRing"]
+			fd.close()
+		return {
+			"host": nodeConfig[index]["host"],
+			"port": nodeConfig[index]["port"]
+		}
 
 
 
