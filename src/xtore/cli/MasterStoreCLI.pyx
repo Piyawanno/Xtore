@@ -37,8 +37,8 @@ cdef class MasterStoreCLI :
 		cdef str resourcePath = self.getResourcePath()
 		cdef str fileName = "People.Hash.bin"
 		cdef str path = os.path.join(resourcePath, fileName)
-		cdef list replicaList = self.config.get("replica", [])
-		cdef ReplicaIOHandler io = ReplicaIOHandler(fileName, path, replicaList)
+		cdef dict replica = self.config["primeRing"][0]["childStorageUnit"][0]["storageUnit"]["replica"][0]
+		cdef ReplicaIOHandler io = ReplicaIOHandler(fileName, path, [replica])
 		cdef PeopleHashStorage storage = PeopleHashStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
 		io.open()
