@@ -58,7 +58,9 @@ class XtoreSetup :
 			'xt-cluster',
 			'xt-test-primeRing',
 			'xt-send',
-			'xt-server'
+			'xt-server',
+			'xt-consistent'
+
 		]
 
 		self.configList = [
