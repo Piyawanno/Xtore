@@ -4,4 +4,4 @@ cdef class ConsistentNode:
 	cdef i32 id
 	cdef str host
 	cdef u16 port
-	cdef list replicas
+	#cdef list replicas
