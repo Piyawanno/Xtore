@@ -15,5 +15,6 @@ cdef class PrimeRing:
 	cdef initPrimeRing(self)
 	cdef setConfig(self)
 	cdef dict getNodeForSet(self, char * key)
+	cdef dict getNodeForGet(self, i32 index)
 
 
