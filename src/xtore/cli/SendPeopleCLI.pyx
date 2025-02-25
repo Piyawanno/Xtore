@@ -78,7 +78,7 @@ cdef class SendPeopleCLI :
 			version=1
 		)
 		protocol.encode(&self.stream, peopleList)
-		print(f"Encoded People: {self.stream}")
+		# print(f"Encoded People: {self.stream}")
 		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 
 	cdef list[People] decodePeople(self, Buffer *stream) :
@@ -97,14 +97,14 @@ cdef class SendPeopleCLI :
 		# print(f"Recieved Buffer: {message}")
 		setBuffer(&self.received, <char *> message, len(message))
 		self.received.position -= len(message)
-		print(f"Decoded People: {self.received}")
+		# print(f"Decoded People: {self.received}")
 		peopleList = self.decodePeople(&self.received)
 		self.showPeople(peopleList)
 
 	cdef handleResponse(self, bytes message) :
 		# print(f"Recieved Buffer: {message}")
 		setBuffer(&self.received, <char *> message, len(message))
-		print(f"Message: {self.received}")
+		# print(f"Message: {self.received}")
 
 	cdef run(self, list argv) :
 		self.getParser(argv)

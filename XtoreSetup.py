@@ -29,7 +29,6 @@ def __conform__(path) :
 	if path[-1] == "/": result = result + "/"
 	return result
 
-
 def __link__(source, destination):
 	source = __conform__(source)
 	destination = __conform__(destination)

@@ -37,6 +37,14 @@ namespace Xtore{
 		stream->checkCapacity = NULL;
 	}
 
+	inline void releaseBuffer(Buffer *stream) {
+		if(stream->capacity > 0 && stream->buffer != NULL) {
+			free(stream->buffer);
+			stream->capacity = 0;
+			stream->buffer = NULL;
+		}
+	}
+
 	inline void checkCapacity(Buffer *stream, u64 length){
 		u64 capacity = stream->position + length;
 		if(capacity > stream->capacity){
@@ -55,6 +63,23 @@ namespace Xtore{
 				auto check = (CapacityChecker) stream->checkCapacity;
 				check(stream, length);
 			}
+		}
+	}
+
+	inline void resizeBuffer(Buffer *stream, char *buffer, u64 capacity) {
+		if(capacity > stream->capacity) {
+			memcpy(buffer, stream->buffer, stream->position);
+			releaseBuffer(stream);
+			stream->buffer = buffer;
+			stream->capacity = capacity;
+		}
+	}
+
+	inline void checkBufferSize(Buffer *stream, u64 chunkSize) {
+		if(stream->position >= stream->capacity) {
+			int capacity = stream->capacity + chunkSize;
+			char *buffer = (char *) malloc(capacity);
+			resizeBuffer(stream, buffer, capacity);
 		}
 	}
 

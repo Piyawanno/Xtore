@@ -7,5 +7,5 @@ namespace Xtore{
 		public:
 			void encrypt(Buffer *plain, Buffer *cipher);
 			void decrypt(Buffer *plain, Buffer *cipher);
-	}
+	};
 }
