@@ -1,3 +1,0 @@
-- Create Client-Server Lib
-- Create Service for Remote Store
-- Create Service for Replication Store

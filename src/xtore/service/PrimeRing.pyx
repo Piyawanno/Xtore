@@ -1,93 +1,63 @@
-from xtore.BaseType cimport u16, i32, i64
+from xtore.BaseType cimport u8, u16, i32, i64
 from libc.stdlib cimport malloc, free
 import os, sys, json
 from xtore.service.Node cimport Node
+from xtore.instance.RecordNode cimport hashDJB
 
 cdef class PrimeRing:
 	def __init__(self):
 		self.nodes = []
 		self.primeNumbers = [2, 3, 5]
 		self.replicaNumber = 3
+		self.nodeNumber = 0
 
 	cdef getConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")
 		cdef object fd
 		with open(configPath, "rt") as fd :
 			self.config = json.loads(fd.read())
-			self.clusterConfig = self.config["cluster"] 
+			self.primeRingConfig = self.config["primeRing"]
 			fd.close()
 
-	cdef initialize(self):
+	cdef loadData(self):
 		self.getConfig()
-		cdef Node node, replicaNode
-		cdef i32 num, check
-		num = 0
-		print(self.clusterConfig["nodes"][0])
-		for i, raw in enumerate(self.clusterConfig["nodes"]):
-			check = i+1
-			node = Node(raw)
-			node.isMaster = 1
-			"""for j in range(i+1, self.replicaNumber):
-				replica = self.clusterConfig["nodes"][j]
-				masterData["replicas"].append({
-					"id": replica["id"],
-					"host": replica["host"],
-					"port": replica["port"],
-					"isMaster": 0,
-					"layer": -1,
-					"children": [],
-					"replicas": [],
-				})"""
-			if num != 0:
-				num -= 1
-				continue
-			else:
-				for iterate in range(self.replicaNumber - 1):
-					replicaNode = Node(self.clusterConfig["nodes"][check])
-					replicaNode.isMaster = 0
-					node.replicas.append(replicaNode)
-					num += 1
-					check += 1
-			print(node.port)
-			self.nodes.append(node)
-		cdef Node n = self.nodes[0]
-		print(n.port)
+		cdef Node storageUnit
+		for i, layer in enumerate(self.primeRingConfig):
+			for storage in layer["childStorageUnit"]:
+				storageUnit = Node(storage, i)
+				self.nodes.append(storageUnit)
+				self.nodeNumber += 1
 		self.initPrimeRing()
-		cdef Node a = self.nodes[0]
-		cdef Node b = a.replicas[0]
-		print(b.id)
 		self.setConfig()
 		
 	cdef initPrimeRing(self):
-		pass
 		cdef list ring = []
-		cdef i32 layer, primeIndex, nodeIndex, childrenNumber, nodesInLayer, parent
+		cdef i32 layer, primeIndex, nodeIndex, childrenNumber, nodesInLayer, parent, previousLayer
 		cdef i32 count
-		cdef Node member, children
+		cdef Node member, childNode
 		layer = 0
 		primeIndex = 0
 		nodeIndex = 0
 		count = 0
 		parent = 0
-		childIndex = self.primeNumbers[0]
+		previousLayer = 0
 		for i, member in enumerate(self.nodes):
-			print(member.id)
 			nodesInLayer = 1
 			for index, prime in enumerate(self.primeNumbers):
 				nodesInLayer = nodesInLayer * prime
 				if index == primeIndex:
 					break
+			if nodeIndex + 1 == len(self.primeNumbers):
+				break
 			childrenNumber = self.primeNumbers[nodeIndex + 1]
-			if parent == nodesInLayer:
+			if parent == previousLayer:
 				childIndex = count + nodesInLayer
 				parent = 0
-			member.layer = layer
 			for j in range(childrenNumber):
 				if childIndex >= len(self.nodes):
 					break 
-				childNode = Node(self.nodes[childIndex])
-				childNode.layer = layer + 1
-				member.children.append(childNode)
+				childNode = self.nodes[childIndex]
+				member.children.append(childIndex)
 				childIndex += 1
 			parent += 1
 			if parent == nodesInLayer:
@@ -95,12 +65,13 @@ cdef class PrimeRing:
 				count += nodesInLayer
 				primeIndex += 1
 				layer += 1
+				previousLayer = nodesInLayer
 			ring.append(member)
 		self.nodes = ring
 
 	cdef setConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "PrimeRing.json")
-		cdef Node nodeForWrite, child, replica
+		cdef Node nodeForWrite, child
 		cdef list nodeList = []
 		for nodeMember in self.nodes:
 			nodeForWrite = nodeMember
@@ -108,28 +79,11 @@ cdef class PrimeRing:
 				"id": nodeForWrite.id,
 				"host": nodeForWrite.host,
 				"port": nodeForWrite.port,
-				"isMaster": nodeForWrite.isMaster,
 				"layer": nodeForWrite.layer,
-				"children": [],
-				"replicas": [],
+				"children": nodeForWrite.children,
+				"replicas": nodeForWrite.replicas,
 			}
-			for child in nodeForWrite.children:
-				childData = {
-					"id": child.id,
-					"host": child.host,
-					"port": child.port,
-					"isMaster": child.isMaster,
-					"layer": child.layer,
-				}
-				nodeData["children"].append(childData)
-			for replica in nodeForWrite.replicas:
-				replicaData = {
-					"id": replica.id,
-					"host": replica.host,
-					"port": replica.port,
-					"isMaster": replica.isMaster,
-				}
-				nodeData["replicas"].append(replicaData)
+			print(nodeData)
 			nodeList.append(nodeData)
 		try:
 			with open(configPath, "w") as jsonFile:
@@ -138,6 +92,44 @@ cdef class PrimeRing:
 		except Exception as e:
 			print(f"Error writing file: {e}")
 		
+	cdef dict getNodeForSet(self, char * key):
+		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "PrimeRing.json")
+		cdef object fd
+		cdef dict config
+		cdef list nodeConfig
+		with open(configPath, "rt") as fd:
+			config = json.loads(fd.read())
+			nodeConfig = config["PrimeRing"]
+			fd.close()
+		cdef i32 hashKey, id, index, position
+		position = 0
+		hashKey = hashDJB(key, 10)
+		index = 0
+		id = hashKey%self.primeNumbers[index]
+		while position < self.nodeNumber:
+			if nodeConfig[position]["children"]:
+				id = hashKey%self.primeNumbers[index + 1]
+				position = nodeConfig[position]["children"][id]
+			else:
+				break
+		return {
+			"host": nodeConfig[position]["host"],
+			"port": nodeConfig[position]["port"]
+		}
+	
+	cdef dict getNodeForGet(self, i32 index):
+		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "PrimeRing.json")
+		cdef object fd
+		cdef dict config
+		cdef list nodeConfig
+		with open(configPath, "rt") as fd:
+			config = json.loads(fd.read())
+			nodeConfig = config["PrimeRing"]
+			fd.close()
+		return {
+			"host": nodeConfig[index]["host"],
+			"port": nodeConfig[index]["port"]
+		}
 
 
 

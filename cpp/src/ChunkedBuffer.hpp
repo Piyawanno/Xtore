@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DataType.hpp"
-#include "common/Buffer.hpp"
+#include "Buffer.hpp"
 #include "Python.h"
 
 #include <stdlib.h>

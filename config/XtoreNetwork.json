@@ -1,34 +1,47 @@
 {
-	"replica" : [{
-		"id" : 1,
-		"host" : "localhost",
-		"port" : 7510
-	}],
-	"node" : [{
-		"id" : 1,
-		"host" : "localhost",
-		"port" : 7410
-	}],
-	"cluster": {
-		"id" : 1,
-		"host" : "localhost",
-		"port" : 45001,
-		"nodes" : [
-			{
-				"id" : 0,
-				"host" : "localhost",
-				"port" : 7410
-			},
-			{
-				"id" : 1,
-				"host" : "localhost",
-				"port" : 7411
-			},
-			{
-				"id" : 2,
-				"host" : "localhost",
-				"port" : 7412
-			}
-	]
-	}
+    "primeRing": [
+		{
+			"layer": 0,
+			"childStorageUnit": [
+				{
+					"ringId": 0,
+					"storageUnit": {
+						"master": {
+							"host": "localhost",
+							"port": 7410
+						},
+						"replica": [
+							{
+								"host": "localhost",
+								"port": 7411
+							},
+							{
+								"host": "localhost",
+								"port": 7412
+							}
+						]
+					}
+				},
+				{
+					"ringId": 1,
+					"storageUnit": {
+						"master": {
+							"host": "localhost",
+							"port": 7420
+						},
+						"replica": [
+							{
+								"host": "localhost",
+								"port": 7421
+							},
+							{
+								"host": "localhost",
+								"port": 7422
+							}
+						]
+					}
+				}
+			]
+		}
+    ]
 }

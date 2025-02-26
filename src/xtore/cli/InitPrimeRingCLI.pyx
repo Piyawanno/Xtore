@@ -21,9 +21,19 @@ cdef class InitPrimeRingCLI:
 
 	cdef getParser(self, list argv):
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
+		self.parser.add_argument("-s", "--method", help="Select Method", required=True, choices=['Get', 'Set'])
 		self.option = self.parser.parse_args(argv)
 	
 	cdef run(self, list argv):
+		cdef dict nodeInfo
 		self.getParser(argv)
 		ring = PrimeRing()
-		ring.initialize()
+		ring.loadData()
+		if self.option.method == 'Set':
+			print(ring.getNodeForSet('ab12'))
+		elif self.option.method == 'Get':
+			for i in range(ring.nodeNumber):
+				nodeInfo = ring.getNodeForGet(i)
+				print(nodeInfo)
+				#send to server then response, if have break/ not continue
+

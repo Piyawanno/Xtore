@@ -2,14 +2,21 @@ from setuptools import setup, Extension, find_packages
 from pathlib import Path
 from Cython.Build import cythonize
 
-import multiprocessing
-
+import os, sys, multiprocessing
 
 __PROCESS_NUMBER__ = multiprocessing.cpu_count()
 
-def getExtensionList() -> list[Exception]:
+def buildCPP(executable) :
+	rootPath = os.path.abspath(os.path.dirname(__file__))
+	os.chdir(f"{rootPath}/cpp")
+	os.system(f"{executable} setup.py build")
+	os.system(f"{executable} setup.py install")
+
+def getExtensionList() -> list[Extension]:
+	rootPath = os.path.abspath(os.path.dirname(__file__))
+	os.chdir(rootPath)
 	sourcePath = 'src'
-	extensionList: list[Exception] = []
+	extensionList: list[Extension] = []
 	path = Path(f"./{sourcePath}")
 	for i in path.rglob("*.pyx"):
 		modulePath = str(i.with_suffix(""))
@@ -26,7 +33,9 @@ def getExtensionList() -> list[Exception]:
 		))
 	return extensionList
 
-def build(extensionList):
+def build(executable) :
+	buildCPP(executable)
+	extensionList:list = getExtensionList()
 	setup(
 		ext_modules=cythonize(
 			extensionList,
@@ -36,4 +45,4 @@ def build(extensionList):
 		),
 	)
 
-if __name__ == '__main__': build(getExtensionList())
+if __name__ == '__main__': build(sys.executable)
