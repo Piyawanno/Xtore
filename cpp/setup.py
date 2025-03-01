@@ -20,19 +20,29 @@ class XtoreBuilder:
 		self.main = ''
 		self.libraryName = "xtorecpp"
 		self.compiler = "g++"
-		self.objectFlag = "-Wall -pedantic -ansi -fPIC -DPIC -c -O3 -g --std=c++14"
-		self.mergeFlag = "-Wall -pedantic -ansi -fPIC -DPIC -O3 -g --std=c++14 -shared"
+		self.objectFlag = "-Wall -pedantic -ansi -fPIC -DPIC -c -O3 -g --std=c++17"
+		self.mergeFlag = "-Wall -pedantic -ansi -fPIC -DPIC -O3 -g --std=c++17 -shared"
 		self.shareFlag = "-shared -O3"
 		self.include = [
 			'./',
 			get_paths()['include'],
+			os.path.join(sys.prefix, "include"),
+			os.path.join(sys.prefix, "include", "openfhe"),
+			os.path.join(sys.prefix, "include", "openfhe", "binfhe"),
+			os.path.join(sys.prefix, "include", "openfhe", "cereal"),
+			os.path.join(sys.prefix, "include", "openfhe", "core"),
+			os.path.join(sys.prefix, "include", "openfhe", "pke"),
 		]
 		self.libraryPath = [
-			'./'
+			'./',
+			os.path.join(sys.prefix, "lib")
 		]
 		self.objectLibrary = [
 		]
 		self.library = [
+			"OPENFHEcore",
+			"OPENFHEpke",
+			"OPENFHEbinfhe",
 		]
 		self.exceptedInstall = []
 		self.fileList = []
