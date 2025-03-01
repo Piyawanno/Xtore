@@ -32,11 +32,17 @@ cdef class ReplicaIOHandler(StreamIOHandler) :
 		cdef bytes encoded = self.fileName.encode()
 		cdef bytes data = PyBytes_FromStringAndSize(stream.buffer + offset, size)
 		cdef bytes message = len(encoded).to_bytes(2, "little") + encoded + data
-		cdef dict replica
-		cdef Client service
-		for replica in self.replicaList :
-			service = Client(replica)
-			service.sendSync(message, self.handle)
+		asyncio.create_task(self.handle(message))
+		# cdef dict replica
+		# cdef Client service
+		# for replica in self.replicaList :
+		# 	service = Client(replica) # add attribute
+		# 	service.sendSync(message, self.handle)
 	
-	def handle(self, bytes message) :
-		print(message)
+	# def handle(self, bytes message) :
+	# 	print(message)
+	
+	async def handle(self, bytes message) :
+		self.clientList = []
+		coroutines = [i.send(message) for i in self.clientList]
+		result = await asyncio.gather(*coroutines)
