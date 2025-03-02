@@ -1,8 +1,14 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
-
 cdef class CythonHomomorphic:
+
+    def __cinit__(self):
+        self.homomorphic = new HomomorphicEncryption()
+    
+    def __dealloc__(self):
+        del self.homomorphic 
+
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize):
         self.homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)
 

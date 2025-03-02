@@ -1,9 +1,8 @@
 #pragma once
 
-#include <openfhe.h>
+#include "openfhe.h"
 #include <vector>
 #include <iostream>
-#include "scheme/ckksrns/ckksrns-schemeswitching.h"
 
 namespace Xtore
 {

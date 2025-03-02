@@ -40,6 +40,5 @@ python XtoreSetup.py link
 - mkdir build
 - cd build
 - cmake .. -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV}
-
 - make
 - sudo make install

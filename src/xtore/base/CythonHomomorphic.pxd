@@ -1,8 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
-# from libcpp cimport lbcrypto
 
-cdef extern from "../../../Xtore/cpp/src/HomomorphicEncryption.hpp" namespace "Xtore":
+cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
 
     cdef cppclass CiphertextDCRTPoly:
         pass
@@ -10,7 +9,7 @@ cdef extern from "../../../Xtore/cpp/src/HomomorphicEncryption.hpp" namespace "X
         pass
         
     cdef cppclass HomomorphicEncryption:
-        HomomorphicEncryption() except +
+        HomomorphicEncryption()
         void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
         void setupSchemeSwitching(int slots, int logQ_ccLWE)
         CiphertextDCRTPoly encrypt(const vector[double]& plain) except +
@@ -24,11 +23,6 @@ cdef class CythonHomomorphic:
     cdef CiphertextDCRTPoly encrypt(self, list plainText)
     cdef PlaintextDCRTPoly decrypt(self, CiphertextDCRTPoly cipherText)
     cdef vector[double] compare(self, int slots, CiphertextDCRTPoly ciphertext1, CiphertextDCRTPoly ciphertext2)
-
-
-
-
-
 
 
 

@@ -1,7 +1,6 @@
 #include "HomomorphicEncryption.hpp"
 #include <iostream>
 
-
 using namespace lbcrypto;
 
 namespace Xtore
