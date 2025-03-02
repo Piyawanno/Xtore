@@ -29,6 +29,7 @@ def getExtensionList() -> list[Extension]:
 	includePath:list = []
 	for include in includeList :
 		if os.path.isdir(include) : includePath.append(include)
+	libPath:list = ["OPENFHEbinfhe", "OPENFHEcore", "OPENFHEpke"] if len(includePath) else []
 	for i in path.rglob("*.pyx"):
 		modulePath = str(i.with_suffix(""))
 		if '__init__' in modulePath: continue
@@ -39,7 +40,7 @@ def getExtensionList() -> list[Extension]:
 			# py_limited_api=True,
 			include_dirs=includePath,
 			library_dirs=[os.path.join(sys.prefix, "lib"),],
-			libraries=["OPENFHEbinfhe", "OPENFHEcore", "OPENFHEpke"],
+			libraries=libPath,
 			extra_compile_args=["-g", "--std=c++17"],
 			extra_link_args=["-g", "--std=c++17"],
 			language = 'c++',
