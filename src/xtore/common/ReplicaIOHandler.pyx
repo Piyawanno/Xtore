@@ -5,7 +5,7 @@ from xtore.BaseType cimport u8
 
 from cpython cimport PyBytes_FromStringAndSize
 from posix cimport fcntl, unistd
-import os
+import os, asyncio
 
 cdef class ReplicaIOHandler(StreamIOHandler) :
 	def __init__(self, str fileName, str path, list replicaList) :

@@ -18,17 +18,30 @@ def getExtensionList() -> list[Extension]:
 	sourcePath = 'src'
 	extensionList: list[Extension] = []
 	path = Path(f"./{sourcePath}")
+	includeList:list = [
+		os.path.join(sys.prefix, "include"),
+		os.path.join(sys.prefix, "include", "openfhe"),
+		os.path.join(sys.prefix, "include", "openfhe", "binfhe"),
+		os.path.join(sys.prefix, "include", "openfhe", "cereal"),
+		os.path.join(sys.prefix, "include", "openfhe", "core"),
+		os.path.join(sys.prefix, "include", "openfhe", "pke"),
+	]
+	includePath:list = []
+	for include in includeList :
+		if os.path.isdir(include) : includePath.append(include)
 	for i in path.rglob("*.pyx"):
 		modulePath = str(i.with_suffix(""))
 		if '__init__' in modulePath: continue
-		print(modulePath.replace("/", '.')[len(sourcePath)+1:], [f'{i}'])
 		extensionList.append(Extension(
 			modulePath.replace("/", '.')[len(sourcePath)+1:],
-			[f'{i}'],
+			sources=[f'{i}'],
 			# define_macros=[("CYTHON_LIMITED_API", "1")],
 			# py_limited_api=True,
-			extra_compile_args=["-g"],
-			extra_link_args=["-g"],
+			include_dirs=includePath,
+			library_dirs=[os.path.join(sys.prefix, "lib"),],
+			libraries=["OPENFHEbinfhe", "OPENFHEcore", "OPENFHEpke"],
+			extra_compile_args=["-g", "--std=c++17"],
+			extra_link_args=["-g", "--std=c++17"],
 			language = 'c++',
 		))
 	return extensionList
