@@ -117,8 +117,8 @@ class XtoreBuilder:
 						os.system(command)
 	
 	def uninstall(self):
-		if self.isMain: command = 'rm -v %s/%s %s/bin/'%(self.root, self.main[:-4], self.userPath)
-		else: command = 'rm -v %s/%s %s/lib/'%(self.root, self.getTargetName(), self.userPath)
+		if self.isMain: command = 'rm -v %s/%s %s/bin/%s'%(self.root, self.main[:-4], self.userPath, self.main[:-4])
+		else: command = 'rm -v %s/%s %s/lib/%s'%(self.root, self.getTargetName(), self.userPath, self.getTargetName())
 		print(command)
 		os.system(command)
 		targetDir = "%s/include/%s"%(self.userPath, self.libraryName)
