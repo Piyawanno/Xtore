@@ -16,9 +16,9 @@ namespace Xtore
         HomomorphicEncryption();
         void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize);
         void setupSchemeSwitching(int slots, int logQ_ccLWE);
-        lbcrypto::Ciphertext<lbcrypto::DCRTPoly> encrypt(const std::vector<double>& plain);
-        lbcrypto::Plaintext decrypt(lbcrypto::Ciphertext<lbcrypto::DCRTPoly> ciphertext);
-        std::vector<double> compare(int slots, lbcrypto::Ciphertext<lbcrypto::DCRTPoly> cipher1, lbcrypto::Ciphertext<lbcrypto::DCRTPoly> cipher2);
+        CiphertextDCRTPoly encrypt(const std::vector<double>& plain);
+        lbcrypto::Plaintext decrypt(CiphertextDCRTPoly ciphertext);
+        std::vector<double> compare(int slots, CiphertextDCRTPoly cipher1, CiphertextDCRTPoly cipher2);
     
     public:
         lbcrypto::CryptoContext<lbcrypto::DCRTPoly> cryptoContext;

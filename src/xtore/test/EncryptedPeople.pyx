@@ -1,9 +1,6 @@
-# Homomorphic People RecordNode
-
 from xtore.BaseType cimport i16, i64, u64, f128, i32
 from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, getBytes, setBytes, checkBufferSize
 from xtore.instance.RecordNode cimport RecordNode
-from xtore.instance.Homomorphic cimport Homomorphic
 
 cdef i32 PEOPLE_ENTRY_KEY_SIZE = 8
 
@@ -55,10 +52,6 @@ cdef class EncryptedPeople (RecordNode):
 		print("position :",stream.position)
 		print("capacity :",stream.capacity)
 
-# NOTE COMPARE
-# - Deserialize
-# - Homomorphic Compare
-# - return result
 
 	cdef i32 compare(self, RecordNode other):
 		cdef EncryptedPeople otherPeople = <EncryptedPeople> other

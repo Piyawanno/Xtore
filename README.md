@@ -34,3 +34,12 @@ python XtoreSetup.py link
 - Run link command `python XtoreSetup.py link`
 - Change access permission script file with `chmod +x /script/{script name}`
 - Try run script on terminal 👩‍💻
+
+## Install OPENFHE Library
+- git clone https://github.com/openfheorg/openfhe-development.git
+- mkdir build
+- cd build
+- cmake .. -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV}
+
+- make
+- sudo make install

@@ -9,8 +9,6 @@ from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
 from xtore.instance.ScopeSearch cimport ScopeSearch
 from xtore.instance.ScopeSearchResult cimport ScopeSearchResult
-from xtore.test.PeopleHomomorphic cimport PeopleHomomorphic
-
 
 from faker import Faker
 from argparse import RawTextHelpFormatter

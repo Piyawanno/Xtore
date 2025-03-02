@@ -7,7 +7,6 @@ from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBo
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
-from xtore.instance.Homomorphic cimport Homomorphic
 from libc.stdlib cimport malloc
 from libc.string cimport memcmp
 
@@ -92,12 +91,12 @@ cdef class HomomorphicBSTStorage (BasicStorage):
                 if right > 0:
                     position = right
                 else:
-                    break  # No right child, exit loop
+                    break 
             else:
                 if left > 0:
                     position = left
                 else:
-                    break  # No left child, exit loop
+                    break 
 
     cdef set(self, RecordNode reference):
         print("Set Here")

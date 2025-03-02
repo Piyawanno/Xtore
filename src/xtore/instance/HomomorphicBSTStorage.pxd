@@ -2,7 +2,6 @@ from xtore.BaseType cimport i32, i64, byte
 from xtore.common.Buffer cimport Buffer
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.RecordNode cimport RecordNode
-from xtore.instance.Homomorphic cimport Homomorphic
 
 
 cdef class HomomorphicBSTStorage (BasicStorage):
@@ -12,7 +11,4 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 
 	cdef Buffer stream
 	cdef Buffer headerStream
-	
-	cdef Homomorphic homomorphic
-
 	cdef RecordNode comparingNode

@@ -63,7 +63,6 @@ namespace Xtore
         CiphertextDCRTPoly ciphertext = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
         auto elements = ciphertext->GetElements();
         return ciphertext;
-
     }
 
     Plaintext HomomorphicEncryption::decrypt(Ciphertext<DCRTPoly> ciphertext)
