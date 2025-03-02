@@ -6,11 +6,15 @@ import os, sys, multiprocessing
 
 __PROCESS_NUMBER__ = multiprocessing.cpu_count()
 
-def buildCPP(executable) :
+def buildCPP(executable, operation) :
 	rootPath = os.path.abspath(os.path.dirname(__file__))
 	os.chdir(f"{rootPath}/cpp")
-	os.system(f"{executable} setup.py build")
-	os.system(f"{executable} setup.py install")
+	if operation == "build" :
+		os.system(f"{executable} setup.py build")
+		os.system(f"{executable} setup.py install")
+	elif operation == "clean" :
+		os.system(f"{executable} setup.py clean")
+		os.system(f"{executable} setup.py uninstall")
 
 def getExtensionList() -> list[Extension]:
 	rootPath = os.path.abspath(os.path.dirname(__file__))
@@ -29,7 +33,6 @@ def getExtensionList() -> list[Extension]:
 	includePath:list = []
 	for include in includeList :
 		if os.path.isdir(include) : includePath.append(include)
-	libPath:list = ["OPENFHEbinfhe", "OPENFHEcore", "OPENFHEpke"] if len(includePath) else []
 	for i in path.rglob("*.pyx"):
 		modulePath = str(i.with_suffix(""))
 		if '__init__' in modulePath: continue
@@ -39,8 +42,7 @@ def getExtensionList() -> list[Extension]:
 			# define_macros=[("CYTHON_LIMITED_API", "1")],
 			# py_limited_api=True,
 			include_dirs=includePath,
-			library_dirs=[os.path.join(sys.prefix, "lib"),],
-			libraries=libPath,
+			runtime_library_dirs=[os.path.join(sys.prefix, "lib"),],
 			extra_compile_args=["-g", "--std=c++17"],
 			extra_link_args=["-g", "--std=c++17"],
 			language = 'c++',
@@ -48,7 +50,7 @@ def getExtensionList() -> list[Extension]:
 	return extensionList
 
 def build(executable) :
-	buildCPP(executable)
+	buildCPP(executable, sys.argv[-1])
 	extensionList:list = getExtensionList()
 	setup(
 		ext_modules=cythonize(
