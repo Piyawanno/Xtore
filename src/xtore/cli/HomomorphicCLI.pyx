@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from xtore.BaseType cimport i32, f32, byte
-=======
 from xtore.BaseType cimport i32
->>>>>>> fd4d2cc75eec83149f3807da9c21acf472601197
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.BasicIterator cimport BasicIterator
@@ -16,12 +12,6 @@ from xtore.base.CythonHomomorphic cimport CythonHomomorphic
 from xtore.test.PeopleHomomorphic cimport PeopleHomomorphic
 from xtore.test.EncryptedPeople cimport EncryptedPeople
 
-<<<<<<< HEAD
-# from xtore.base.HomomorphicEncryption cimport HomomorphicEncryption
-from xtore.base.HomomorphicEncryption cimport test
-
-=======
->>>>>>> fd4d2cc75eec83149f3807da9c21acf472601197
 import os, sys, argparse, traceback, random, time
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
