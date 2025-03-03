@@ -3,10 +3,10 @@ from xtore.instance.RecordNode cimport hashDJB
 from xtore.algorithm.ConsistentNode cimport ConsistentNode
 
 cdef class ConsistentHashing:
-    #cdef u32 numReplica
-    cdef dict ring
-    cdef list sortedKey
+	#cdef i32 RInConsistent
+	cdef dict ring
+	cdef list sortedKey
 
-    cdef addNodeConsistentHashing(self, ConsistentNode nodeConsistent)
-    cdef removeNodeConsistentHashing (self, ConsistentNode nodeConsistent)
-    cdef getNodeConsistentHashing (self, char *keyConsistent)
+	cdef addNodeConsistentHashing(self, ConsistentNode nodeConsistent, i64 hashValueConsistent)
+	cdef removeNodeConsistentHashing (self, ConsistentNode nodeConsistent, i64 hashValueConsistent)
+	cdef ConsistentNode getNodeConsistentHashing (self, i64 hashValueConsistent)
