@@ -1,8 +1,14 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
-
 cdef class CythonHomomorphic:
+
+    def __cinit__(self):
+        self.homomorphic = new HomomorphicEncryption()
+    
+    def __dealloc__(self):
+        del self.homomorphic 
+
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize):
         self.homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)
 
@@ -23,4 +29,3 @@ cdef class CythonHomomorphic:
     cdef vector[double] compare(self, int slots, CiphertextDCRTPoly ciphertext1, CiphertextDCRTPoly ciphertext2):
         cdef vector[double] result = self.homomorphic.compare(slots, ciphertext1, ciphertext2)
         return result
-

@@ -27,29 +27,22 @@ class XtoreBuilder:
 			'./',
 			get_paths()['include'],
 			os.path.join(sys.prefix, "include"),
-			os.path.join(sys.prefix, "include", "openfhe"),
-			os.path.join(sys.prefix, "include", "openfhe", "binfhe"),
-			os.path.join(sys.prefix, "include", "openfhe", "cereal"),
-			os.path.join(sys.prefix, "include", "openfhe", "core"),
-			os.path.join(sys.prefix, "include", "openfhe", "pke"),
 		]
 		self.libraryPath = [
 			'./',
+			get_paths()['platlib'],
 			os.path.join(sys.prefix, "lib")
 		]
 		self.objectLibrary = [
 		]
-		self.library = [
-			"OPENFHEcore",
-			"OPENFHEpke",
-			"OPENFHEbinfhe",
-		]
+		self.library = []
 		self.exceptedInstall = []
 		self.fileList = []
 		self.objectList = []
 	
 	def operate(self, operation: str):
 		self.checkBasePath()
+		self.checkExistingLib()
 		if operation == 'build':
 			if '--merge' in sys.argv: self.buildMerged()
 			else: self.build()
@@ -64,10 +57,27 @@ class XtoreBuilder:
 			
 	def checkBasePath(self):
 		self.userPath = sys.prefix if IS_VENV else "/usr"
+
+	def checkExistingLib(self) :
+		openfhePath:str = os.path.join(sys.prefix, "include", "openfhe")
+		if os.path.isdir(openfhePath) :
+			self.include.extend([
+				openfhePath,
+				os.path.join(sys.prefix, "include", "openfhe", "binfhe"),
+				os.path.join(sys.prefix, "include", "openfhe", "cereal"),
+				os.path.join(sys.prefix, "include", "openfhe", "core"),
+				os.path.join(sys.prefix, "include", "openfhe", "pke"),
+			])
+			self.library.extend([
+				"OPENFHEcore",
+				"OPENFHEpke",
+				"OPENFHEbinfhe",
+			])
 	
 	def getTargetName(self):
 		if not self.isMain :
-			if platform.system() == 'Linux' or platform.system() == 'Darwin': return 'lib%s.so'%(self.libraryName)
+			if platform.system() == 'Linux' : return 'lib%s.so'%(self.libraryName)
+			elif platform.system() == 'Darwin' : return 'lib%s.dylib'%(self.libraryName)
 			else: return '%s.dll'%(self.libraryName)
 		else:
 			return self.main[:self.main.find('.')]

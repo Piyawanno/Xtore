@@ -7,7 +7,7 @@ cdef extern from "xtorecpp/ChunkedBuffer.hpp" namespace "Xtore":
 		ZERO_BYTE_CAPACITY
 		OVER_CAPACITY
 
-	cppclass ChunkedBuffer:
+	cdef cppclass ChunkedBuffer:
 		ChunkedBuffer(u32 chunkSize, bint hasOwnPair)
 
 		Buffer **streamList
@@ -28,11 +28,11 @@ cdef extern from "xtorecpp/ChunkedBuffer.hpp" namespace "Xtore":
 		u32 listCapacity
 		ChunkedBufferError error
 
-		u32 getChunkSize()
+		u32 getChunkSize() except +
 		void setPair(Buffer *pair)
 		void reset()
 		void resetBuffer(Buffer *stream)
 		Buffer *getBuffer(u32 requiredLength)
-		void checkBufferCapacity(Buffer *stream, u32 requiredLength)
+		void checkBufferCapacity(Buffer *stream, u32 requiredLength) except +
 		char *finalize()
-		bytes finalizeBytes()
+		bytes finalizeBytes() except +
