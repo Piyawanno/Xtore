@@ -1,6 +1,6 @@
 from xtore.BaseType cimport u16
 
-cdef class RequestService :
+cdef class StorageClient :
 	cdef dict config
 	cdef str host
 	cdef u16 port

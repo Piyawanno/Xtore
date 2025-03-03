@@ -1,6 +1,6 @@
 import asyncio
 
-cdef class RequestService :
+cdef class StorageClient :
 	def __init__(self, dict config) :
 		self.config = config
 		self.host = self.config["host"]
@@ -22,7 +22,7 @@ cdef class RequestService :
 	async def handleRequest(self, message: bytes, writer, reader) :
 		writer.write(message)
 		await writer.drain()
-		self.received = await reader.read(1024)
+		self.received = await reader.read(1 << 16)
 		writer.close()
 		await writer.wait_closed()
 		self.connected = False

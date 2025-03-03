@@ -1,5 +1,4 @@
-import re
-from xtore.service.RequestService cimport RequestService
+from xtore.service.StorageClient cimport StorageClient
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, setBuffer
 from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOperation, InstanceType
 from xtore.test.People cimport People
@@ -21,17 +20,19 @@ cdef object METHOD = {
 }
 
 cdef object INSTANT_TYPE = {
-	"HASH": InstanceType.HASH
+	"HASH": InstanceType.HASH,
+	"RT": InstanceType.RT,
+	"BST": InstanceType.BST
 }
 
 def run():
-	cdef SendPeopleCLI service = SendPeopleCLI()
-	service.run(sys.argv[1:])
+	cdef SendPeopleCLI cli = SendPeopleCLI()
+	cli.run(sys.argv[1:])
 
 cdef class SendPeopleCLI :
 	cdef object parser
 	cdef object option
-	cdef RequestService service
+	cdef StorageClient client
 	cdef Buffer stream
 	cdef Buffer received
 
@@ -73,7 +74,7 @@ cdef class SendPeopleCLI :
 		print(f"method: {METHOD[self.option.method]}")
 		protocol.writeHeader(
 			operation=METHOD[self.option.method],
-			instantType=InstanceType.HASH, 
+			instantType=InstanceType.BST, 
 			tableName="People", 
 			version=1
 		)
@@ -107,20 +108,21 @@ cdef class SendPeopleCLI :
 		# print(f"Message: {self.received}")
 
 	cdef run(self, list argv) :
+		print('Running...')
 		self.getParser(argv)
 		peopleList = self.TSVToPeopleList(self.option.filename)
 		new_stream = self.encodePeople(peopleList)
 
 		self.stream.position = 0
 
-		self.service = RequestService({
+		self.client = StorageClient({
 			"host": self.option.host,
 			"port": self.option.port
 		})
-		self.service.send(new_stream)
+		self.client.send(new_stream)
 		if self.option.method == "GET":
-			response = self.service.received
+			response = self.client.received
 			self.handleGet(response)
 		else:
-			response = self.service.received
+			response = self.client.received
 			self.handleResponse(response)

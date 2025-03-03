@@ -2,6 +2,7 @@ from xtore.BaseType cimport i32, i64
 from xtore.common.Buffer cimport Buffer, PyBytes_FromStringAndSize, getBuffer, initBuffer, releaseBuffer, setBuffer, setBytes
 
 from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.common.ReplicaIOHandler cimport ReplicaIOHandler
 from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.instance.HashIterator cimport HashIterator
 from xtore.instance.RecordNode cimport RecordNode
@@ -9,10 +10,11 @@ from xtore.test.People cimport People
 from xtore.test.PeopleBSTStorage cimport PeopleBSTStorage
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 from xtore.test.PeopleRTStorage cimport PeopleRTStorage
+from xtore.instance.BinarySearchTreeStorage cimport BinarySearchTreeStorage
 
 from libc.stdlib cimport malloc
 
-import os, sys, traceback, uuid
+import os, sys, traceback, uuid, asyncio
 
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
 
@@ -30,9 +32,9 @@ cdef class StorageService:
 	cdef assignID(self, People record):
 		record.ID = uuid.uuid4()
 
-	cdef writeHashStorage(self, list[People] dataList):
+	cdef BasicStorage openHashStorage(self, str fileName):
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.{uuid.uuid4().int}.Hash.bin'
+		cdef str path = os.path.join(resourcePath, fileName)
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleHashStorage storage = PeopleHashStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
@@ -40,15 +42,13 @@ cdef class StorageService:
 		try:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
-			self.writeData(storage, dataList)
-			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
-		io.close()
+		return storage
 
-	cdef writeRTStorage(self, list[People] dataList):
+	cdef BasicStorage openRTStorage(self, str fileName):
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.RT.bin'
+		cdef str path = os.path.join(resourcePath, fileName)
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleRTStorage storage = PeopleRTStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
@@ -56,15 +56,13 @@ cdef class StorageService:
 		try:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
-			self.writeData(storage, dataList)
-			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
-		io.close()
+		return storage
 
-	cdef writeBSTStorage(self, list[People] dataList):
+	cdef BasicStorage openBSTStorage(self, str fileName):
 		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.BST.bin'
+		cdef str path = os.path.join(resourcePath, fileName)
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleBSTStorage storage = PeopleBSTStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
@@ -72,11 +70,16 @@ cdef class StorageService:
 		try:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
+		except:
+			print(traceback.format_exc())
+		return storage
+
+	cdef writeToStorage(self, list[RecordNode] dataList, BasicStorage storage):
+		try:
 			self.writeData(storage, dataList)
 			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
-		io.close()
 
 	cdef writeData(self, BasicStorage storage, list[RecordNode] dataList):
 		cdef i32 i = 0
@@ -155,15 +158,8 @@ cdef class StorageService:
 			print(traceback.format_exc())
 		io.close()
 
-	cdef list[RecordNode] readBSTStorage(self, str storageName):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.BST.bin'
-		print(f'storage path: {path}')
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleBSTStorage storage = PeopleBSTStorage(io)
-		cdef bint isNew = not os.path.isfile(path)
+	cdef list[RecordNode] readAllBSTStorage(self, BinarySearchTreeStorage storage):
 		cdef int n = 0
-
 		cdef i64 position
 		cdef i64 nodePosition
 		cdef i64 left
@@ -172,41 +168,37 @@ cdef class StorageService:
 		cdef list[RecordNode] nodeList = []
 		cdef People node = People()
 
-		io.open()
 		try:
-			if isNew: print(f'Storage not found!')
-			else: 
-				storage.readHeader(0)
-				position = storage.rootNodePosition
-				while stack or position > 0:
-					while position > 0:
-						stack.append(position)
-						storage.io.seek(position)
-						storage.io.read(&storage.stream, BST_NODE_OFFSET)
-						nodePosition = (<i64*> getBuffer(&storage.stream, 8))[0]
-						left = (<i64*> getBuffer(&storage.stream, 8))[0]
-						right = (<i64*> getBuffer(&storage.stream, 8))[0]
-						position = left
+			storage.readHeader(0)
+			position = storage.rootNodePosition
+			while stack or position > 0:
+				while position > 0:
+					stack.append(position)
+					storage.io.seek(position)
+					storage.io.read(&storage.stream, BST_NODE_OFFSET)
+					nodePosition = (<i64*> getBuffer(&storage.stream, 8))[0]
+					left = (<i64*> getBuffer(&storage.stream, 8))[0]
+					right = (<i64*> getBuffer(&storage.stream, 8))[0]
+					position = left
 
-					if len(stack) > 0:
-						position = stack.pop()
-						storage.io.seek(position)
-						storage.io.read(&storage.stream, BST_NODE_OFFSET)
-						nodePosition = (<i64*> getBuffer(&storage.stream, 8))[0]
-						left = (<i64*> getBuffer(&storage.stream, 8))[0]
-						right = (<i64*> getBuffer(&storage.stream, 8))[0]
+				if len(stack) > 0:
+					position = stack.pop()
+					storage.io.seek(position)
+					storage.io.read(&storage.stream, BST_NODE_OFFSET)
+					nodePosition = (<i64*> getBuffer(&storage.stream, 8))[0]
+					left = (<i64*> getBuffer(&storage.stream, 8))[0]
+					right = (<i64*> getBuffer(&storage.stream, 8))[0]
 
-						node = storage.readNodeKey(nodePosition, None)
-						storage.readNodeValue(node)
-						nodeList.append(node)
+					node = storage.readNodeKey(nodePosition, None)
+					storage.readNodeValue(node)
+					nodeList.append(node)
 
-					position = right
+				position = right
 
-				for record in nodeList:
-					print(record)
+			for record in nodeList:
+				print(record)
 		except:
 			print(traceback.format_exc())
-		io.close()
 		return nodeList
 
 	cdef readAllData(self, BasicStorage storage):

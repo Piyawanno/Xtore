@@ -13,7 +13,6 @@ cdef i32 BUFFER_SIZE = 1 << 16
 cdef class RecordNodeProtocol:
 	def __init__(self):
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
-		
 		self.classMapper = {}
 		self.registerClass("People", People)
 
@@ -70,21 +69,22 @@ cdef class RecordNodeProtocol:
 		self.version = (<i16 *> getBuffer(stream, 2))[0]
 		self.recordCount = (<i32 *> getBuffer(stream, 4))[0]
 
-	cdef bytes handleRequest(self, Buffer *stream):
+	cdef bytes handleRequest(self, Buffer *stream, StorageService service, list[BasicStorage] storageList):
 		stream.position = 0
 		self.getHeader(stream)
 		print(f'>> Received {self.operation}')
-		cdef StorageService service = StorageService({})
 		if self.operation == DatabaseOperation.GET:
-			print(f'>> Reading BSTStorage {self.tableName}')
-			queryResponse = service.readBSTStorage(self.tableName)
+			if self.type == InstanceType.BST:
+				print(f'>> Reading BSTStorage {self.tableName}')
+				queryResponse = service.readAllBSTStorage(storageList[0])
 			print(f'>> Sending {len(queryResponse)} records')
 			self.encode(&self.stream, queryResponse)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		elif self.operation == DatabaseOperation.SET:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} records')
-			service.writeBSTStorage(recordList)
+			if self.type == InstanceType.BST:
+				service.writeToStorage(recordList, storageList[0])
 			self.encode(&self.stream, recordList)
 			return b'OK'
 		else:

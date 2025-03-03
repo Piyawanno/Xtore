@@ -8,8 +8,10 @@ from libc.stdlib cimport malloc
 cdef i32 BUFFER_SIZE = 1 << 16
 
 cdef class StorageTransferProtocol (AsyncProtocol):
-	def __init__(self):
+	def __init__(self, storageService, storageList):
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
+		self.storageList = storageList
+		self.storageService = storageService
 		print("new protocol create!")
 
 	def __dealloc__(self):
@@ -36,7 +38,7 @@ cdef class StorageTransferProtocol (AsyncProtocol):
 
 		# Initial the RecordNodeProtocol
 		cdef RecordNodeProtocol received = RecordNodeProtocol()
-		cdef bytes response = received.handleRequest(&self.stream)
+		cdef bytes response = received.handleRequest(&self.stream, self.storageService, self.storageList)
 
 		# Send back the response
 		self.transport.write(response)
