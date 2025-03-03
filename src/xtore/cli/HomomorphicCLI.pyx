@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from xtore.BaseType cimport i32, f32, byte
+=======
+from xtore.BaseType cimport i32
+>>>>>>> fd4d2cc75eec83149f3807da9c21acf472601197
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.BasicIterator cimport BasicIterator
@@ -8,18 +12,21 @@ from xtore.instance.ScopeSearchResult cimport ScopeSearchResult
 from xtore.test.People cimport People
 
 from xtore.instance.HomomorphicBSTStorage import HomomorphicBSTStorage
+from xtore.base.CythonHomomorphic cimport CythonHomomorphic
 from xtore.test.PeopleHomomorphic cimport PeopleHomomorphic
 from xtore.test.EncryptedPeople cimport EncryptedPeople
 
+<<<<<<< HEAD
 # from xtore.base.HomomorphicEncryption cimport HomomorphicEncryption
 from xtore.base.HomomorphicEncryption cimport test
 
+=======
+>>>>>>> fd4d2cc75eec83149f3807da9c21acf472601197
 import os, sys, argparse, traceback, random, time
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from faker import Faker
 from argparse import RawTextHelpFormatter
-
 
 cdef str __help__ = "Test Script for Xtore"
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
@@ -59,21 +66,15 @@ cdef class HomomorphicCLI:
 
     cdef testHomomorphic(self):
         cdef int slots = 1
-        cdef i32 result = test(30)
+        cdef CythonHomomorphic homomorphic = CythonHomomorphic()
+        homomorphic.initializeCKKS(17, 50, 60, 8192, 1)  
+        homomorphic.setupSchemeSwitching(slots, 25)
+        cipherText1 =  homomorphic.encrypt([1])
+        cipherText2 =  homomorphic.encrypt([2])
+        result = homomorphic.compare(slots, cipherText1, cipherText2)
         print(result)
-        # cdef HomomorphicEncryption *homomorphic = new HomomorphicEncryption()
-        # homomorphic.initializeCKKS(17, 50, 60, 8192, 1)
-        # homomorphic.setupSchemeSwitching(slots, 25)
-        # cipherText1 =  homomorphic.encrypt([1])
-        # cipherText2 =  homomorphic.encrypt([2])
-
-        # test = cipherText1
-
-        # result1 = homomorphic.compare(slots, cipherText1, cipherText2)
-        # print(result1)
 
         # decryptedText = homomorphic.decrypt(cipherText1)
-
 
     cdef testPeopleHomomorphic(self):
         cdef str resourcePath = self.getResourcePath()
@@ -100,12 +101,10 @@ cdef class HomomorphicCLI:
         cdef char *buffer = <char *> encoded
         cdef i32 length = len(encoded)
         cdef i32 arraySize = ((length >> 2) + 1) << 2
-        #cdef TextIntegerArray *array = <TextIntegerArray *> malloc(sizeof(TextIntegerArray) + arraySize)
         cdef TextIntegerArray *array = <TextIntegerArray *> malloc(sizeof(TextIntegerArray))
 
         array.textLength = length
         array.arrayLength = (length >> 3) + 1
-        #array.array = <i32 *> (array + 8)
         array.array = <i32 *> malloc(arraySize)
 
         cdef i32 position = 0
