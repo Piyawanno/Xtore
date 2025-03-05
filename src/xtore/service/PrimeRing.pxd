@@ -1,20 +1,17 @@
 from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport u16, i32
-from xtore.service.Node cimport Node
+from xtore.service.PrimeNode cimport PrimeNode
 
 cdef class PrimeRing:
-	cdef dict config
 	cdef list primeRingConfig
 	cdef list primeNumbers
 	cdef i32 replicaNumber
 	cdef list nodes
 	cdef i32 nodeNumber
+	cdef i32 layerNumber
 
-	cdef getConfig(self)
-	cdef loadData(self)
+	cdef loadData(self, dict config)
 	cdef initPrimeRing(self)
-	cdef setConfig(self)
-	cdef dict getNodeForSet(self, char * key)
-	cdef dict getNodeForGet(self, i32 index)
+	cdef list getNode(self, i32 hashKey)
 
 

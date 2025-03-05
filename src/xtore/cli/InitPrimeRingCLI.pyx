@@ -1,5 +1,7 @@
 from xtore.BaseType cimport i32
 from xtore.service.PrimeRing cimport PrimeRing
+from xtore.instance.RecordNode cimport hashDJB
+from xtore.service.PrimeNode cimport PrimeNode
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -18,22 +20,30 @@ def run():
 cdef class InitPrimeRingCLI:
 	cdef object parser
 	cdef object option
+	cdef dict config
 
 	cdef getParser(self, list argv):
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("-s", "--method", help="Select Method", required=True, choices=['Get', 'Set'])
+		self.parser.add_argument("-k", "--key", help="Type Key", required=True)
 		self.option = self.parser.parse_args(argv)
 	
 	cdef run(self, list argv):
-		cdef dict nodeInfo
 		self.getParser(argv)
+		self.getConfig()
+		cdef PrimeRing ring
 		ring = PrimeRing()
-		ring.loadData()
-		if self.option.method == 'Set':
-			print(ring.getNodeForSet('ab12'))
-		elif self.option.method == 'Get':
-			for i in range(ring.nodeNumber):
-				nodeInfo = ring.getNodeForGet(i)
-				print(nodeInfo)
-				#send to server then response, if have break/ not continue
+		ring.loadData(self.config)
+		cdef list storageUnit
+		print(ring)
+		hashKey = hashDJB(self.option.key.encode(), 5)
+		storageUnit = ring.getNode(hashKey)
+		print(storageUnit)
+
+	cdef getConfig(self):
+		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")
+		cdef object fd
+		with open(configPath, "rt") as fd :
+			self.config = json.loads(fd.read())
+
 
