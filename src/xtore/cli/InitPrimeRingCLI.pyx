@@ -20,7 +20,7 @@ def run():
 cdef class InitPrimeRingCLI:
 	cdef object parser
 	cdef object option
-	cdef dict config
+	cdef list config
 
 	cdef getParser(self, list argv):
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)

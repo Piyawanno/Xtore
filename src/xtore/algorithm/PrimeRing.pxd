@@ -6,12 +6,12 @@ cdef class PrimeRing:
 	cdef list primeRingConfig
 	cdef list primeNumbers
 	cdef i32 replicaNumber
-	cdef list nodes
+	cdef list[PrimeNode] nodes
 	cdef i32 nodeNumber
 	cdef i32 layerNumber
 
-	cdef loadData(self, dict config)
+	cdef loadData(self, list config)
 	cdef initPrimeRing(self)
-	cdef list getNode(self, i64 hashKey)
+	cdef list[PrimeNode] getNode(self, i64 hashKey)
 
 
