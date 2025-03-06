@@ -10,8 +10,8 @@ cdef class PrimeRing:
 		self.replicaNumber = 3
 		self.nodeNumber = 0
 
-	cdef loadData(self, dict config):
-		self.primeRingConfig = config["primeRing"]
+	cdef loadData(self, list config):
+		self.primeRingConfig = config
 		cdef PrimeNode primeNode
 		for node in self.primeRingConfig:
 			primeNode = PrimeNode(node)
@@ -64,7 +64,7 @@ cdef class PrimeRing:
 		self.nodes = ring
 		self.layerNumber = layer+1
 		
-	cdef list getNode(self, i64 hashKey):
+	cdef list[PrimeNode] getNode(self, i64 hashKey):
 		cdef PrimeNode node, nodem
 		cdef i32 id, index, position
 		cdef list children, storageUnit = []
