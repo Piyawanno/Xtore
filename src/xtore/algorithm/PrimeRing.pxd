@@ -1,5 +1,5 @@
 from xtore.common.Buffer cimport Buffer
-from xtore.BaseType cimport u16, i32
+from xtore.BaseType cimport u16, i32, i64
 from xtore.algorithm.PrimeNode cimport PrimeNode
 
 cdef class PrimeRing:
@@ -12,6 +12,6 @@ cdef class PrimeRing:
 
 	cdef loadData(self, dict config)
 	cdef initPrimeRing(self)
-	cdef list getNode(self, i32 hashKey)
+	cdef list getNode(self, i64 hashKey)
 
 

@@ -64,7 +64,7 @@ cdef class PrimeRing:
 		self.nodes = ring
 		self.layerNumber = layer+1
 		
-	cdef list getNode(self, i32 hashKey):
+	cdef list getNode(self, i64 hashKey):
 		cdef PrimeNode node, nodem
 		cdef i32 id, index, position
 		cdef list children, storageUnit = []
