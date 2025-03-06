@@ -1,7 +1,7 @@
 from xtore.BaseType cimport i32
-from xtore.service.PrimeRing cimport PrimeRing
+from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.instance.RecordNode cimport hashDJB
-from xtore.service.PrimeNode cimport PrimeNode
+from xtore.algorithm.PrimeNode cimport PrimeNode
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
