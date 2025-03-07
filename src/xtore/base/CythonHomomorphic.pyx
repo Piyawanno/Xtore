@@ -1,6 +1,3 @@
-from libcpp.vector cimport vector
-from libcpp.string cimport string
-
 cdef class CythonHomomorphic:
 
     def __cinit__(self):
@@ -15,17 +12,17 @@ cdef class CythonHomomorphic:
     cdef setupSchemeSwitching(self,int slots, int logQ_ccLWE):
         self.homomorphic.setupSchemeSwitching(slots, logQ_ccLWE)
 
-    cdef CiphertextDCRTPoly encrypt(self, list plaintext):
-        cdef vector[double] plainText
-        for value in plaintext:
-            plainText.push_back(value)
-        cdef CiphertextDCRTPoly cipherText = self.homomorphic.encrypt(plainText)
-        return cipherText
+    cdef Ciphertext encrypt(self, vector[double] plaintext):
+        return self.homomorphic.encrypt(plaintext)
 
-    cdef PlaintextDCRTPoly decrypt(self, CiphertextDCRTPoly ciphertext):
-        cdef PlaintextDCRTPoly plaintext = self.homomorphic.decrypt(ciphertext)
-        return plaintext
+    cdef Plaintext decrypt(self, Ciphertext ciphertext):
+        return self.homomorphic.decrypt(ciphertext)
 
-    cdef vector[double] compare(self, int slots, CiphertextDCRTPoly ciphertext1, CiphertextDCRTPoly ciphertext2):
-        cdef vector[double] result = self.homomorphic.compare(slots, ciphertext1, ciphertext2)
-        return result
+    cdef vector[double] compare(self, int slots, Ciphertext ciphertext1, Ciphertext ciphertext2):
+        return self.homomorphic.compare(slots, ciphertext1, ciphertext2)
+
+    cdef Ciphertext maskCiphertext(self, Ciphertext ciphertext, Ciphertext mask):
+        return self.homomorphic.maskCiphertext(ciphertext, mask)
+
+    cdef testFunctionHomorphic(self, vector[double] plaintext):
+        self.homomorphic.testFunctionHomomorphic(plaintext)

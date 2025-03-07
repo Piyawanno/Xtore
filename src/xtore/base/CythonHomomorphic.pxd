@@ -1,25 +1,34 @@
 from libcpp.vector cimport vector
-from libcpp.string cimport string
 
 cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
 
-    cdef cppclass CiphertextDCRTPoly:
+    cdef cppclass Ciphertext:
         pass
-    cdef cppclass PlaintextDCRTPoly:
+    cdef cppclass Plaintext:
+        pass
+    cdef cppclass DCRTPoly:
+        pass
+    cdef cppclass CryptoContext:
         pass
         
     cdef cppclass HomomorphicEncryption:
         HomomorphicEncryption()
         void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
         void setupSchemeSwitching(int slots, int logQ_ccLWE)
-        CiphertextDCRTPoly encrypt(const vector[double]& plain) except +
-        PlaintextDCRTPoly decrypt(CiphertextDCRTPoly ciphertext) except +
-        vector[double] compare(int slots, CiphertextDCRTPoly cipher1, CiphertextDCRTPoly cipher2) except +
+        Ciphertext encrypt(const vector[double]& plain) except +
+        Plaintext decrypt(Ciphertext ciphertext) except +
+        vector[double] compare(int slots, Ciphertext cipher1, Ciphertext cipher2) except +
+
+        Ciphertext maskCiphertext(Ciphertext ciphertext, Ciphertext mask) except +
+        void testFunctionHomomorphic(const vector[double]& plain) except +
 
 cdef class CythonHomomorphic:
     cdef HomomorphicEncryption* homomorphic
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
     cdef setupSchemeSwitching(self, int slots, int logQ_ccLWE)
-    cdef CiphertextDCRTPoly encrypt(self, list plainText)
-    cdef PlaintextDCRTPoly decrypt(self, CiphertextDCRTPoly cipherText)
-    cdef vector[double] compare(self, int slots, CiphertextDCRTPoly ciphertext1, CiphertextDCRTPoly ciphertext2)
+    cdef Ciphertext encrypt(self, vector[double] plaintext)
+    cdef Plaintext decrypt(self, Ciphertext ciphertext)
+    cdef vector[double] compare(self, int slots, Ciphertext ciphertext1, Ciphertext ciphertext2)
+
+    cdef Ciphertext maskCiphertext(self, Ciphertext ciphertext, Ciphertext mask)
+    cdef testFunctionHomorphic(self, vector[double] plaintext)
