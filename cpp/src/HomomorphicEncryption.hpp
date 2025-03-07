@@ -25,7 +25,7 @@ namespace Xtore
         Plaintext decrypt(const Ciphertext& ciphertext);
         std::vector<double> compare(int slots, const Ciphertext& cipher1, const Ciphertext& cipher2);
 
-        Ciphertext maskCiphertext(const Ciphertext &ciphertext, const Ciphertext &mask);
+        Ciphertext maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask);
         void testFunctionHomomorphic(const std::vector<double>& plain);
 
     private:

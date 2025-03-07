@@ -86,14 +86,14 @@ namespace Xtore
         return result;
     }
 
-    Ciphertext HomomorphicEncryption::maskCiphertext(const Ciphertext &ciphertext, const Ciphertext &mask){
+    Ciphertext HomomorphicEncryption::maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask){
         
         // use for test
         auto maskedCiphertext = cryptoContext->EvalMult(ciphertext, mask);
         Plaintext decryptedMasked;
         cryptoContext->Decrypt(keyPair.secretKey, maskedCiphertext, &decryptedMasked);
 
-        decryptedMasked->SetLength(4);
+        decryptedMasked->SetLength(slots);
         for (const auto& val : decryptedMasked->GetRealPackedValue()) {
             std::cout << val << " ";
         }

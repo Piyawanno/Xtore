@@ -21,8 +21,8 @@ cdef class CythonHomomorphic:
     cdef vector[double] compare(self, int slots, Ciphertext ciphertext1, Ciphertext ciphertext2):
         return self.homomorphic.compare(slots, ciphertext1, ciphertext2)
 
-    cdef Ciphertext maskCiphertext(self, Ciphertext ciphertext, Ciphertext mask):
-        return self.homomorphic.maskCiphertext(ciphertext, mask)
+    cdef Ciphertext maskCiphertext(self,int slots, Ciphertext ciphertext, Ciphertext mask):
+        return self.homomorphic.maskCiphertext(slots, ciphertext, mask)
 
     cdef testFunctionHomorphic(self, vector[double] plaintext):
         self.homomorphic.testFunctionHomomorphic(plaintext)
