@@ -4,10 +4,10 @@ import os, sys, json
 from xtore.algorithm.PrimeNode cimport PrimeNode
 
 cdef class PrimeRing:
-	def __init__(self):
+	def __init__(self, list primeNumbers = [2, 3, 5], i32 replicaNumber = 3):
 		self.nodes = []
-		self.primeNumbers = [2, 3, 5]
-		self.replicaNumber = 3
+		self.primeNumbers = primeNumbers
+		self.replicaNumber = replicaNumber
 		self.nodeNumber = 0
 
 	cdef loadData(self, list config):

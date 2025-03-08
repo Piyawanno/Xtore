@@ -20,7 +20,7 @@ def run():
 cdef class InitPrimeRingCLI:
 	cdef object parser
 	cdef object option
-	cdef list config
+	cdef dict config
 
 	cdef getParser(self, list argv):
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
@@ -33,7 +33,7 @@ cdef class InitPrimeRingCLI:
 		self.getConfig()
 		cdef PrimeRing ring
 		ring = PrimeRing()
-		ring.loadData(self.config)
+		ring.loadData(self.config["nodeList"])
 		cdef list storageUnit
 		print(ring)
 		hashKey = hashDJB(self.option.key.encode(), 5)
