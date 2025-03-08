@@ -3,10 +3,16 @@ from xtore.instance.RecordNode cimport hashDJB
 from xtore.algorithm.ConsistentNode cimport ConsistentNode
 
 cdef class ConsistentHashing:
-	#cdef i32 RInConsistent
 	cdef dict ring
-	cdef list sortedKey
+	cdef list consistentConfig #ใช้ตอนโหลดจาก config
+	cdef list consistentNode
+	cdef i32 replicationFactor
+	cdef list[ConsistentNode] nodes
+	cdef i32 nodeNumber
+	cdef i32 maxNode
+	
+	cdef loadData(self, dict config)
+	cdef createNodeId(self)
+	cdef initConsistent(self)
+	cdef list[ConsistentNode] listGetNode(self, i64 hashKey)
 
-	cdef addNodeConsistentHashing(self, ConsistentNode nodeConsistent, i64 hashValueConsistent)
-	cdef removeNodeConsistentHashing (self, ConsistentNode nodeConsistent, i64 hashValueConsistent)
-	cdef ConsistentNode getNodeConsistentHashing (self, i64 hashValueConsistent)
