@@ -24,7 +24,7 @@ namespace Xtore
         Ciphertext encrypt(const std::vector<double>& plain);
         Plaintext decrypt(const Ciphertext& ciphertext);
         std::vector<double> compare(int slots, const Ciphertext& cipher1, const Ciphertext& cipher2);
-
+        Ciphertext sumCiphertext(int slots, const Ciphertext &ciphertext);
         Ciphertext maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask);
         void testFunctionHomomorphic(const std::vector<double>& plain);
 
