@@ -14,5 +14,5 @@ cdef class ConsistentHashing:
 	cdef loadData(self, dict config)
 	cdef createNodeId(self)
 	cdef initConsistent(self)
-	cdef list[ConsistentNode] listGetNode(self, i64 hashKey)
+	cdef list[ConsistentNode] getNodeList(self, i64 hashKey)
 

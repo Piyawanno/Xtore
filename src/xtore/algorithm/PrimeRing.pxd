@@ -12,6 +12,6 @@ cdef class PrimeRing:
 
 	cdef loadData(self, list config)
 	cdef initPrimeRing(self)
-	cdef list[PrimeNode] getNode(self, i64 hashKey)
+	cdef list[PrimeNode] getStorageUnit(self, i64 hashKey)
 
 

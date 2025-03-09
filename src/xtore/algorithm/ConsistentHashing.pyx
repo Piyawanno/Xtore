@@ -63,7 +63,7 @@ cdef class ConsistentHashing:
 			self.ring[node.id] = node
 	
 
-	cdef list[ConsistentNode] listGetNode(self, i64 hashKey):
+	cdef list[ConsistentNode] getNodeList(self, i64 hashKey):
 		cdef i32 hashMod = hashKey % self.maxNode
 		print(hashMod)
 		cdef list nodes = []  

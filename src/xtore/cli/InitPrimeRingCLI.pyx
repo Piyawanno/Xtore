@@ -37,7 +37,7 @@ cdef class InitPrimeRingCLI:
 		cdef list storageUnit
 		print(ring)
 		hashKey = hashDJB(self.option.key.encode(), 5)
-		storageUnit = ring.getNode(hashKey)
+		storageUnit = ring.getStorageUnit(hashKey)
 		print(storageUnit)
 
 	cdef getConfig(self):

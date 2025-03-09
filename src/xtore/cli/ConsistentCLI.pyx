@@ -38,7 +38,7 @@ cdef class ConsistentCLI:
 		self.setConfig()
 		ring.initConsistent()
 		hashKey = hashDJB(self.option.key.encode(), 5)
-		ring.listGetNode(hashKey)
+		ring.getNodeList(hashKey)
 		
 		print("Ring initialized with nodes:")
 		print(f"Node IDs: {[node.id for node in ring.nodes]}")
