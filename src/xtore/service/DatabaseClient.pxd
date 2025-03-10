@@ -8,4 +8,6 @@ cdef class DatabaseClient:
 	cdef Buffer stream
 	cdef bytes received
 
-	cdef encodeData(self, DatabaseOperation method, InstanceType instanceType, list data)
+	cdef send(self, DatabaseOperation method, InstanceType instantType, str tableName, list data)
+	cdef encodeData(self, DatabaseOperation method, InstanceType instanceType, str tableName, list data)
+	cdef decodeData(self, bytes message)

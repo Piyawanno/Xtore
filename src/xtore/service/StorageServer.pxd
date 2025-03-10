@@ -1,9 +1,9 @@
 from xtore.BaseType cimport u16
-from xtore.service.StorageService cimport StorageService
+from xtore.service.StorageHandler cimport StorageHandler
 
 cdef class StorageServer :
 	cdef dict config
 	cdef str host
 	cdef u16 port
-	cdef StorageService storageService
+	cdef StorageHandler storageHandler
 	cdef list storageList

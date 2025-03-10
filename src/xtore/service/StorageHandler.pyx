@@ -21,7 +21,7 @@ cdef bint IS_VENV = sys.prefix != sys.base_prefix
 cdef i32 BUFFER_SIZE = 1 << 16
 cdef i32 BST_NODE_OFFSET = 24
 
-cdef class StorageService:
+cdef class StorageHandler:
 	def __init__(self, dict config):
 		self.config = config
 		initBuffer(&self.buffer, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
@@ -201,6 +201,15 @@ cdef class StorageService:
 		except:
 			print(traceback.format_exc())
 		return nodeList
+
+	cdef list[RecordNode] readData(self, BasicStorage storage, list[RecordNode] queries):
+		cdef list[RecordNode] queryResultList = []
+		cdef RecordNode queryResult
+		for query in queries:
+			queryResult = storage.get(query, None)
+			print(f">> Get {queryResult}")
+			if queryResult is not None: queryResultList.append(queryResult)
+		return queryResultList
 
 	cdef readAllData(self, BasicStorage storage):
 		pass

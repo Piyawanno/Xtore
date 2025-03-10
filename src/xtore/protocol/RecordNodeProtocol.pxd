@@ -2,7 +2,7 @@ from xtore.common.Buffer cimport Buffer
 from xtore.BaseType cimport i16, i32
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.RecordNode cimport RecordNode
-from xtore.service.StorageService cimport StorageService
+from xtore.service.StorageHandler cimport StorageHandler
 
 ctypedef enum DatabaseOperation:
 	SET = 10
@@ -29,4 +29,4 @@ cdef class RecordNodeProtocol:
 	cdef registerClass(self, str tableName, object recordClass)
 	cdef writeHeader(self, DatabaseOperation operation, InstanceType instantType, str tableName, i16 version)
 	cdef getHeader(self, Buffer *stream)
-	cdef bytes handleRequest(self, Buffer *request, StorageService service, list[BasicStorage] storageList)
+	cdef bytes handleRequest(self, Buffer *request, StorageHandler handler, list[BasicStorage] storageList)
