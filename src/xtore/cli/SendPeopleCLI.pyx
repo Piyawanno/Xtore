@@ -120,7 +120,7 @@ cdef class SendPeopleCLI :
 			"port": self.option.port
 		})
 		self.client.send(new_stream)
-		if self.option.method == "GET":
+		if self.option.method == "GET" or self.option.method == "GETALL":
 			response = self.client.received
 			self.handleGet(response)
 		else:

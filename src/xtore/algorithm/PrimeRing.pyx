@@ -71,13 +71,13 @@ cdef class PrimeRing:
 		cdef i32 id, index, position
 		cdef list children, storageUnit = []
 		position = 0
-		print(hashKey)
+		# print(hashKey)
 		index = 0
 		id = hashKey%self.primeNumbers[index]
 		position = id * self.replicaNumber
 		while position < self.nodeNumber:
-			print(f"Position: {position}")
-			print(f"NodeNumber: {self.nodeNumber}")
+			# print(f"Position: {position}")
+			# print(f"NodeNumber: {self.nodeNumber}")
 			node = self.nodes[position]
 			if node.children:
 				id = hashKey%self.primeNumbers[index + 1]
