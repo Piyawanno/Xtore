@@ -7,6 +7,7 @@ from xtore.service.StorageService cimport StorageService
 ctypedef enum DatabaseOperation:
 	SET = 10
 	GET = 20
+	GETALL = 30
 
 ctypedef enum InstanceType:
 	HASH = 10

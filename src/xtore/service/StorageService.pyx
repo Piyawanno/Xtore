@@ -62,6 +62,7 @@ cdef class StorageService:
 
 	cdef BasicStorage openBSTStorage(self, str fileName):
 		cdef str resourcePath = self.getResourcePath()
+		os.makedirs(resourcePath, exist_ok=True)
 		cdef str path = os.path.join(resourcePath, fileName)
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleBSTStorage storage = PeopleBSTStorage(io)
@@ -92,7 +93,7 @@ cdef class StorageService:
 			setBuffer(&self.buffer, <char *> uuidBytes, 8)
 			node = dataList[data]
 			self.buffer.position = 0
-			node.readKey(1, &self.buffer)
+			# node.readKey(1, &self.buffer)
 			storage.set(node)
 			print(node)
 			i += 1

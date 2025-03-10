@@ -9,7 +9,7 @@ from libc.stdlib cimport malloc
 from cpython cimport PyBytes_FromStringAndSize
 from argparse import RawTextHelpFormatter
 
-import os, sys, argparse, json, csv
+import os, sys, argparse, json, csv, uuid
 
 cdef str __help__ = ""
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
@@ -48,8 +48,6 @@ cdef class GetPrimeRingPeopleCLI :
 
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
-		self.parser.add_argument("-u", "--host", help="Target Server host.", required=False, type=str, default='127.0.0.1')
-		self.parser.add_argument("-p", "--port", help="Target Server port.", required=True, type=int)
 		self.parser.add_argument("-f", "--filename", help="TSV file to send.", required=False, type=str)
 		self.parser.add_argument("-m", "--method", help="Method to use.", required=False, type=str, choices=METHOD.keys(), default="SET")
 		self.option = self.parser.parse_args(argv)
@@ -61,7 +59,7 @@ cdef class GetPrimeRingPeopleCLI :
 			self.config = json.loads(fd.read())
 			fd.close()
 
-	cdef list[People] TSVToPeopleList(self, str filename) :
+	cdef list[People] TSVToPeopleRecordList(self, str filename) :
 		cdef object fd
 		cdef list[People] peopleList = []
 		cdef People peopleRecord
@@ -70,12 +68,29 @@ cdef class GetPrimeRingPeopleCLI :
 			data = list(reader)
 			for row in data[1:]:
 				peopleRecord = People()
+				peopleRecord.ID = uuid.uuid4()
 				peopleRecord.income = <i64> int(row[0])
 				peopleRecord.name = row[1]
 				peopleRecord.surname = row[2]
 				peopleList.append(peopleRecord)
 			fd.close()
 		return peopleList
+
+	cdef list TSVToPeopleList(self, str filename) :
+		cdef object fd
+		with open(filename, "rt") as fd :
+			reader = csv.reader(fd, delimiter='\t')
+			data = list(reader)
+			fd.close()
+		return data
+
+	cdef list TSVToIDList(self, str filename) :
+		cdef object fd
+		with open(filename, "rt") as fd :
+			reader = csv.reader(fd)
+			data = list(reader)
+			fd.close()
+		return data
 
 	cdef encodePeople(self, list peopleList) :
 		cdef RecordNodeProtocol protocol = RecordNodeProtocol()
@@ -119,16 +134,46 @@ cdef class GetPrimeRingPeopleCLI :
 	cdef run(self, list argv) :
 		print('Running...')
 		self.getParser(argv)
-		peopleList = self.TSVToPeopleList(self.option.filename)
-		new_stream = self.encodePeople(peopleList)
+		if METHOD[self.option.method] == DatabaseOperation.GET:
+			if not self.option.filename:
+				print("Filename is required for GET method.")
+				return
+			dataList = self.TSVToIDList(self.option.filename)
+		elif METHOD[self.option.method] == DatabaseOperation.SET:
+			if not self.option.filename:
+				print("Filename is required for SET method.")
+				return
+			dataList = self.TSVToPeopleList(self.option.filename)
+		elif METHOD[self.option.method] == DatabaseOperation.GETALL:
+			pass
+		else:
+			print("Invalid method.")
+			return
 
 		self.stream.position = 0
-
-		self.client = PrimeRingClient(self.getConfig())
-		self.client.send(new_stream)
+		self.getConfig()
+		if self.config["algorithm"] == 0: # Consistent Hashing
+			# self.client = ConsistentHashingClient(self.config["nodeList"])
+			pass
+		elif self.config["algorithm"] == 1: # Prime Ring
+			self.client = PrimeRingClient(self.config["nodeList"], self.config["primeRing"])
+		self.client.send(
+			method=METHOD[self.option.method],
+			instantType=InstanceType.BST,
+			data=dataList
+		)
 		if self.option.method == "GET":
 			response = self.client.received
 			self.handleGet(response)
 		else:
 			response = self.client.received
 			self.handleResponse(response)
+
+
+# what i want this file to do
+# 1. read the tsv file
+# 2. send the data to client immediately
+	# SET: send the data
+	# GET: send the key (not hash) to the server
+	# GETALL: not send anything instead of command
+# 3. receive the data from the server
