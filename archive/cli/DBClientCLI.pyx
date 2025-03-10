@@ -1,5 +1,5 @@
 from xtore.service.Client cimport Client
-from xtore.common.Package cimport Package
+from xtore.common.Packet cimport Packet
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i32, u64
 
@@ -50,20 +50,20 @@ cdef class DBClientCLI:
 
 	cdef bytes pack(self) :
 		cdef object fake = Faker()
-		cdef Package package = Package()
-		package.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
-		package.header = json.dumps({
+		cdef Packet packet = Packet()
+		packet.ID = random.randint(1_000_000_000_000, 9_999_999_999_999)
+		packet.header = json.dumps({
 			"method": self.option.method,
 			"mode" : "hash"
 		})
-		package.data = self.option.message or json.dumps({
+		packet.data = self.option.message or json.dumps({
 			"table_name" : "People",
 			"storage_method" : "PeopleHashStorage",
 			"name" : fake.first_name(),
 			"surname" : fake.last_name()
 		})
-		print(package)
-		package.write(&self.stream)
+		print(packet)
+		packet.write(&self.stream)
 		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 
 	cdef checkPath(self):
