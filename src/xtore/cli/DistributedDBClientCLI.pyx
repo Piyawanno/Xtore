@@ -1,3 +1,4 @@
+from xtore.service.ConsistentHashingClient cimport ConsistentHashingClient
 from xtore.service.PrimeRingClient cimport PrimeRingClient
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, setBuffer
 from xtore.protocol.RecordNodeProtocol cimport DatabaseOperation, InstanceType
@@ -85,7 +86,7 @@ cdef class DistributedDBClientCLI :
 		self.stream.position = 0
 		self.getConfig()
 		if self.config["algorithm"] == 0: # Consistent Hashing
-			# self.client = ConsistentHashingClient(self.config["nodeList"], self.config["consistentHashing"])
+			self.client = ConsistentHashingClient(self.config["nodeList"], self.config["consistentHashing"])
 			pass
 		elif self.config["algorithm"] == 1: # Prime Ring
 			self.client = PrimeRingClient(self.config["nodeList"], self.config["primeRing"])

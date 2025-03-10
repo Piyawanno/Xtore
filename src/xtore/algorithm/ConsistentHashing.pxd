@@ -11,7 +11,7 @@ cdef class ConsistentHashing:
 	cdef i32 nodeNumber
 	cdef i32 maxNode
 	
-	cdef loadData(self, dict config)
+	cdef loadData(self, list config)
 	cdef createNodeId(self)
 	cdef initConsistent(self)
 	cdef list[ConsistentNode] getNodeList(self, i64 hashKey)

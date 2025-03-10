@@ -1,24 +1,22 @@
 from xtore.algorithm.ConsistentNode cimport ConsistentNode
-from xtore.instance.RecordNode cimport hashDJB
 from xtore.BaseType cimport i64, i32, u32
 import json, random, sys, os
 
-
 cdef class ConsistentHashing:
-	def __init__(self):
+	def __init__(self, int replicationFactor=3, int maxNode=1024):
 		self.ring = {}
 		self.consistentConfig = []
 		self.consistentNode = []
-		self.replicationFactor = 3  # Default replication factor
+		self.replicationFactor = replicationFactor  # Default replication factor
 		self.nodes = []
 		self.nodeNumber = 0
-		self.maxNode = 1024
+		self.maxNode = maxNode
 
 	def __str__(self):
 		return f"Nodes: {[node.id for node in self.nodes]}"
 
-	cdef loadData(self, dict config):
-		self.consistentConfig = config["primeRing"]
+	cdef loadData(self, list config):
+		self.consistentConfig = config
 		cdef ConsistentNode consistentNode
 		for node in self.consistentConfig:
 			consistentNode = ConsistentNode(node)
