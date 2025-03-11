@@ -2,7 +2,6 @@ from xtore.BaseType cimport u8, u16, i32, i64
 from libc.stdlib cimport malloc, free
 import os, sys, json
 from xtore.algorithm.PrimeNode cimport PrimeNode
-import itertools
 
 cdef class PrimeRing:
 	def __init__(self, list primeNumbers = [2, 3, 5], i32 replicaNumber = 3):
