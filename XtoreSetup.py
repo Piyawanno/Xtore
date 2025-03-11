@@ -53,15 +53,12 @@ class XtoreSetup :
 			'xt-master',
 			'xt-node',
 			'xt-replica',
-			'xt-start-service',
 			'xt-cli',
-			'xt-cluster',
    			'xt-homomorphic',
 			'xt-test-primeRing',
 			'xt-send',
 			'xt-server',
 			'xt-consistent'
-
 		]
 
 		self.configList = [

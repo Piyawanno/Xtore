@@ -10,7 +10,7 @@ from xtore.BaseType cimport i32, u64
 from xtore.test.Data cimport Data
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
 from xtore.test.People cimport People
-from xtore.common.Package cimport Package
+from xtore.common.Packet cimport Packet
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -68,24 +68,24 @@ cdef class DBServiceCLI:
 
 	cdef startServer(self):
 		self.service = Server(self.getConfig())
-		self.service.run(self.handlePackage)
+		self.service.run(self.handlePacket)
 
-	async def handlePackage(self, reader:object, writer:object) -> None :
+	async def handlePacket(self, reader:object, writer:object) -> None :
 		message:bytes = await reader.read(1024)
 		cdef i32 length = len(message)
 		initBuffer(&self.stream, <char *> malloc(length), length)
 		memcpy(self.stream.buffer, <char *> message, length)
-		cdef Package package = Package()
-		package.readKey(&self.stream)
+		cdef Packet packet = Packet()
+		packet.readKey(&self.stream)
 		self.stream.position += 4
-		package.readValue(&self.stream)
-		print(package)
-		cdef object header = package.getHeader()
+		packet.readValue(&self.stream)
+		print(packet)
+		cdef object header = packet.getHeader()
 		if header["method"] == 'Set':
-			self.setHashStorage(package.data)
+			self.setHashStorage(packet.data)
 			writer.write(message)
 		elif header["method"] == 'Get':
-			queryResult:str = repr(self.getByID(package.data))
+			queryResult:str = repr(self.getByID(packet.data))
 			returnMessage:bytes = queryResult.encode('utf-8')
 			writer.write(returnMessage)
 		else: 

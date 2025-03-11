@@ -7,17 +7,17 @@ import json
 
 cdef i32 BUFFER_SIZE
 
-cdef class Package:
+cdef class Packet:
 	def __init__(self):
 		self.classMapper = {}
 
 	def __repr__(self):
-		return f'<Package ID={self.ID} meta={self.header} value={self.data}>'
+		return f'<Packet ID={self.ID} meta={self.header} value={self.data}>'
 
 	cdef registerClass(self, str tableName, object recordClass):
 		self.classMapper[tableName] = recordClass
 
-	cdef packForSet(self, Buffer *stream, str tableName, list[RecordNode] recordList):
+	cdef code(self, Buffer *stream, str tableName, list[RecordNode] recordList):
 		# cdef DatabaseOperation operation
 		# cdef InstanceType type
 		# cdef str tableName
@@ -33,7 +33,7 @@ cdef class Package:
 		for record in recordList:
 			record.write(stream)
 	
-	cdef list[RecordNode] unpackForSet(self, Buffer *stream):
+	cdef list[RecordNode] decode(self, Buffer *stream):
 		cdef list[RecordNode] result = []
 		cdef str tableName = getString(stream)
 		cdef object recordClass = self.classMapper.get(tableName, None)

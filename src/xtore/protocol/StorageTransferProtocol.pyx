@@ -8,11 +8,10 @@ from libc.stdlib cimport malloc
 cdef i32 BUFFER_SIZE = 1 << 16
 
 cdef class StorageTransferProtocol (AsyncProtocol):
-	def __init__(self, storageService, storageList):
+	def __init__(self, storageHandler, storageList):
 		initBuffer(&self.stream, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
 		self.storageList = storageList
-		self.storageService = storageService
-		print("new protocol create!")
+		self.storageHandler = storageHandler
 
 	def __dealloc__(self):
 		releaseBuffer(&self.stream)
@@ -22,24 +21,24 @@ cdef class StorageTransferProtocol (AsyncProtocol):
 
 	def connection_made(self, object transport):
 		self.transport = transport
-		print('Connection Made 🎉')
+		print('Connection Made 🚀', end=" ")
+		print(*self.transport.get_extra_info('sockname'), sep="@")
 
 	def connection_lost(self, Exception exc):
+		print('Connection Lost ⛔', end=" ")
+		print(*self.transport.get_extra_info('sockname'), sep="@")
 		self.transport = None
-		print('Connection Lost 🛑')
 		if exc:
 			print(f'Exception: <{exc}>')
 
 	def data_received(self, bytes data):
 		# Set the received data to the buffer
 		cdef i32 dataLength = len(data)
-		print(f'Cluster Received {dataLength} bytes')
 		setBuffer(&self.stream, <char *> data, dataLength)
 
 		# Initial the RecordNodeProtocol
 		cdef RecordNodeProtocol received = RecordNodeProtocol()
-		cdef bytes response = received.handleRequest(&self.stream, self.storageService, self.storageList)
+		cdef bytes response = received.handleRequest(&self.stream, self.storageHandler, self.storageList)
 
 		# Send back the response
 		self.transport.write(response)
-		print(f'Cluster Sent Response {len(response)} bytes')

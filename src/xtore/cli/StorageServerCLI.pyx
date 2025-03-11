@@ -23,6 +23,8 @@ cdef class StorageServerCLI :
 
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
+		self.parser.add_argument("-u", "--host", help="Target Server host.", required=False, type=str, default="127.0.0.1")
+		self.parser.add_argument("-p", "--port", help="Target Server port.", required=True, type=int)
 		self.option = self.parser.parse_args(argv)
 
 	cdef getConfig(self) :
@@ -44,7 +46,7 @@ cdef class StorageServerCLI :
 		self.getParser(argv)
 		self.getConfig()
 		self.server = StorageServer({
-			"host": "127.0.0.1",
-			"port": 7410
+			"host": self.option.host,
+			"port": self.option.port
 		})
 		self.server.run()

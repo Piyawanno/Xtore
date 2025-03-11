@@ -1,7 +1,7 @@
 from xtore.common.Buffer cimport Buffer, getBuffer, initBuffer, releaseBuffer, setBuffer, getString, setString
 from xtore.BaseType cimport u8, i16, i32
 from xtore.instance.RecordNode cimport RecordNode
-from xtore.service.StorageService cimport StorageService
+from xtore.service.StorageHandler cimport StorageHandler
 from xtore.test.People cimport People
 
 from libc.stdlib cimport malloc
@@ -69,14 +69,14 @@ cdef class RecordNodeProtocol:
 		self.version = (<i16 *> getBuffer(stream, 2))[0]
 		self.recordCount = (<i32 *> getBuffer(stream, 4))[0]
 
-	cdef bytes handleRequest(self, Buffer *stream, StorageService service, list[BasicStorage] storageList):
+	cdef bytes handleRequest(self, Buffer *stream, StorageHandler handler, list[BasicStorage] storageList):
 		stream.position = 0
 		self.getHeader(stream)
-		print(f'>> Received {self.operation}')
-		if self.operation == DatabaseOperation.GET:
+		if self.operation == DatabaseOperation.GETALL:
+			print(f'>> Called Method - GETALL')
 			if self.type == InstanceType.BST:
 				print(f'>> Reading BSTStorage {self.tableName}')
-				queryResponse = service.readAllBSTStorage(storageList[0])
+				queryResponse = handler.readAllBSTStorage(storageList[0])
 			print(f'>> Sending {len(queryResponse)} records')
 			self.encode(&self.stream, queryResponse)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
@@ -84,9 +84,16 @@ cdef class RecordNodeProtocol:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} records')
 			if self.type == InstanceType.BST:
-				service.writeToStorage(recordList, storageList[0])
+				handler.writeToStorage(recordList, storageList[0])
 			self.encode(&self.stream, recordList)
-			return b'OK'
+			return b'Set Data Success!'
+		elif self.operation == DatabaseOperation.GET:
+			recordList = self.decode(stream)
+			print(f'>> Received {len(recordList)} keys')
+			queryResponse = handler.readData(storageList[0], recordList)
+			print(f'>> Sending {len(recordList)} records')
+			self.encode(&self.stream, queryResponse)
+			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		else:
 			print(f'Operation {self.operation} not found !')
 		return b'OK'
