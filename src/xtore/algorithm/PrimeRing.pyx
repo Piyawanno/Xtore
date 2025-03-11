@@ -9,8 +9,6 @@ cdef class PrimeRing:
 		self.primeNumbers = primeNumbers
 		self.replicaNumber = replicaNumber
 		self.nodeNumber = 0
-		print(f"PrimeRing: {self.primeNumbers}")
-		print(f"ReplicaNumber: {self.replicaNumber}")
 
 	cdef loadData(self, list config):
 		self.primeRingConfig = config
@@ -62,22 +60,18 @@ cdef class PrimeRing:
 				layer += 1
 				previousLayer = nodesInLayer
 			ring.append(member)
-			print(member)
 		self.nodes = ring
 		self.layerNumber = layer+1
-		
+	
 	cdef list[PrimeNode] getStorageUnit(self, i64 hashKey):
 		cdef PrimeNode node, nodem
 		cdef i32 id, index, position
 		cdef list children, storageUnit = []
 		position = 0
-		# print(hashKey)
 		index = 0
 		id = hashKey%self.primeNumbers[index]
 		position = id * self.replicaNumber
 		while position < self.nodeNumber:
-			# print(f"Position: {position}")
-			# print(f"NodeNumber: {self.nodeNumber}")
 			node = self.nodes[position]
 			if node.children:
 				id = hashKey%self.primeNumbers[index + 1]
