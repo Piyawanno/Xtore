@@ -1,4 +1,5 @@
-from xtore.BaseType cimport i64
+from xtore.BaseType cimport i32, i64
+from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.HashStorage cimport HashStorage
 from xtore.instance.RecordPageNode cimport RecordPageNode
 from xtore.instance.LinkedPageStorage cimport LinkedPageStorage

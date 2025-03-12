@@ -31,10 +31,12 @@ cdef class Page:
 	
 	cdef i64 create(self):
 		self.position = self.io.getTail()
+		# print(800, f"Page.create io@{id(self.io)} position={self.position}")
 		self.reset()
 		self.writeHeader()
 		self.stream.position = self.pageSize
 		self.io.fill(&self.stream)
+		# print(801, f"Page.create after create tail={self.io.getTail()}")
 		self.stream.position = self.headerSize
 		return self.position
 	
@@ -119,6 +121,10 @@ cdef class Page:
 		self.io.seek(self.position)
 		self.io.write(&self.stream)
 		self.stream.position = self.tail
+		# if self.position == 7827669:
+		# 	print(803, self)
+		# 	self.readHeader(self.position)
+		# 	print(804, self)
 	
 	cdef writeHeaderBuffer(self):
 		self.stream.position = 0
