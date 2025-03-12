@@ -11,12 +11,10 @@ cdef class StorageHandler:
 
 	cdef assignID(self, People record)
 	cdef BasicStorage openHashStorage(self, str fileName)
-	cdef BasicStorage openRTStorage(self, str fileName)
 	cdef BasicStorage openBSTStorage(self, str fileName)
 	cdef writeData(self, BasicStorage storage, list[RecordNode] dataList)
 	cdef writeToStorage(self, list[RecordNode] dataList, BasicStorage storage)
 	cdef readHashStorage(self, str storageName)
-	cdef readRTStorage(self, str storageName)
 	cdef list[RecordNode] readAllBSTStorage(self, BinarySearchTreeStorage storage)
 	cdef list[RecordNode] readData(self, BasicStorage storage, list[RecordNode] queries)
 	cdef readAllData(self, BasicStorage storage)

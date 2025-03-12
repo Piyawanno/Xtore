@@ -9,7 +9,6 @@ from xtore.instance.RecordNode cimport RecordNode
 from xtore.test.People cimport People
 from xtore.test.PeopleBSTStorage cimport PeopleBSTStorage
 from xtore.test.PeopleHashStorage cimport PeopleHashStorage
-from xtore.test.PeopleRTStorage cimport PeopleRTStorage
 from xtore.instance.BinarySearchTreeStorage cimport BinarySearchTreeStorage
 
 from libc.stdlib cimport malloc
@@ -37,20 +36,6 @@ cdef class StorageHandler:
 		cdef str path = os.path.join(resourcePath, fileName)
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleHashStorage storage = PeopleHashStorage(io)
-		cdef bint isNew = not os.path.isfile(path)
-		io.open()
-		try:
-			if isNew: storage.create()
-			else: storage.readHeader(0)
-		except:
-			print(traceback.format_exc())
-		return storage
-
-	cdef BasicStorage openRTStorage(self, str fileName):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = os.path.join(resourcePath, fileName)
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleRTStorage storage = PeopleRTStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
 		io.open()
 		try:
@@ -129,35 +114,6 @@ cdef class StorageHandler:
 			print(traceback.format_exc())
 		io.close()
 
-	cdef readRTStorage(self, str storageName):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.RT.bin'
-		print(f'storage path: {path}')
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleRTStorage storage = PeopleRTStorage(io)
-		cdef bint isNew = not os.path.isfile(path)
-		cdef list[RecordNode] nodeList = []
-		cdef People entry = People()
-		cdef int n = 0
-		io.open()
-		try:
-			if isNew: print(f'Storage not found!')
-			else: 
-				storage.readHeader(0)
-				for a in range(storage.headerSize, io.getTail()):
-					try:
-						node = storage.readNodeKey(a, None)
-						storage.readNodeValue(node)
-						print(f'a: {a}', end='\t')
-						print(node)
-					except:
-						continue
-				storage.readNodeValue(node)
-				nodeList.append(node)
-				print(node)
-		except:
-			print(traceback.format_exc())
-		io.close()
 
 	cdef list[RecordNode] readAllBSTStorage(self, BinarySearchTreeStorage storage):
 		cdef int n = 0

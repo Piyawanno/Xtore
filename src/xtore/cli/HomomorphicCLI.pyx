@@ -2,9 +2,6 @@ from xtore.BaseType cimport i32
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.instance.BasicIterator cimport BasicIterator
-from xtore.instance.ScopeTreeStorage cimport ScopeTreeStorage
-from xtore.instance.ScopeSearch cimport ScopeSearch
-from xtore.instance.ScopeSearchResult cimport ScopeSearchResult
 from xtore.test.People cimport People
 
 import os, sys, argparse, traceback, random, time
