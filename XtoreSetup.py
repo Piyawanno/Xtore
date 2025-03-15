@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, site, getpass
+import os, sys, site, platform
 from re import I
 
 __help__ = """Xtore setup script :
@@ -12,6 +12,11 @@ uninstall : Uninstall Gaimon from machine (config & data will not be removed).
 
 IS_WINDOWS = sys.platform in ['win32', 'win64']
 IS_VENV = sys.prefix != sys.base_prefix
+SYSTEM = platform.system()
+IS_HOMOMORPHIC = False
+IS_PRIME_RING = False
+OPERATION = ['setup', 'install', 'link', 'uninstall', 'clean']
+PLATFORM = ['oracle', 'centos', 'debian', 'ubuntu']
 
 def __conform__(path) :
 	isRootPath = False
@@ -32,6 +37,7 @@ def __conform__(path) :
 def __link__(source, destination):
 	source = __conform__(source)
 	destination = __conform__(destination)
+	if os.path.exists(destination): return
 	command = f"ln -s {source} {destination}"
 	if sys.platform == 'win32': command = f"mklink /D {destination} {source}"
 	print(command)
@@ -54,12 +60,13 @@ class XtoreSetup :
 			'xt-node',
 			'xt-replica',
 			'xt-cli',
-   			'xt-homomorphic',
-			'xt-test-primeRing',
 			'xt-send',
 			'xt-server',
 			'xt-consistent'
 		]
+
+		if IS_HOMOMORPHIC: self.script.append('xt-homomorphic')
+		if IS_PRIME_RING: self.script.append('xt-test-primeRing')
 
 		self.configList = [
 			("XtoreNetwork.json", "XtoreNetwork.json")
@@ -108,13 +115,18 @@ class XtoreSetup :
 		self.uninstallScript()
 	
 	def uninstallScript(self):
+		if IS_WINDOWS: return
 		for i in self.script :
-			if IS_WINDOWS: continue
-			os.unlink(f"{self.scriptPath}/{i}")
+			path = f"{self.scriptPath}/{i}"
+			if not os.path.exists(path): continue
+			print(f'>>> Uninstalling {path}')
+			os.unlink(path)
 		
 	def uninstallLibrary(self):
 		packagePath = f"{self.sitePackagesPath}/xtore"
-		if os.path.isdir(packagePath): os.unlink(packagePath)
+		if os.path.isdir(packagePath):
+			print(f'>>> Uninstalling {packagePath}')
+			os.unlink(packagePath)
 
 	def setup(self, platform):
 		self.setupBase(platform)
@@ -164,7 +176,8 @@ class XtoreSetup :
 	
 	def link(self) :
 		self.installConfig()
-		self.linkScript()
+		if SYSTEM == 'Linux': self.linkScript()
+		elif SYSTEM == 'Darwin': self.installMacScript()
 		
 		for source, destination in self.installPathList  :
 			destination = __conform__(destination)
@@ -201,15 +214,34 @@ class XtoreSetup :
 			if not os.path.isfile(f"{self.scriptPath}/{i}") :
 				__link__(f"{self.rootPath}/script/{i}", f"{self.scriptPath}/{i}")
 	
+	def installMacScript(self):
+		pythonPath = __conform__(f'{self.scriptPath}/python')
+		pythonPath = f'#!{pythonPath}'
+		for i in self.script :
+			destination = f"{self.scriptPath}/{i}"
+			if not os.path.exists(destination):
+				print(f'>>> Installing {destination}')
+				source = f"{self.rootPath}/script/{i}"
+				with open(source) as fd:
+					script = fd.read()
+
+				script = script.replace('#!/usr/bin/env python', pythonPath)
+				with open(destination, 'wt') as fd:
+					fd.write(script)
+				command = f'chmod +x {destination}'
+				os.system(command)
 	
 if __name__ == '__main__' :
 	from argparse import RawTextHelpFormatter
 	import argparse
 	parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
-	parser.add_argument("operation", help="Operation of setup", choices=['setup', 'install', 'link', 'uninstall', 'clean'])
-	parser.add_argument("-p", "--platform", help="Platform for installation of base environment.", choices=['oracle', 'centos', 'debian', 'ubuntu'])
+	parser.add_argument("operation", help="Operation of setup", choices=OPERATION)
+	parser.add_argument("-p", "--platform", help="Platform for installation of base environment.", choices=PLATFORM, default='ubuntu')
+	parser.add_argument("-m", "--homomorphic", help="Enable Homomorphic setup", action='store_false')
+	parser.add_argument("-r", "--primering", help="Enable Prime-Ring setup", action='store_false')
 	option = parser.parse_args(sys.argv[1:])
-	if option.platform is None : option.platform = 'ubuntu'
+	if option.homomorphic: IS_HOMOMORPHIC = True
+	if option.primering: IS_PRIME_RING = True
 	setup = XtoreSetup()
 	setup.operate(option.operation, option.platform)
 
