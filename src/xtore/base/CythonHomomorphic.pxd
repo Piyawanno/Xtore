@@ -1,4 +1,5 @@
 from libcpp.vector cimport vector
+from libcpp.string cimport string
 
 cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
 
@@ -20,7 +21,8 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         vector[double] compare(int slots, Ciphertext cipher1, Ciphertext cipher2) except +
         Ciphertext sumCiphertext(int slots, Ciphertext ciphertext) except +
         Ciphertext maskCiphertext(int slots, Ciphertext ciphertext, Ciphertext mask) except +
-        void testFunctionHomomorphic(const vector[double]& plain) except +
+        vector[double] getMaskValue(int slots, Ciphertext maskCiphertext) except +
+        void writeCiphertextToFile(const string& filepath, Ciphertext ciphertext) except +
 
 cdef class CythonHomomorphic:
     cdef HomomorphicEncryption* homomorphic
@@ -31,4 +33,5 @@ cdef class CythonHomomorphic:
     cdef vector[double] compare(self, int slots, Ciphertext ciphertext1, Ciphertext ciphertext2)
     cdef Ciphertext sumCiphertext(self, int slots, Ciphertext ciphertext)
     cdef Ciphertext maskCiphertext(self, int slots, Ciphertext ciphertext, Ciphertext mask)
-    cdef testFunctionHomorphic(self, vector[double] plaintext)
+    cdef vector[double] getMaskValue(self, int slots, Ciphertext maskCiphertext)
+    cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext)

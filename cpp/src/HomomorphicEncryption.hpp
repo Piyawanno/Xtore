@@ -26,7 +26,9 @@ namespace Xtore
         std::vector<double> compare(int slots, const Ciphertext& cipher1, const Ciphertext& cipher2);
         Ciphertext sumCiphertext(int slots, const Ciphertext &ciphertext);
         Ciphertext maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask);
-        void testFunctionHomomorphic(const std::vector<double>& plain);
+        std::vector<double> getMaskValue(int slots, const Ciphertext &ciphertext);
+        void writeCiphertextToFile(const std::string& filepath, const Ciphertext& ciphertext);
+
 
     private:
         CryptoContext cryptoContext;

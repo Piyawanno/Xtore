@@ -26,6 +26,10 @@ cdef class CythonHomomorphic:
 
     cdef Ciphertext sumCiphertext(self, int slots, Ciphertext ciphertext):
         return self.homomorphic.sumCiphertext(slots, ciphertext)
+    
+    cdef vector[double] getMaskValue(self, int slots, Ciphertext maskCiphertext):
+        return self.homomorphic.getMaskValue(slots, maskCiphertext)
 
-    cdef testFunctionHomorphic(self, vector[double] plaintext):
-        self.homomorphic.testFunctionHomomorphic(plaintext)
+    cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext):
+        cdef string cppFilepath = filepath.encode("utf-8")  
+        self.homomorphic.writeCiphertextToFile(cppFilepath, ciphertext)

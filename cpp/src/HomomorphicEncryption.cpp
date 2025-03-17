@@ -95,27 +95,24 @@ namespace Xtore
     Ciphertext HomomorphicEncryption::sumCiphertext(int slots, const Ciphertext &ciphertext)
     {
         auto result = cryptoContext->EvalSum(ciphertext, slots);
-        // Plaintext decryptedResult;
-        // cryptoContext->Decrypt(keyPair.secretKey, result, &decryptedResult);
-        // decryptedResult->SetLength(slots);
-        // for (const auto& val : decryptedResult->GetRealPackedValue()) {
-        //     std::cout << val << " ";
-        // }
-        // std::cout << std::endl;
         return result;
     }
 
-    void HomomorphicEncryption::testFunctionHomomorphic(const std::vector<double> &plain){
+    std::vector<double> HomomorphicEncryption::getMaskValue(int slots, const Ciphertext &maskCiphertext)
+    {
+        Plaintext decryptedResult;
+        cryptoContext->Decrypt(keyPair.secretKey, maskCiphertext, &decryptedResult);
+        decryptedResult->SetLength(slots);
+        return decryptedResult->GetRealPackedValue();;
+    }
 
-        // Plaintext plaintext = cryptoContext->MakeCKKSPackedPlaintext(plain);
-        // Ciphertext ciphertext = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
-        // std::cout << "Ciphertext : "  << std::endl;
-        // const char* ciphertextFile = "/home/pings/Senior/test/ciphertext.bin";
-        // std::ofstream outFile(ciphertextFile, std::ios::binary);
-        // outFile.is_open();
-        // Serial::SerializeToFile(ciphertextFile, ciphertext, SerType::BINARY);
-        // std::cout << "Ciphertext saved to: " << ciphertextFile << std::endl;
-        // outFile.close();
+    void HomomorphicEncryption::writeCiphertextToFile(const std::string& filepath, const Ciphertext& ciphertext )
+    {
+        std::ofstream outFile(filepath, std::ios::binary);
+        outFile.is_open();
+        Serial::SerializeToFile(filepath, ciphertext, SerType::BINARY);
+        std::cout << "Ciphertext saved to: " << filepath << std::endl;
+        outFile.close();
 
     }
 }

@@ -27,6 +27,13 @@ ctypedef struct TextIntegerArray:
 	i32 arrayLength
 	i32 *array
 
+cdef class DataSet:
+	cdef list birthDate
+	cdef list balance
+	cdef list index
+	cdef Ciphertext birthCipher
+	cdef Ciphertext balanceCipher
+
 cdef class HomomorphicCLI:
 	cdef object parser
 	cdef object option
@@ -42,7 +49,8 @@ cdef class HomomorphicCLI:
 			'Homomorphic',
 			'Wrapper',
 			'Concept',
-			'Binary',
+			'BinarySearch',
+			'LinkPages',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=False, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -54,7 +62,8 @@ cdef class HomomorphicCLI:
 		elif self.option.test == 'Homomorphic': self.testHomomorphic()
 		elif self.option.test == 'Wrapper': self.testHomomorphic()
 		elif self.option.test == 'Concept': self.testDataConcept()
-		elif self.option.test == 'Binary': self.testBinarySearch()
+		elif self.option.test == 'BinarySearch': self.testBinarySearch()
+		elif self.option.test == 'LinkPages': self.testLinkPages()
 
 	cdef testHomomorphic(self):
 		cdef int ringDim = 8192
@@ -74,42 +83,120 @@ cdef class HomomorphicCLI:
 
 		decryptedText = homomorphic.decrypt(cipherText1)
 
+	cdef testLinkPages(self):
+		cdef int ringDim = 1024
+		cdef int slots = 8
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+
+		startSetupTime = time.time()
+
+		dataset1 = self.generateDataSet(homomorphic, slots)
+		dataset2 = self.generateDataSet(homomorphic, slots)
+
+		endSetupTime = time.time()        
+		print("Setup time ->", endSetupTime - startSetupTime)
+
+		mergedBirth = self.mergedBirth(homomorphic, slots, dataset1, dataset2)
+		
+		endSetupTime = time.time()        
+		print("Compare time ->", endSetupTime - startSetupTime)
+	
+	cdef mergedBirth(self, CythonHomomorphic homomorphic, int slots, DataSet dataset1, DataSet dataset2):
+		cdef list mergedOrderBirth = []
+		cdef int i = 0
+		cdef int j = 0
+
+		while i < slots and j < slots:
+			cipher1 = self.maskSum(homomorphic, slots, i, dataset1.birthCipher)
+			cipher2 = self.maskSum(homomorphic, slots, j, dataset2.birthCipher)
+
+			result = homomorphic.compare(1, cipher1, cipher2)
+
+			if result[0] == 1.0:
+				mergedOrderBirth.append((0,dataset1.index[i])) 
+				i += 1
+			else:
+				mergedOrderBirth.append((1,dataset2.index[j])) 
+				j += 1
+		
+		while i < slots:
+			mergedOrderBirth.append((0,dataset1.index[i]))
+			i += 1
+
+		while j < slots:
+			mergedOrderBirth.append((1,dataset2.index[j])) 
+			j += 1
+
+		return mergedOrderBirth
+
+
+
+	cdef DataSet generateDataSet(self, CythonHomomorphic homomorphic, int slots):
+		cdef vector[double] balance = self.randomData(slots, "float")
+		balanceCipher = homomorphic.encrypt(balance)
+
+		cdef birthDate = self.randomData(slots, "int")
+		birthDateSorter = sorted(enumerate(birthDate), key=lambda x: x[1])
+		birthDateIndex, sortedBirthDate = zip(*birthDateSorter)  
+		birthDateIndex = list(birthDateIndex)
+		sortedBirthDate = list(sortedBirthDate)
+
+		cdef Ciphertext birthCipher = homomorphic.encrypt(sortedBirthDate)
+
+		cdef DataSet dataset = DataSet()
+		dataset.balance = balance
+		dataset.birthDate = birthDate
+		dataset.index = birthDateIndex
+		dataset.birthCipher = birthCipher
+		dataset.balanceCipher = balanceCipher
+
+		return dataset
+
+	def randomData(self, int slots, str dataType):
+		if dataType == "int":
+			return np.random.randint(100, 999, slots).tolist()
+		elif dataType == "float":
+			return [round(x, 2) for x in np.random.uniform(1.0, 1000.0, slots).tolist()]
+
 	cdef testDataConcept(self):
 		cdef int ringDim = 1024
-		cdef int slots = ringDim // 2
+		cdef int slots = 8
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
 
 		startSetupTime = time.time()
 
 		cdef vector[double] balance = [round(x, 2) for x in np.random.uniform(1.0, 1000.0, slots).tolist()]
-		balanceCipher = homomorphic.encrypt(balance)
-
 		birthDate = np.random.randint(100, 999, slots).tolist()
+
 		birthDateSorter = sorted(enumerate(birthDate), key=lambda x: x[1])
 		sortedIndex = [i for i, _ in birthDateSorter]
 		sortedBirthDate = [value for _, value in birthDateSorter]
-		birthCipher = homomorphic.encrypt(sortedBirthDate)
 
-		startValue = random.choice(birthDate)
+		balanceCipher = homomorphic.encrypt(balance)
+		birthCipher = homomorphic.encrypt(sortedBirthDate)
+		print(birthDate)
+		print(balance)
+		print(sortedIndex)
+
+		startValue = random.choice([value for value in birthDate if value != sortedBirthDate[slots - 3]])
 		print(startValue)
-		stopValues = random.choice([value for value in birthDate if value > startValue])
+		stopValues = random.choice([value for value in birthDate if value > startValue and value != sortedBirthDate[slots - 1]])
 		print(stopValues)
-		dateToStart = [startValue] * slots
-		dateToStop = [stopValues] * slots
-		startDate = homomorphic.encrypt(dateToStart)
-		endDate = homomorphic.encrypt(dateToStop)
+
+		dateToStart = homomorphic.encrypt([startValue] * slots)
+		dateToStop = homomorphic.encrypt([stopValues] * slots)
 
 		endSetupTime = time.time()        
 		print("Setup time ->", endSetupTime - startSetupTime)
 
 		startCompareTime = time.time()
-		startResult = homomorphic.compare(slots, startDate, birthCipher)
-		endResult = homomorphic.compare(slots, endDate, birthCipher)
+		startCompareResult = homomorphic.compare(slots, dateToStart, birthCipher)
+		endCompareResult = homomorphic.compare(slots, dateToStop, birthCipher)
 		endCompareTime = time.time()
 		print("Compare time ->", endCompareTime - startCompareTime)
 
-		startIndices = next(i for i in range(slots) if startResult[i] == 1)
-		endIndices = next(i for i in range(slots) if endResult[i] == 1)
+		startIndices = next(i for i in range(slots) if startCompareResult[i] == 1)
+		endIndices = next(i for i in range(slots) if endCompareResult[i] == 1)
 		print("startIndices:", startIndices)
 		print("endIndices:", endIndices)
 
@@ -117,13 +204,16 @@ cdef class HomomorphicCLI:
 		mask = homomorphic.encrypt(maskList)
 
 		startTime = time.time()
-		getBalance = homomorphic.maskCiphertext(slots, balanceCipher, mask)
+		maskBalance = homomorphic.maskCiphertext(slots, balanceCipher, mask)
 		endTime = time.time()
 		print("Mask time ->", endTime - startTime)
 
+		maskValue = homomorphic.getMaskValue(slots, maskBalance)
+		print(maskValue)
+
 	cdef testBinarySearch(self):
 		cdef int ringDim = 1024
-		cdef int slots = ringDim // 2
+		cdef int slots = 8
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
 
 		startSetupTime = time.time()
@@ -133,44 +223,66 @@ cdef class HomomorphicCLI:
 
 		birthDate = np.random.randint(100, 999, slots).tolist()
 		birthDateSorter = sorted(enumerate(birthDate), key=lambda x: x[1])
-		birthDateIndex = [i for i, _ in birthDateSorter]
-		sortedBirthDate = [value for _, value in birthDateSorter]
+		birthDateIndex, sortedBirthDate = zip(*birthDateSorter)  
+		birthDateIndex, sortedBirthDate = list(birthDateIndex), list(sortedBirthDate)  
 		birthCipher = homomorphic.encrypt(sortedBirthDate)
+		print(birthDate)
+		print(balance)
 
-		startValue = random.choice(birthDate)
-		dateToStart = [startValue]
-		startDate = homomorphic.encrypt(dateToStart)
+		startValue = random.choice([value for value in birthDate if value < sortedBirthDate[slots - 2]])
+		stopValues = random.choice([value for value in birthDate if value > startValue and value < sortedBirthDate[slots - 1]]) 
+		
+		print(startValue)
+		
+		dateToStart = homomorphic.encrypt([startValue])
+		dateToStop = homomorphic.encrypt([stopValues])
 
 		endSetupTime = time.time()        
 		print("Setup time ->", endSetupTime - startSetupTime)
 
 		startSearchTime = time.time()
-		left = 0
-		right = slots - 1
-		maskList = [0.0] * slots
+		foundIndex = self.binarySearch(homomorphic, slots, birthCipher, dateToStart)
+		endSearchTime = time.time()
+		print("Search time ->", endSearchTime - startSearchTime)
+
+		print(foundIndex)
+		print(birthDateIndex)
+		
+		maskList = [1.0 if i == birthDateIndex[foundIndex] else 0.0 for i in range(slots)]
+		maskList[birthDateIndex[foundIndex]] = 1.0
+		mask = homomorphic.encrypt(maskList)
+		maskBalance = homomorphic.maskCiphertext(slots, balanceCipher, mask)
+		maskValue = homomorphic.getMaskValue(slots, maskBalance)
+		print(round(maskValue[birthDateIndex[foundIndex]], 2))
+
+	cdef binarySearch(self, CythonHomomorphic homomorphic, int slots, Ciphertext birthCipher, Ciphertext selectedDate):
+		cdef int left = 0
+		cdef int right = slots - 1
+		cdef list maskList = [0.0] * slots
+
 		while left <= right:
 			mid = (left + right) // 2
-			maskList[mid] = 1.0
 
-			mask = homomorphic.encrypt(maskList)
-			maskedCipher = homomorphic.maskCiphertext(slots, birthCipher, mask)
-			sumBirthCipher = homomorphic.sumCiphertext(slots, maskedCipher)
-
-			result = homomorphic.compare(1, sumBirthCipher, startDate)
+			sumCiphertext = self.maskSum(homomorphic, slots,  mid,  birthCipher)
+			result = homomorphic.compare(1, sumCiphertext, selectedDate)
 
 			if result[0] == 1.0:
 				left = mid + 1
 			else:
 				right = mid - 1
-			
-			maskList[mid] = 0.0
 
-		endSearchTime = time.time()        
-		print("Search time ->", endSearchTime - startSearchTime)
+			maskList[mid] = 0.0  
 
-		maskList2 = [1.0 if i==birthDateIndex[left] else 0.0 for i in range(slots)]
-		mask2 = homomorphic.encrypt(maskList2)
-		getBalance = homomorphic.maskCiphertext(slots, balanceCipher, mask2)
+		return left 
+
+	cdef Ciphertext maskSum(self, CythonHomomorphic homomorphic, int slots, int index, Ciphertext ciphertext):
+		maskList = [0.0] * slots  
+		maskList[index] = 1.0
+
+		mask = homomorphic.encrypt(maskList)
+		maskedCipher = homomorphic.maskCiphertext(slots, ciphertext, mask)
+		
+		return homomorphic.sumCiphertext(slots, maskedCipher)
 
 	cdef setCryptoContext(self, int ringDim, int slots):
 		cdef int batchSize = slots 
@@ -183,26 +295,6 @@ cdef class HomomorphicCLI:
 		homomorphic.setupSchemeSwitching(slots, 25)
 
 		return homomorphic
-		
-	cdef testPeopleHomomorphic(self):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/People.HE.bin'
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef PeopleHomomorphic storage = PeopleHomomorphic(io)
-		cdef bint isNew = not os.path.isfile(path)
-		cdef int n = self.option.count
-		io.open()
-		try:
-			if isNew: storage.create()
-			else: storage.readHeader(0)
-			# peopleList = self.writePeople(storage)
-			# storedList = self.readPeople(storage, peopleList)
-			# self.comparePeople(peopleList, storedList)
-			# storage.writeHeader()
-
-		except:
-			print(traceback.format_exc())
-		io.close()
 
 	cdef TextIntegerArray* toI32Array(self, str text):
 		cdef bytes encoded = text.encode()
