@@ -37,9 +37,6 @@ cdef class ConsistentCLI:
 		self.setConfig()
 		hashKey = hashDJB(self.option.key.encode(), 5)
 		ring.getNodeList(hashKey)
-		
-		print(f"Node IDs: {[node.id for node in ring.nodes]}")
-
 	
 	cdef getConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")

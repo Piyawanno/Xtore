@@ -3,12 +3,9 @@ from xtore.instance.RecordNode cimport hashDJB
 from xtore.algorithm.ConsistentNode cimport ConsistentNode
 
 cdef class ConsistentHashing:
-	cdef list consistentConfig 
-	cdef list consistentNode
 	cdef i32 replicationFactor
-	cdef list[ConsistentNode] nodes
-	cdef i32 nodeNumber
 	cdef i32 maxNode
+	cdef list[ConsistentNode] nodes
 	cdef dict nodeMap
 	
 	cdef loadData(self, dict config)

@@ -48,7 +48,4 @@ cdef class ConsistentHashing:
 
 		nodes = self.nodes[i:i+self.replicationFactor]
 		if len(nodes) < self.replicationFactor: nodes.extend(self.nodes[:self.replicationFactor-len(nodes)])
-		print(f"Original hashKey: {hashKey}")
-		print(f"Hashed value after mod {self.maxNode}: {hashed}")
-		print(f"Selected nodes: {[n.id for n in nodes]}")
 		return nodes
