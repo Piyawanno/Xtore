@@ -2,28 +2,32 @@ from xtore.BaseType cimport u8, u16, i32, i64
 from libc.stdlib cimport malloc, free
 import os, sys, json
 from xtore.algorithm.PrimeNode cimport PrimeNode
+from xtore.algorithm.StorageUnit cimport StorageUnit
+import itertools
 
 cdef class PrimeRing:
 	def __init__(self, list primeNumbers = [2, 3, 5], i32 replicaNumber = 3):
-		self.nodes = []
+		self.storageUnits = []
 		self.primeNumbers = primeNumbers
 		self.replicaNumber = replicaNumber
-		self.nodeNumber = 0
+		self.hashTable = {}
+		print(f"PrimeRing: {self.primeNumbers}")
+		print(f"ReplicaNumber: {self.replicaNumber}")
 
 	cdef loadData(self, list config):
 		self.primeRingConfig = config
 		cdef PrimeNode primeNode
-		for node in self.primeRingConfig:
-			primeNode = PrimeNode(node)
-			self.nodes.append(primeNode)
-			self.nodeNumber += 1
+		cdef StorageUnit storageUnit
+		for storage in self.primeRingConfig:
+			storageUnit = StorageUnit(storage)
+			self.storageUnits.append(storageUnit)
 		self.initPrimeRing()
 		
 	cdef initPrimeRing(self):
 		cdef list ring = []
 		cdef i32 layer, primeIndex, nodeIndex, childrenNumber, nodesInLayer, parent, previousLayer, childIndex
 		cdef i32 count
-		cdef PrimeNode member, childNode
+		cdef StorageUnit member
 		childIndex = 0
 		layer = 0
 		primeIndex = 0
@@ -31,10 +35,7 @@ cdef class PrimeRing:
 		count = 0
 		parent = 0
 		previousLayer = 0
-		for i, member in enumerate(self.nodes):
-			if member.isMaster == 0:
-				ring.append(member)
-				continue
+		for member in self.storageUnits:
 			nodesInLayer = 1
 			for index, prime in enumerate(self.primeNumbers):
 				nodesInLayer = nodesInLayer * prime
@@ -44,14 +45,13 @@ cdef class PrimeRing:
 				break
 			childrenNumber = self.primeNumbers[nodeIndex + 1]
 			if parent == previousLayer:
-				childIndex = (count + nodesInLayer) * self.replicaNumber
+				childIndex = count + nodesInLayer
 				parent = 0
 			for j in range(childrenNumber):
-				if childIndex >= len(self.nodes):
+				if childIndex >= len(self.storageUnits):
 					break 
-				childNode = self.nodes[childIndex]
 				member.children.append(childIndex)
-				childIndex += self.replicaNumber
+				childIndex += 1
 			parent += 1
 			if parent == nodesInLayer:
 				nodeIndex += 1
@@ -60,29 +60,30 @@ cdef class PrimeRing:
 				layer += 1
 				previousLayer = nodesInLayer
 			ring.append(member)
-		self.nodes = ring
+			print(member)
+		self.storageUnits = ring
 		self.layerNumber = layer+1
 	
-	cdef list[PrimeNode] getStorageUnit(self, i64 hashKey):
-		cdef PrimeNode node, nodem
+	cdef StorageUnit getStorageUnit(self, i64 hashKey):
+		cdef StorageUnit storageUnit
 		cdef i32 id, index, position
-		cdef list children, storageUnit = []
+		cdef list children
+		if hashKey in self.hashTable:
+			return self.hashTable[hashKey]
 		position = 0
+		print(hashKey)
 		index = 0
 		id = hashKey%self.primeNumbers[index]
-		position = id * self.replicaNumber
-		while position < self.nodeNumber:
-			node = self.nodes[position]
-			if node.children:
+		position = id
+		while position < len(self.storageUnits):
+			storageUnit = self.storageUnits[position]
+			if storageUnit.children:
 				id = hashKey%self.primeNumbers[index + 1]
-				position = node.children[id]
+				position = storageUnit.children[id]
 			else:
 				break
-		for i in range(self.replicaNumber):
-			storageUnit.append(self.nodes[position])
-			position += 1
+		self.hashTable[hashKey] = storageUnit
 		return storageUnit
-
 
 
 
