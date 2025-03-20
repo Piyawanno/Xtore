@@ -86,7 +86,7 @@ cdef class RecordNodeProtocol:
 			if self.type == InstanceType.BST:
 				handler.writeToStorage(recordList, storageList[0])
 			self.encode(&self.stream, recordList)
-			return b'Set Data Success!'
+			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		elif self.operation == DatabaseOperation.GET:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} keys')
@@ -96,4 +96,4 @@ cdef class RecordNodeProtocol:
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		else:
 			print(f'Operation {self.operation} not found !')
-		return b'OK'
+		return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
