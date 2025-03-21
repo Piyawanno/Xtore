@@ -31,5 +31,11 @@ cdef class CythonHomomorphic:
         return self.homomorphic.getMaskValue(slots, maskCiphertext)
 
     cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext):
-        cdef string cppFilepath = filepath.encode("utf-8")  
-        self.homomorphic.writeCiphertextToFile(cppFilepath, ciphertext)
+        cdef string path = filepath.encode("utf-8")  
+        self.homomorphic.writeCiphertextToFile(path, ciphertext)
+
+    cdef Ciphertext extractSlot(self, int slots, int index, Ciphertext ciphertext):
+        return self.homomorphic.extractSlot(slots, index, ciphertext)
+
+    cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext):
+        return self.homomorphic.rotateCipher(index, ciphertext)

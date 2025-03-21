@@ -24,6 +24,9 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         vector[double] getMaskValue(int slots, Ciphertext maskCiphertext) except +
         void writeCiphertextToFile(const string& filepath, Ciphertext ciphertext) except +
 
+        Ciphertext extractSlot(int slots, int index, Ciphertext ciphertext) except +
+        Ciphertext rotateCipher(int index, Ciphertext ciphertext) except +
+
 cdef class CythonHomomorphic:
     cdef HomomorphicEncryption* homomorphic
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
@@ -35,3 +38,5 @@ cdef class CythonHomomorphic:
     cdef Ciphertext maskCiphertext(self, int slots, Ciphertext ciphertext, Ciphertext mask)
     cdef vector[double] getMaskValue(self, int slots, Ciphertext maskCiphertext)
     cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext)
+    cdef Ciphertext extractSlot(self, int slots, int index, Ciphertext ciphertext)
+    cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext)
