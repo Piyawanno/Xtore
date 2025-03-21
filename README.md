@@ -39,6 +39,6 @@ python XtoreSetup.py link
 - git clone https://github.com/openfheorg/openfhe-development.git
 - mkdir build
 - cd build
-- cmake .. -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV}
+- cmake .. -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV
 - make
 - sudo make install
