@@ -2,6 +2,7 @@ from xtore.BaseType cimport i32
 from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.instance.RecordNode cimport hashDJB
 from xtore.algorithm.PrimeNode cimport PrimeNode
+from xtore.algorithm.StorageUnit cimport StorageUnit
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -34,7 +35,7 @@ cdef class InitPrimeRingCLI:
 		cdef PrimeRing ring
 		ring = PrimeRing()
 		ring.loadData(self.config["nodeList"])
-		cdef list storageUnit
+		cdef StorageUnit storageUnit
 		print(ring)
 		hashKey = hashDJB(self.option.key.encode(), 5)
 		storageUnit = ring.getStorageUnit(hashKey)

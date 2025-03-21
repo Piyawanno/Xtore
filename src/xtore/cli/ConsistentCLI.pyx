@@ -34,15 +34,9 @@ cdef class ConsistentCLI:
 		cdef ConsistentHashing ring
 		ring = ConsistentHashing()
 		ring.loadData(self.config)
-		self.config = {"primeRing": ring.consistentConfig}
 		self.setConfig()
-		ring.initConsistent()
 		hashKey = hashDJB(self.option.key.encode(), 5)
 		ring.getNodeList(hashKey)
-		
-		print("Ring initialized with nodes:")
-		print(f"Node IDs: {[node.id for node in ring.nodes]}")
-
 	
 	cdef getConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")

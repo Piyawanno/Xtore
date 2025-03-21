@@ -1,5 +1,6 @@
 from xtore.BaseType cimport i32, i64
 from xtore.algorithm.PrimeNode cimport PrimeNode
+from xtore.algorithm.StorageUnit cimport StorageUnit
 from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.common.Buffer cimport initBuffer, releaseBuffer, setBuffer
 # from xtore.instance.RecordNode cimport RecordNode
@@ -55,6 +56,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 	async def request(self, method: int, key: int | None, message: bytes) :
 		cdef People record = People()
 		cdef PrimeNode primeRingNode
+		cdef StorageUnit storageUnit
 		cdef list tasks = []
 		cdef str methodCode = METHOD[method][0::3]
 		if not self.connected :
@@ -69,7 +71,8 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.connected = False
 			else :
 				record.ID = key
-				self.storageUnit = self.primeRing.getStorageUnit(record.hash())
+				storageUnit = self.primeRing.getStorageUnit(record.hash())
+				self.storageUnit = storageUnit.nodeList
 				# i=0
 				# for replica in self.storageUnit:
 				# 	primeRingNode = replica
