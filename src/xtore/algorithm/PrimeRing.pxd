@@ -12,7 +12,6 @@ cdef class PrimeRing:
 	cdef dict hashTable
 
 	cdef loadData(self, list config)
-	cdef initPrimeRing(self)
 	cdef StorageUnit getStorageUnit(self, i64 hashKey)
 
 
