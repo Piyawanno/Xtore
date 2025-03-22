@@ -2,7 +2,7 @@ from xtore.BaseType cimport i32
 from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.instance.RecordNode cimport hashDJB
 from xtore.algorithm.PrimeNode cimport PrimeNode
-from xtore.algorithm.StorageUnit cimport StorageUnit
+from xtore.algorithm.StorageUnit cimport StorageUnit, Mode
 
 from libc.stdlib cimport malloc
 from libc.string cimport memcpy
@@ -40,6 +40,8 @@ cdef class InitPrimeRingCLI:
 		hashKey = hashDJB(self.option.key.encode(), 5)
 		storageUnit = ring.getStorageUnit(hashKey)
 		print(storageUnit)
+		for i in range(16):
+			storageUnit.getNextNode(mode = Mode.AdHoc)
 
 	cdef getConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "XtoreNetwork.json")
