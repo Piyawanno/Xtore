@@ -1,5 +1,5 @@
 from xtore.algorithm.ConsistentNode cimport ConsistentNode
-from xtore.BaseType cimport i64, i32, u32
+from xtore.BaseType cimport i64, i32
 import json, random, sys, os
 
 cdef class ConsistentHashing:
@@ -7,7 +7,7 @@ cdef class ConsistentHashing:
 		self.replicationFactor = replicationFactor
 		self.maxNode = maxNode
 		self.nodes = []
-		self.nodeMap = {}
+		self.nodeMapper = {}
 
 	def __str__(self):
 		return f"Nodes: {[node.id for node in self.nodes]}"
@@ -20,14 +20,14 @@ cdef class ConsistentHashing:
 				raw["id"] = self.generateNodeID()
 			node = ConsistentNode(raw)
 			self.nodes.append(node)
-			self.nodeMap[node.id] = node
+			self.nodeMapper[node.id] = node
 		self.nodes.sort(key=lambda node: node.id)
 
 	cdef i64 generateNodeID(self):
 		cdef i64 nodeID
 		while True:
 			nodeID = <i64> random.randint(0, self.maxNode-1)
-			if nodeID not in self.nodeMap: return nodeID
+			if nodeID not in self.nodeMapper: return nodeID
 
 	cdef list[ConsistentNode] getNodeList(self, i64 hashKey):
 		cdef i32 hashed = hashKey % self.maxNode
