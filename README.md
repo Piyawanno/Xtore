@@ -42,3 +42,17 @@ python XtoreSetup.py link
 - cmake .. -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV
 - make
 - sudo make install
+
+## Open Multiple Servers
+### Install tmux
+```sh
+sudo apt install tmux
+```
+### Open Servers
+```sh
+xt-cluster -p <first port> -n <amount of server> -m spawn
+```
+### Kill Servers
+```sh
+xt-cluster -p <first port> -n <amount of server> -m kill
+```
