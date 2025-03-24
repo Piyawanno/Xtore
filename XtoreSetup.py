@@ -62,6 +62,7 @@ class XtoreSetup :
 			'xt-cli',
 			'xt-send',
 			'xt-server',
+			'xt-cluster',
 			'xt-consistent'
 		]
 
