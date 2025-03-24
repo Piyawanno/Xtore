@@ -20,17 +20,19 @@ namespace Xtore
 	public:
 		HomomorphicEncryption();
 		void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize);
+		void generateRotateKey(int slots);
 		void setupSchemeSwitching(int slots, int logQ_ccLWE);
 		Ciphertext encrypt(const std::vector<double>& plain);
 		Plaintext decrypt(const Ciphertext& ciphertext);
 		std::vector<double> compare(int slots, const Ciphertext& cipher1, const Ciphertext& cipher2);
 		Ciphertext sumCiphertext(int slots, const Ciphertext &ciphertext);
 		Ciphertext maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask);
-		std::vector<double> getMaskValue(int slots, const Ciphertext &ciphertext);
+		std::vector<double> getRealValue(int slots, const Ciphertext &ciphertext);
 		void writeCiphertextToFile(const std::string& filepath, const Ciphertext& ciphertext);
 		Ciphertext extractSlot(int slots, int index, const Ciphertext &ciphertext);
-
 		Ciphertext rotateCipher(int index, const Ciphertext& ciphertext);
+		std::vector<uint8_t> serialize(const Ciphertext& ciphertext);
+		Ciphertext deserialize(const std::vector<uint8_t>& byteStream);
 
 	private:
 		CryptoContext cryptoContext;

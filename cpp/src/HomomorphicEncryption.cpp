@@ -5,12 +5,11 @@ using namespace lbcrypto;
 
 namespace Xtore
 {
-	HomomorphicEncryption::HomomorphicEncryption(){
-
+	HomomorphicEncryption::HomomorphicEncryption()
+	{
 	}
 
-	void HomomorphicEncryption::initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
-	{
+	void HomomorphicEncryption::initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize){
 		CCParams<CryptoContextCKKSRNS> parameters;
 		parameters.SetMultiplicativeDepth(multiplicativeDepth);
 		parameters.SetScalingModSize(scalingModSize);
@@ -24,18 +23,24 @@ namespace Xtore
 		parameters.SetNumLargeDigits(3);
 
 		cryptoContext = lbcrypto::GenCryptoContext(parameters);
-		
+
 		cryptoContext->Enable(lbcrypto::PKE);
 		cryptoContext->Enable(lbcrypto::KEYSWITCH);
 		cryptoContext->Enable(lbcrypto::LEVELEDSHE);
 		cryptoContext->Enable(lbcrypto::ADVANCEDSHE);
 		cryptoContext->Enable(lbcrypto::SCHEMESWITCH);
-		
+
 		keyPair = cryptoContext->KeyGen();
 	}
 
-	void HomomorphicEncryption::setupSchemeSwitching(int slots, int logQ_ccLWE)
-	{
+	void HomomorphicEncryption::generateRotateKey(int slots){
+
+		std::vector<int> rotationIndices(slots);
+		std::iota(rotationIndices.begin(), rotationIndices.end(), 0);
+		cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotationIndices);
+	}
+
+	void HomomorphicEncryption::setupSchemeSwitching(int slots, int logQ_ccLWE){
 		lbcrypto::SchSwchParams params;
 		params.SetSecurityLevelCKKS(lbcrypto::HEStd_NotSet);
 		params.SetSecurityLevelFHEW(lbcrypto::TOY);
@@ -48,37 +53,34 @@ namespace Xtore
 		ccLWE->BTKeyGen(privateKeyFHEW);
 		cryptoContext->EvalSchemeSwitchingKeyGen(keyPair, privateKeyFHEW);
 
-		auto modulus_LWE     = 1 << logQ_ccLWE;
-		auto beta            = ccLWE->GetBeta().ConvertToInt();
-		auto pLWE2           = modulus_LWE / (2 * beta);  
+		auto modulus_LWE = 1 << logQ_ccLWE;
+		auto beta = ccLWE->GetBeta().ConvertToInt();
+		auto pLWE2 = modulus_LWE / (2 * beta);
 		double scaleSignFHEW = 1.0;
 
 		cryptoContext->EvalCompareSwitchPrecompute(pLWE2, scaleSignFHEW);
 	}
 
-	Ciphertext HomomorphicEncryption::encrypt(const std::vector<double> &plain)
-	{
+	Ciphertext HomomorphicEncryption::encrypt(const std::vector<double> &plain){
 		Plaintext plaintext = cryptoContext->MakeCKKSPackedPlaintext(plain);
 		Ciphertext ciphertext = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
 		return ciphertext;
 	}
 
-	Plaintext HomomorphicEncryption::decrypt(const Ciphertext& ciphertext)
-	{
+	Plaintext HomomorphicEncryption::decrypt(const Ciphertext &ciphertext){
 		Plaintext plaintext;
 		cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &plaintext);
 		return plaintext;
 	}
 
-	std::vector<double> HomomorphicEncryption::compare(int slots, const Ciphertext& ciphertext, const Ciphertext& reference)
-	{
+	std::vector<double> HomomorphicEncryption::compare(int slots, const Ciphertext &ciphertext, const Ciphertext &reference){
 		std::vector<double> result(slots);
 		Ciphertext cDiff = cryptoContext->EvalSub(ciphertext, reference);
 		auto LWECiphertexts = cryptoContext->EvalCKKStoFHEW(cDiff, slots);
 
 		lbcrypto::LWEPlaintext plainLWE;
 		int n = LWECiphertexts.size();
-		for (int i = 0; i < n; ++i) {
+		for (int i = 0; i < n; ++i){
 			auto sign = ccLWE->EvalSign(LWECiphertexts[i]);
 			ccLWE->Decrypt(privateKeyFHEW, sign, &plainLWE, 2);
 			result[i] = plainLWE;
@@ -86,26 +88,23 @@ namespace Xtore
 		return result;
 	}
 
-	Ciphertext HomomorphicEncryption::maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask)
-	{
+	Ciphertext HomomorphicEncryption::maskCiphertext(int slots, const Ciphertext &ciphertext, const Ciphertext &mask){
 		return cryptoContext->EvalMult(ciphertext, mask);
 	}
 
-	Ciphertext HomomorphicEncryption::sumCiphertext(int slots, const Ciphertext &ciphertext)
-	{
+	Ciphertext HomomorphicEncryption::sumCiphertext(int slots, const Ciphertext &ciphertext){
 		return cryptoContext->EvalSum(ciphertext, slots);
 	}
 
-	std::vector<double> HomomorphicEncryption::getMaskValue(int slots, const Ciphertext &maskCiphertext)
-	{
+	std::vector<double> HomomorphicEncryption::getRealValue(int slots, const Ciphertext &ciphertext){
 		Plaintext decryptedResult;
-		cryptoContext->Decrypt(keyPair.secretKey, maskCiphertext, &decryptedResult);
+		cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &decryptedResult);
 		decryptedResult->SetLength(slots);
-		return decryptedResult->GetRealPackedValue();;
+		return decryptedResult->GetRealPackedValue();
+		;
 	}
 
-	void HomomorphicEncryption::writeCiphertextToFile(const std::string& filepath, const Ciphertext& ciphertext )
-	{
+	void HomomorphicEncryption::writeCiphertextToFile(const std::string &filepath, const Ciphertext &ciphertext){
 		std::ofstream outFile(filepath, std::ios::binary);
 		outFile.is_open();
 		Serial::SerializeToFile(filepath, ciphertext, SerType::BINARY);
@@ -113,22 +112,37 @@ namespace Xtore
 		outFile.close();
 	}
 
-	Ciphertext HomomorphicEncryption::extractSlot(int slots, int index, const Ciphertext &ciphertext)
-	{
-			std::vector<double> mask(slots, 0.0);
-			mask[index] = 1.0; 
-			Plaintext maskPlain = cryptoContext->MakeCKKSPackedPlaintext(mask);
+	Ciphertext HomomorphicEncryption::extractSlot(int slots, int index, const Ciphertext &ciphertext){
+		std::vector<double> mask(slots, 0.0);
+		mask[index] = 1.0;
+		Plaintext maskPlain = cryptoContext->MakeCKKSPackedPlaintext(mask);
 
-			return cryptoContext->EvalInnerProduct(ciphertext, maskPlain, slots);
+		return cryptoContext->EvalInnerProduct(ciphertext, maskPlain, slots);
 	}
 
-	Ciphertext HomomorphicEncryption::rotateCipher(int index, const Ciphertext &ciphertext)
-	{
+	Ciphertext HomomorphicEncryption::rotateCipher(int index, const Ciphertext &ciphertext){
 		if (index == 0){
 			return ciphertext;
 		}
 		Ciphertext rotatedCipher = cryptoContext->EvalRotate(ciphertext, index);
-		return cryptoContext->ModReduce(rotatedCipher); 
+		return cryptoContext->ModReduce(rotatedCipher);
 	}
-}
 
+	std::vector<uint8_t> HomomorphicEncryption::serialize(const Ciphertext &ciphertext){
+		std::ostringstream stream;
+		Serial::Serialize(ciphertext, stream, SerType::BINARY);
+		std::vector<uint8_t> byteStream(stream.str().begin(), stream.str().end());
+
+		return byteStream;
+	}
+
+	Ciphertext HomomorphicEncryption::deserialize(const std::vector<uint8_t> &byteStream){
+		std::string byteString(byteStream.begin(), byteStream.end());
+		std::istringstream stream(byteString);
+		Ciphertext ciphertext;
+		Serial::Deserialize(ciphertext, stream, SerType::BINARY);
+
+		return ciphertext;
+	}
+
+}

@@ -8,6 +8,9 @@ cdef class CythonHomomorphic:
 
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize):
         self.homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)
+    
+    cdef generateRotateKey(self, int slots):
+        self.homomorphic.generateRotateKey(slots)
 
     cdef setupSchemeSwitching(self,int slots, int logQ_ccLWE):
         self.homomorphic.setupSchemeSwitching(slots, logQ_ccLWE)
@@ -27,8 +30,8 @@ cdef class CythonHomomorphic:
     cdef Ciphertext sumCiphertext(self, int slots, Ciphertext ciphertext):
         return self.homomorphic.sumCiphertext(slots, ciphertext)
     
-    cdef vector[double] getMaskValue(self, int slots, Ciphertext maskCiphertext):
-        return self.homomorphic.getMaskValue(slots, maskCiphertext)
+    cdef vector[double] getRealValue(self, int slots, Ciphertext maskCiphertext):
+        return self.homomorphic.getRealValue(slots, maskCiphertext)
 
     cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext):
         cdef string path = filepath.encode("utf-8")  
@@ -39,3 +42,9 @@ cdef class CythonHomomorphic:
 
     cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext):
         return self.homomorphic.rotateCipher(index, ciphertext)
+
+    cdef vector[uint8_t] serialize(self, Ciphertext ciphertext):
+        return self.homomorphic.serialize(ciphertext)
+
+    cdef Ciphertext deserialize(self, vector[uint8_t] ciphertext):
+        return self.homomorphic.deserialize(ciphertext)
