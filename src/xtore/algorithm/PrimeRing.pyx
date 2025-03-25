@@ -29,6 +29,8 @@ cdef class PrimeRing:
 		while position < len(self.storageUnits):
 			nodeInLayer = nodeInLayer * self.primeNumbers[index]
 			nodeSum += nodeInLayer
+			if (index + 1) == len(self.primeNumbers):
+				break
 			id = hashKey%self.primeNumbers[index + 1]
 			if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) > len(self.storageUnits):
 				break
