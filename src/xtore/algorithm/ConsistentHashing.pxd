@@ -6,7 +6,7 @@ cdef class ConsistentHashing:
 	cdef i32 replicationFactor
 	cdef i32 maxNode
 	cdef list[ConsistentNode] nodes
-	cdef dict nodeMap
+	cdef dict nodeMapper
 	
 	cdef loadData(self, dict config)
 	cdef i64 generateNodeID(self)

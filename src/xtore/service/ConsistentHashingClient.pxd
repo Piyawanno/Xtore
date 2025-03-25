@@ -4,5 +4,5 @@ from xtore.service.DatabaseClient cimport DatabaseClient
 
 cdef class ConsistentHashingClient (DatabaseClient) :
 	cdef list nodeList
-	cdef ConsistentHashing primeRing
+	cdef ConsistentHashing consistentHashing
 	cdef list[ConsistentNode] consistentNodeList

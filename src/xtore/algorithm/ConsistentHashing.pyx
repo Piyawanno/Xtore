@@ -15,7 +15,7 @@ cdef class ConsistentHashing:
 	cdef loadData(self, dict config):
 		cdef ConsistentNode node
 		
-		for raw in list(config.values())[0]:
+		for raw in config["nodeList"]:
 			if "id" not in raw or raw["id"] is None:
 				raw["id"] = self.generateNodeID()
 			node = ConsistentNode(raw)

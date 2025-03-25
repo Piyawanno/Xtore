@@ -21,7 +21,7 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 		DatabaseClient.__init__(self)
 		self.nodeList = nodeList
 		self.consistentHashing = ConsistentHashing(replicationFactor = config["replicationFactor"], maxNode=config["maxNode"])
-		self.consistentHashing.loadData(self.nodeList)
+		self.consistentHashing.loadData(config)
 		self.consistentNodeList = []
 
 	cdef send(self, DatabaseOperation method, InstanceType instantType, str tableName, list data) :
@@ -60,15 +60,14 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 			if method == DatabaseOperation.GETALL :
 				for node in self.consistentHashing.nodes:
 					consistentHashingNode = node
-					if consistentHashingNode.isMaster == 1:
-						task = asyncio.create_task(self.tcpClient(f"{methodCode}{int.from_bytes(uuid.uuid4().bytes[:2]):05d}", message, consistentHashingNode.host, consistentHashingNode.port))
-						tasks.append(task)
+					task = asyncio.create_task(self.tcpClient(f"{methodCode}{int.from_bytes(uuid.uuid4().bytes[:2]):05d}", message, consistentHashingNode.host, consistentHashingNode.port))
+					tasks.append(task)
 				self.connected = True
 				await asyncio.gather(*tasks)
 				self.connected = False
 			else :
 				record.ID = key
-				self.consistentNodeList = self.consistentHashingNode.getNodeList(record.hash())
+				self.consistentNodeList = self.consistentHashing.getNodeList(record.hash())
 				i=0
 				for replica in self.consistentNodeList:
 					consistentHashingNode = replica

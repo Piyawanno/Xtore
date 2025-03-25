@@ -1,5 +1,6 @@
 from xtore.service.ConsistentHashingClient cimport ConsistentHashingClient
 from xtore.service.PrimeRingClient cimport PrimeRingClient
+from xtore.service.DatabaseClient cimport DatabaseClient
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer, setBuffer
 from xtore.protocol.RecordNodeProtocol cimport DatabaseOperation, InstanceType
 from xtore.test.People cimport People
@@ -17,7 +18,8 @@ cdef i32 BUFFER_SIZE = 1 << 16
 cdef object METHOD = {
 	"SET": DatabaseOperation.SET,
 	"GET": DatabaseOperation.GET,
-	"GETALL": DatabaseOperation.GETALL
+	"GETALL": DatabaseOperation.GETALL,
+	"X": -1
 }
 
 cdef object INSTANT_TYPE = {
@@ -34,7 +36,7 @@ cdef class DistributedDBClientCLI :
 	cdef object config
 	cdef object parser
 	cdef object option
-	cdef PrimeRingClient client
+	cdef DatabaseClient client
 	cdef Buffer stream
 	cdef Buffer received
 
@@ -49,8 +51,7 @@ cdef class DistributedDBClientCLI :
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("-f", "--filename", help="TSV file to send.", required=False, type=str)
-		self.parser.add_argument("-m", "--method", help="Method to use.", required=False, type=str, choices=METHOD.keys(), default="SET")
-		self.parser.add_argument("-a", "--algorithm", help="Select Distributed Algorithm.", required=False, type=str, choices=METHOD.keys(), default="SET")
+		self.parser.add_argument("-m", "--method", help="Method to use.", required=False, type=str, choices=METHOD.keys(), default="X")
 		self.option = self.parser.parse_args(argv)
 
 	cdef getConfig(self) :
@@ -71,7 +72,14 @@ cdef class DistributedDBClientCLI :
 	cdef run(self, list argv) :
 		print('Running...')
 		self.getParser(argv)
+		self.stream.position = 0
+		self.getConfig()
+		if self.config["algorithm"] == 0: # Consistent Hashing
+			self.client = ConsistentHashingClient(self.config["consistentHashing"]["nodeList"], self.config["consistentHashing"])
+		elif self.config["algorithm"] == 1: # Prime Ring
+			self.client = PrimeRingClient(self.config["primeRing"]["nodeList"], self.config["primeRing"])
 		cdef list dataList = []
+
 		if METHOD[self.option.method] == DatabaseOperation.GET or METHOD[self.option.method] == DatabaseOperation.SET:
 			if not self.option.filename:
 				print("Data file is required for GET/SET method.")
@@ -79,17 +87,39 @@ cdef class DistributedDBClientCLI :
 			dataList = self.TSVToDataList(self.option.filename)
 		elif METHOD[self.option.method] == DatabaseOperation.GETALL:
 			pass
+		elif METHOD[self.option.method] == -1:
+			while True:
+				method = input("Enter method (GET/SET/GETALL): ")
+				if method == "GET" or method == "SET":
+					filename = input("Enter TSV file path: ")
+					dataList = self.TSVToDataList(filename)
+					if len(dataList) > 0:
+						self.client.send(
+							method=METHOD[method],
+							instantType=InstanceType.BST,
+							tableName="People",
+							data=dataList
+						)
+						continue
+					print("Invalid file.")
+				elif method == "GETALL":
+					self.client.send(
+						method=METHOD[method],
+						instantType=InstanceType.BST,
+						tableName="People",
+						data=[]
+					)
+					continue
+				elif method == "EXIT":
+					break
+				else:
+					print("Invalid method.")
+					continue
+			return
 		else:
 			print("Invalid method.")
 			return
-
-		self.stream.position = 0
-		self.getConfig()
-		if self.config["algorithm"] == 0: # Consistent Hashing
-			self.client = ConsistentHashingClient(self.config["nodeList"], self.config["consistentHashing"])
-			pass
-		elif self.config["algorithm"] == 1: # Prime Ring
-			self.client = PrimeRingClient(self.config["nodeList"], self.config["primeRing"])
+		
 		self.client.send(
 			method=METHOD[self.option.method],
 			instantType=InstanceType.BST,
