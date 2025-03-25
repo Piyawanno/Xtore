@@ -24,19 +24,23 @@ cdef class PrimeRing:
 		cdef i32 index = 0
 		cdef i32 id = hashKey%self.primeNumbers[index]
 		cdef i32 position = id
+		cdef i32 previousNode = 0
+		cdef i32 nodeSum = 0
 		while position < len(self.storageUnits):
 			nodeInLayer = nodeInLayer * self.primeNumbers[index]
+			nodeSum += nodeInLayer
 			id = hashKey%self.primeNumbers[index + 1]
-			if ((position * self.primeNumbers[index + 1]) + nodeInLayer + id) > len(self.storageUnits):
+			if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) > len(self.storageUnits):
 				break
 			else:
 				previousPosition = position
-				position = (position * self.primeNumbers[index + 1]) + nodeInLayer + id
+				position = ((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id
 				index += 1
 			unit = self.storageUnits[str(position)]
 			previousUnit = self.storageUnits[str(previousPosition)]
 			if (unit.parent != previousUnit.storageUnitId) or (unit.layer != index):
 				raise ValueError("Structure not correct: Parent or Layer mismatch")
+			previousNode += nodeInLayer
 		
 		self.hashTable[hashKey] = self.storageUnits[str(position)]
 		return self.storageUnits[str(position)]
