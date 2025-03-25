@@ -16,6 +16,7 @@ cdef class SpawnServerCLI :
 	cdef getParser(self, list argv) :
 		self.parser = ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("-u", "--host", help="Target Server host.", required=False, type=str, default='127.0.0.1')
+		self.parser.add_argument("-p", "--port", help="Initial Port.", required=False, type=int, default=7001)	
 		self.parser.add_argument("-n", "--number", help="Amount of Server.", required=False, type=int, default=6)
 		self.parser.add_argument("-m", "--mode", help="Cluster Mode.", required=False, choices=['spawn', 'kill'], default='spawn')
 		self.option = self.parser.parse_args(argv)
@@ -27,7 +28,7 @@ cdef class SpawnServerCLI :
 		cdef str venvPath
 		cdef str sessionName
 
-		for port in range(7001, 7001 + self.option.number):
+		for port in range(self.option.port, self.option.port + self.option.number):
 			venvPath = os.path.join(basePath, f"db{port}.venv")
 			sessionName = f"db{port}-server"
 
@@ -56,11 +57,12 @@ cdef class SpawnServerCLI :
 			print(f"🚀 Server-{port} is being created...")
 			
 
-		for port in range(7001, 7001 + self.option.number):
+		for port in range(self.option.port, self.option.port + self.option.number):
 			if not os.path.exists(venvPath):
 				subprocess.run(["tmux", "wait-for", f"done-{port}"])
+				print(f"✅ Server-{port} has finished setup!")
 
-		#delay for server to start
+		# subprocess.run(["xt-create-config", "-p", "2,3,5", "-r", "1"])
 		subprocess.run(["sleep", "20"])
 		print("✅ All servers have finished setup!")
 
@@ -68,7 +70,7 @@ cdef class SpawnServerCLI :
 		print('Kill Server...')
 
 		cdef str sessionName
-		for port in range(7001, 7001 + self.option.number):
+		for port in range(self.option.port, self.option.port + self.option.number):
 			sessionName = f"db{port}-server"
 			subprocess.run(["tmux", "kill-session", "-t", sessionName])
 			print(f"🔥 Server-{port} is being killed...")
