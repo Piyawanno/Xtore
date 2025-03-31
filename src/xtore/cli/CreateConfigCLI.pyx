@@ -26,14 +26,14 @@ cdef class CreateConfigCLI:
 		self.generateConfig()
 		self.saveConfig()
 
-	cdef dict setNode(self, i32 storageUnitId, i32 layer, i32* port, object parent):
-		cdef list storageUnits = []
+	cdef dict setNode(self, i32 storageUnitId, i32 layer, i32* port, i32 parent):
+		cdef dict storageUnits = {}
 		for i in range(self.option.replicaNumber):
-			storageUnits.append({
+			storageUnits[str(i)] = {
 				"host": "localhost",
 				"port": port[0] + i,
 				"isMaster": 1 if i == 0 else 0
-			})
+			}
 		cdef dict node = {
 			"storageUnitId": storageUnitId,
 			"layer": layer,
@@ -45,23 +45,28 @@ cdef class CreateConfigCLI:
 
 	cdef generateConfig(self):
 		cdef list primeNumbersList = [int(x) for x in self.option.primeNumbers.split(',')]
-		self.config = {"nodeList": []}
+		self.config = {"nodeDict": {}}
 		cdef i32 port = 7410
 		cdef i32 storageUnitId = 0
-		cdef i32 layer, startParent = 0
+		cdef i32 layer, parent
+		cdef list parentLayer = []
 
 		for i in range(primeNumbersList[0]):
-			node = self.setNode(storageUnitId, 0, &port, None)
-			self.config["nodeList"].append(node)
+			node = self.setNode(storageUnitId, 0, &port, -1)
+			self.config["nodeDict"][str(storageUnitId)] = node
+			parentLayer.append(storageUnitId)
 			storageUnitId += 1
 
-		if len(primeNumbersList) > 1:
-			for layer in range(1, len(primeNumbersList)):
-				for parent in range(startParent, len(self.config["nodeList"])):
-					for i in range(primeNumbersList[layer]):
-						node = self.setNode(storageUnitId, layer, &port, parent)
-						self.config["nodeList"].append(node)
-						storageUnitId += 1
+		for layer in range(1, len(primeNumbersList)):
+			parentNextLayer = parentLayer[:]
+			parentLayer = []
+
+			for parent in parentNextLayer:
+				for i in range(primeNumbersList[layer]):
+					node = self.setNode(storageUnitId, layer, &port, parent)
+					self.config["nodeDict"][str(storageUnitId)] = node
+					parentLayer.append(storageUnitId)
+					storageUnitId += 1
 
 	cdef saveConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "StoreTestConfig.json")
