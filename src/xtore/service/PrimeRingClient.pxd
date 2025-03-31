@@ -3,6 +3,6 @@ from xtore.algorithm.PrimeNode cimport PrimeNode
 from xtore.service.DatabaseClient cimport DatabaseClient
 
 cdef class PrimeRingClient (DatabaseClient) :
-	cdef list nodeList
+	cdef dict nodeList
 	cdef PrimeRing primeRing
-	cdef list[PrimeNode] storageUnit
+	cdef dict storageUnit

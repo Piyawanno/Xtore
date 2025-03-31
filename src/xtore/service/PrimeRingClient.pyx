@@ -19,12 +19,13 @@ cdef object METHOD = {
 }
 
 cdef class PrimeRingClient (DatabaseClient) :
-	def __init__(self, list[dict] nodeList, dict config) :
+	def __init__(self, dict nodeList, dict config) :
 		DatabaseClient.__init__(self)
 		self.nodeList = nodeList
 		self.primeRing = PrimeRing(primeNumbers = config["primeNumbers"], replicaNumber=config["replicaNumber"])
 		self.primeRing.loadData(self.nodeList)
-		self.storageUnit = []
+		
+		self.storageUnit = {}
 
 	cdef send(self, DatabaseOperation method, InstanceType instantType, str tableName, list data) :
 		cdef People record
@@ -72,14 +73,8 @@ cdef class PrimeRingClient (DatabaseClient) :
 			else :
 				record.ID = key
 				storageUnit = self.primeRing.getStorageUnit(record.hash())
-				self.storageUnit = storageUnit.nodeList
-				# i=0
-				# for replica in self.storageUnit:
-				# 	primeRingNode = replica
-				# 	task = asyncio.create_task(self.tcpClient(i, message, primeRingNode.host, primeRingNode.port))
-				# 	tasks.append(task)
-				# 	i+=1
-				for replica in self.storageUnit:
+				self.storageUnit = storageUnit.nodes
+				for replica in self.storageUnit.values():
 					primeRingNode = replica
 					if primeRingNode.isMaster == 1:
 						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
