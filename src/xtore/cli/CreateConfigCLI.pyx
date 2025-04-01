@@ -23,10 +23,11 @@ cdef class CreateConfigCLI:
 
 	cdef run(self, list argv):
 		self.getParser(argv)
-		self.generateConfig()
+		self.generateConfigPrimering()
+		self.generateConfigConsistent()
 		self.saveConfig()
 
-	cdef dict setNode(self, i32 storageUnitId, i32 layer, i32* port, i32 parent):
+	cdef dict setNodePrimering(self, i32 storageUnitId, i32 layer, i32* port, i32 parent):
 		cdef dict storageUnits = {}
 		for i in range(self.option.replicaNumber):
 			storageUnits[str(i)] = {
@@ -43,17 +44,17 @@ cdef class CreateConfigCLI:
 		port[0] += self.option.replicaNumber
 		return node
 
-	cdef generateConfig(self):
+	cdef generateConfigPrimering(self):
 		cdef list primeNumbersList = [int(x) for x in self.option.primeNumbers.split(',')]
-		self.config = {"nodeDict": {}}
+		self.config = {"nodeDictPrimering": {}}
 		cdef i32 port = 7410
 		cdef i32 storageUnitId = 0
 		cdef i32 layer, parent
 		cdef list parentLayer = []
 
 		for i in range(primeNumbersList[0]):
-			node = self.setNode(storageUnitId, 0, &port, -1)
-			self.config["nodeDict"][str(storageUnitId)] = node
+			node = self.setNodePrimering(storageUnitId, 0, &port, -1)
+			self.config["nodeDictPrimering"][str(storageUnitId)] = node
 			parentLayer.append(storageUnitId)
 			storageUnitId += 1
 
@@ -63,10 +64,22 @@ cdef class CreateConfigCLI:
 
 			for parent in parentNextLayer:
 				for i in range(primeNumbersList[layer]):
-					node = self.setNode(storageUnitId, layer, &port, parent)
-					self.config["nodeDict"][str(storageUnitId)] = node
+					node = self.setNodePrimering(storageUnitId, layer, &port, parent)
+					self.config["nodeDictPrimering"][str(storageUnitId)] = node
 					parentLayer.append(storageUnitId)
 					storageUnitId += 1
+
+	cdef generateConfigConsistent(self):
+		self.config["nodeDictConsistent"] = {}
+		port = self.config["nodeDictPrimering"][max(self.config["nodeDictPrimering"], key=int)]["storageUnit"][str(self.option.replicaNumber - 1)]["port"] + 1
+			
+		for storageUnitId in self.config["nodeDictPrimering"]:
+			self.config["nodeDictConsistent"][storageUnitId] = {
+				"host": "localhost",
+				"port": port
+			}
+			port += 1
+
 
 	cdef saveConfig(self):
 		cdef str configPath = os.path.join(sys.prefix, "etc", "xtore", "StoreTestConfig.json")
