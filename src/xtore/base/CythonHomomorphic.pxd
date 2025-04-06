@@ -25,6 +25,8 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         Ciphertext maskCiphertext(int slots, Ciphertext ciphertext, Ciphertext mask) except +
         vector[double] getRealValue(int slots, Ciphertext maskCiphertext) except +
         void writeCiphertextToFile(const string& filepath, Ciphertext ciphertext) except +
+        string serializeToStream(Ciphertext& ciphertext) except +
+        Ciphertext deserializeFromStream(const string& serializedData) except +
         Ciphertext extractSlot(int slots, int index, Ciphertext ciphertext) except +
         Ciphertext rotateCipher(int index, Ciphertext ciphertext) except +
         vector[uint8_t] serialize(Ciphertext ciphertext) except +
@@ -44,5 +46,5 @@ cdef class CythonHomomorphic:
     cdef writeCiphertextToFile(self, str filepath, Ciphertext ciphertext)
     cdef Ciphertext extractSlot(self, int slots, int index, Ciphertext ciphertext)
     cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext)
-    cdef vector[uint8_t] serialize(self, Ciphertext ciphertext)
-    cdef Ciphertext deserialize(self, vector[uint8_t] ciphertext)
+    cdef string serializeToStream(self, Ciphertext ciphertext)
+    cdef Ciphertext deserializeFromStream(self, string serializedData)

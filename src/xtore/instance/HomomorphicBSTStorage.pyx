@@ -1,9 +1,6 @@
-# Homomorphic BST Storage
-
 from xtore.BaseType cimport i32, i64
-from xtore.common.Buffer cimport Buffer
+from xtore.common.Buffer cimport Buffer, setBuffer, getBuffer, initBuffer, releaseBuffer
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.common.Buffer cimport Buffer, setBuffer, setBoolean, getBuffer, getBoolean, initBuffer, releaseBuffer
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
@@ -65,7 +62,6 @@ cdef class HomomorphicBSTStorage (BasicStorage):
         self.rootNodePosition = (<i64*> getBuffer(&self.headerStream, 8))[0]
     
     cdef RecordNode get(self, RecordNode reference, RecordNode result):
-        print("Get Here")
         if self.rootNodePosition < 0: return None
         cdef i64 position = self.rootNodePosition
         cdef i64 nodePosition
@@ -99,7 +95,6 @@ cdef class HomomorphicBSTStorage (BasicStorage):
                     break 
 
     cdef set(self, RecordNode reference):
-        print("Set Here")
         cdef i64 placeHolder = -1
         if self.rootNodePosition < 0:
             self.appendNode(reference)

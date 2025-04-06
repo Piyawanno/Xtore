@@ -70,6 +70,15 @@ namespace Xtore
 	Plaintext HomomorphicEncryption::decrypt(const Ciphertext &ciphertext){
 		Plaintext plaintext;
 		cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &plaintext);
+		    std::cout << "Decrypted plaintext values: ";
+		const std::vector<double>& values = plaintext->GetRealPackedValue();
+		for (size_t i = 0; i < values.size(); ++i) {
+			std::cout << values[i];
+			if (i != values.size() - 1) {
+				std::cout << ", ";
+			}
+		}
+		std::cout << std::endl;
 		return plaintext;
 	}
 
@@ -112,10 +121,25 @@ namespace Xtore
 		outFile.close();
 	}
 
-	Ciphertext HomomorphicEncryption::extractSlot(int slots, int index, const Ciphertext &ciphertext){
-		std::vector<double> mask(slots, 0.0);
-		mask[index] = 1.0;
-		Plaintext maskPlain = cryptoContext->MakeCKKSPackedPlaintext(mask);
+	std::string HomomorphicEncryption::serializeToStream(Ciphertext& ciphertext)
+	{
+		std::stringstream stream;
+		Serial::Serialize(ciphertext, stream, SerType::BINARY);
+		return stream.str();
+	}
+
+	Ciphertext HomomorphicEncryption::deserializeFromStream(const std::string& serializedData)
+	{
+		std::stringstream stream(serializedData);
+		Ciphertext ciphertext;
+		Serial::Deserialize(ciphertext, stream, SerType::BINARY);
+		return ciphertext;
+	}
+	Ciphertext HomomorphicEncryption::extractSlot(int slots, int index, const Ciphertext &ciphertext)
+	{
+			std::vector<double> mask(slots, 0.0);
+			mask[index] = 1.0; 
+			Plaintext maskPlain = cryptoContext->MakeCKKSPackedPlaintext(mask);
 
 		return cryptoContext->EvalInnerProduct(ciphertext, maskPlain, slots);
 	}

@@ -1,14 +1,21 @@
-from xtore.BaseType cimport i32
-from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext
+from xtore.BaseType cimport i32, i64
+from xtore.common.StreamIOHandler cimport StreamIOHandler
+from xtore.common.Buffer cimport Buffer, initBuffer, getBuffer, setBuffer, releaseBuffer
+from xtore.common.ChunkedBuffer cimport ChunkedBuffer
+from xtore.instance.BasicStorage cimport BasicStorage
+from xtore.instance.BasicIterator cimport BasicIterator
+from xtore.test.DataSetHomomorphic cimport DataSetHomomorphic
+from xtore.test.DataSet cimport DataSet
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 from libcpp.vector cimport vector
 from argparse import RawTextHelpFormatter
-from faker import Faker
 
-import os, sys, argparse, traceback, random, time
-import numpy as np
+from xtore.instance.HomomorphicBSTStorage import HomomorphicBSTStorage
+from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext, Plaintext
+from libcpp.vector cimport vector
+from cpython.bytes cimport PyBytes_FromStringAndSize
 
 cdef str __help__ = "Test Script for Homomorphic"
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
@@ -22,10 +29,17 @@ ctypedef struct TextIntegerArray:
 	i32 *array
 
 cdef class Data:
+	cdef list id
+	cdef list name
 	cdef list birthDate
+	cdef list address
 	cdef list balance
-	cdef list index
+
+cdef class EncryptedData:
+	cdef Ciphertext idCipher
+	cdef Ciphertext nameCipher
 	cdef Ciphertext birthCipher
+	cdef Ciphertext addressCipher
 	cdef Ciphertext balanceCipher
 
 cdef class SetPosition:
@@ -44,12 +58,8 @@ cdef class HomomorphicCLI:
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("test", help="Name of test", choices=[
 			'BST',
-			'Homomorphic',
-			'Wrapper',
 			'Concept',
 			'BinarySearch',
-			'LinkPages',
-			'Rotation',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=False, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -57,190 +67,202 @@ cdef class HomomorphicCLI:
 	cdef run(self, list argv):
 		self.getParser(argv)  
 		self.checkPath()  
-		if self.option.test == 'BST': self.testHomomorphicBSTStorage()
-		elif self.option.test == 'Homomorphic': self.testHomomorphic()
-		elif self.option.test == 'Wrapper': self.testHomomorphic()
+		if self.option.test == 'BST': self.testDataSetBSTStorage()
 		elif self.option.test == 'Concept': self.testDataConcept()
 		elif self.option.test == 'BinarySearch': self.testBinarySearch()
-		elif self.option.test == 'LinkPages': self.testLinkPages()
-		elif self.option.test == 'Rotation': self.testRotation()
 
-	cdef setCryptoContext(self, int ringDim, int slots):
-		cdef int batchSize = slots 
-		cdef int multiplicativeDepth = 17
-		cdef int scalingModSize = 50
-		cdef int firstModSize = 60
-		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
-
-		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)  
-		homomorphic.setupSchemeSwitching(slots, 25)
-
-		return homomorphic
-
-	cdef testHomomorphicBSTStorage(self):
+	cdef i64 StreamIO(self):
+		cdef str path = f'{self.getResourcePath()}/test_data.bin'
 		cdef int ringDim = 1024
-		cdef int slots = 4
+		cdef int slots = 2
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
-		cdef int count = 2
-		cdef list datasets = []
-		cdef Data newData
-		cdef Data bd
-		cdef list mergedBirthList = []
-		cdef list mergedBirthBSTList = []
-		cdef Data datasetToMask
+		print("Writing encrypted data...")
+		cdef i64 dataAddress = self.writeEncryptedDataWithStream(path, data, homomorphic)
 
-		start = time.time()
-		for i in range(count):
-			datasets.append(self.generateData(homomorphic, slots))
-			newData = datasets[i]
-			mergedBirthList = self.mergedBirth(homomorphic, slots, mergedBirthList, datasets, newData)
-		endtime = time.time()
+		return dataAddress
 
-		print(f"insert {count}datasets Time ->", endtime - start)
+		# print("Reading encrypted data...")
+		# cdef Ciphertext readBirthCipher = self.readEncryptedDataWithStream(path, homomorphic)
+		# cdef Plaintext plaintext = homomorphic.decrypt(readBirthCipher)
 
-		print("mergedBirthList slots:",len(mergedBirthList))
-		print("mergedBirthList:",mergedBirthList)
-		print()
+	cdef i64 writeEncryptedDataWithStream(self, str path, EncryptedData data, CythonHomomorphic homomorphic):
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef i64 address
+		cdef Buffer writeBuffer
+		cdef bytes serializedData
+		cdef list positionList = []
 
-		selectedBirthDate = self.selectRandomBirthDate(datasets)
-		print(f"Randomly selected birthDate: {selectedBirthDate}")
-
-		selectedDateCipher = homomorphic.encrypt([selectedBirthDate])
-		foundIndex = self.binarySearch(homomorphic, slots, mergedBirthList, datasets, selectedDateCipher)
-		print(f"Found mergedList index: {foundIndex}")
-		print("Found birthDate index:", mergedBirthList[foundIndex])
-
-		setNum, maskIndex = mergedBirthList[foundIndex]
-		datasetToMask = datasets[setNum]
-		
-		getBalanceCipher = homomorphic.extractSlot(slots, maskIndex, datasetToMask.balanceCipher)
-		print("balance:", homomorphic.getRealValue(slots, getBalanceCipher)[0])
-
-		print()
-		for i in range(len(datasets)):
-			bd = datasets[i]
-			print(f"birthDate[{i}]",bd.birthDate)
-			print(f"balance[{i}]",bd.balance)
-			print()
-
-	cdef mergedBirth(self, CythonHomomorphic homomorphic, int slots, list mergedBirthList, list datasets, Data newData):
-		cdef list updatedMergedBirthList = []
-		cdef int i = 0
-		cdef int j = 0
-		cdef int n = len(mergedBirthList)
-		cdef Data data
-		cdef Ciphertext extractedDataToCompare
-		cdef Ciphertext extractedNewData
-
-		cdef int compareCouter = 0
-
-		if n == 0:
-			return [(0, newData.index[j]) for j in range(slots)]
+		io.open()
 		try:
-			while i < n and j < slots:
-				setNum, originalIndex = mergedBirthList[i]
-				data = datasets[setNum]
-				# print("i:", i,"si:",setNum, originalIndex,"index:", data.index)
-				sortedPosition = data.index.index(originalIndex)
-				extractedDataToCompare = homomorphic.extractSlot(slots, sortedPosition, data.birthCipher)
-				extractedNewData = homomorphic.extractSlot(slots, j, newData.birthCipher)
+			position1 = io.getTail()
+			print(f"start ddress: {position1}")
+			positionList.append(position1)
+			serializedData = homomorphic.serializeToStream(data.idCipher)
+			initBuffer(&writeBuffer, <char*> serializedData, len(serializedData))
+			writeBuffer.position = len(serializedData)
+			io.write(&writeBuffer)
 
-				result = homomorphic.compare(1, extractedDataToCompare, extractedNewData)
-				compareCouter += 1
-				# print(f"Comparing {homomorphic.getRealValue(slots, extractedDataToCompare)[0]} vs {homomorphic.getRealValue(slots, extractedNewData)[0]} -> {result[0]}")
+			position2 = io.getTail()
+			positionList.append(position2)
+			serializedData = homomorphic.serializeToStream(data.birthCipher)
+			initBuffer(&writeBuffer, <char*> serializedData, len(serializedData))
+			writeBuffer.position = len(serializedData)
+			io.write(&writeBuffer)
 
-				if result[0] == 1.0:
-					updatedMergedBirthList.append(mergedBirthList[i])
-					i += 1
-				else:
-					updatedMergedBirthList.append((len(datasets)-1, newData.index[j]))
-					j += 1
+			position3 = io.getTail()
+			positionList.append(position3)
+			serializedData = homomorphic.serializeToStream(data.balanceCipher)
+			initBuffer(&writeBuffer, <char*> serializedData, len(serializedData))
+			writeBuffer.position = len(serializedData)
+			io.write(&writeBuffer)
 
-			while i < n:
-				updatedMergedBirthList.append(mergedBirthList[i])
-				i += 1
+			for position in reversed(positionList):
+				address = position
+				print(f"address: {address}")
+				initBuffer(&writeBuffer, <char*>&address, sizeof(i64))
+				writeBuffer.position = sizeof(i64)
+				io.write(&writeBuffer)
 
-			while j < slots:
-				updatedMergedBirthList.append((len(datasets)-1, newData.index[j]))
-				j += 1
+			dataAddress = io.getTail()
+			print(f"end address: {dataAddress}")
 
-		except Exception as e:
-			print(f"Error during merging: {str(e)}")
-			raise
+			return dataAddress
 
-		# print(f"Comparing {compareCouter} times")
-
-		return updatedMergedBirthList
-
-	cdef selectRandomBirthDate(self, list datasets):
-		cdef Data selectedData = random.choice(datasets)
-		cdef list selectedBirthDate = selectedData.birthDate
-		cdef int randomIndex = random.randint(0, len(selectedBirthDate) - 1)
-		return selectedBirthDate[randomIndex]
-
-	cdef binarySearch(self, CythonHomomorphic homomorphic, int slots, list mergedBirth, list datasets, Ciphertext selectedDate):
-		cdef int left = 0
-		cdef int right = len(mergedBirth) - 1
-		cdef int mid
-		cdef int setNum
-		cdef int originalIndex
-		cdef Data data
-		cdef Ciphertext extractedDataToCompare
-
-		while left <= right:
-			mid = (left + right) // 2
-			setNum, originalIndex = mergedBirth[mid]
-			data = datasets[setNum]
-			sortedPosition = data.index.index(originalIndex)
-			extractedDataToCompare = homomorphic.extractSlot(slots, sortedPosition, data.birthCipher)
-
-			result = homomorphic.compare(1, extractedDataToCompare, selectedDate)
-
-			if result[0] == 1.0:
-				left = mid + 1
-			else:
-				right = mid - 1
-
-		return left
-
-	cdef testRotation(self):
-		cdef int ringDim = 1024
-		cdef int slots = 16
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
-		homomorphic.generateRotateKey(slots)
-
-		Data1 = self.generateData(homomorphic, slots)
-		birthCipher = homomorphic.encrypt(Data1.birthDate)
-
-		print(Data1.birthDate)
-
-		index = 13
-
-		rotatedCipher = homomorphic.rotateCipher(index, birthCipher)
-		rotadedValue = homomorphic.getRealValue(slots, rotatedCipher)
-		print([f"{x:.2f}" for x in rotadedValue])
-
-	cdef testLinkPages(self):
-		cdef int ringDim = 1024
-		cdef int slots = 8
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
-
-		startSetupTime = time.time()
-
-		Data1 = self.generateData(homomorphic, slots)
-		Data2 = self.generateData(homomorphic, slots)
-
-		endSetupTime = time.time()        
-		print("Setup time ->", endSetupTime - startSetupTime)
-
-		startCompareTime = time.time()
-
-		mergedBirth = self.mergedTwoBirth(homomorphic, slots, Data1, Data2)
-		
-		endCompareTime = time.time()        
-		print("Compare time ->", endCompareTime - startCompareTime)
+		finally:
+			io.close()
 	
+	cdef Ciphertext readEncryptedDataWithStream(self, str path, CythonHomomorphic homomorphic):
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef i32 offset
+		cdef Buffer readBuffer
+		cdef Ciphertext ciphertext
+		cdef bytes serializedData
+		cdef size_t data_size
+		cdef char* buffer_memory
+		
+		io.open()
+		try:
+			file_size = io.getTail()
+			buffer_memory = <char*>malloc(sizeof(i32))
+			if buffer_memory == NULL:
+				raise MemoryError("Failed to allocate memory for offset")
+
+			initBuffer(&readBuffer, buffer_memory, sizeof(i32))
+			io.seek(file_size - sizeof(i32))
+			io.read(&readBuffer, sizeof(i32))
+			offset = (<i32*> readBuffer.buffer)[0]
+			print(f"Read offset: {offset}, file size: {file_size}")
+
+			data_size = file_size - offset - sizeof(i32)
+
+			io.seek(offset)
+
+			buffer_memory = <char*>malloc(data_size)
+			if buffer_memory == NULL:
+				raise MemoryError("Failed to allocate memory for buffer")
+
+			initBuffer(&readBuffer, buffer_memory, data_size)
+			io.read(&readBuffer, data_size)
+			
+			serializedData = PyBytes_FromStringAndSize(readBuffer.buffer, data_size)
+			ciphertext = homomorphic.deserializeFromStream(serializedData)
+			
+			return ciphertext
+			
+		finally:
+			releaseBuffer(&readBuffer)
+			io.close()
+		
+	cdef testDataSetBSTStorage(self):
+		cdef str resourcePath = self.getResourcePath()
+		cdef str path = f'{resourcePath}/DataSet.BST.bin'
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef DataSetHomomorphic storage = DataSetHomomorphic(io)
+		cdef bint isNew = not os.path.isfile(path)
+		cdef i64 address = self.StreamIO()
+		io.open()
+		try:
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			dataList = self.writeDataSet(storage, address)
+			storedList = self.readPeople(storage, dataList)
+			print(storedList)
+			# self.comparePeople(peopleList, storedList)
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
+	
+	cdef list writeDataSet(self, BasicStorage storage, i32 address):
+		cdef list dataList = []
+		cdef DataSet dataSet
+		cdef int i
+		cdef int n = self.option.count
+		cdef double start = time.time()
+		for i in range(n):
+			dataSet = DataSet()
+			dataSet.position = -1
+			dataSet.index = i
+			dataSet.address = address
+			dataList.append(dataSet)
+		cdef double elapsed = time.time() - start
+		print(f'>>> Data of {n} are generated in {elapsed:.3}s')
+		start = time.time()
+		for dataSet in dataList:
+			storage.set(dataSet)
+		elapsed = time.time() - start
+		print(f'>>> Data of {n} are stored in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		return dataList
+
+	cdef list readPeople(self, BasicStorage storage, list dataList):
+		cdef list storedList = []
+		cdef DataSet stored
+		cdef double start = time.time()
+		for dataSet in dataList:
+			stored = storage.get(dataSet, None)
+			storedList.append(stored)
+		cdef double elapsed = time.time() - start
+		cdef int n = len(dataList)
+		print(f'>>> People Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		return storedList
+
+	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
+		cdef list id = self.randomData(slots, "int")
+		cdef list name = self.randomData(slots, "int")
+		cdef list birthDate = self.randomData(slots, "int")
+		cdef list address = self.randomData(slots, "int")
+		cdef vector[double] balance = self.randomData(slots, "float")
+
+		cdef Ciphertext idCipher = homomorphic.encrypt(id)
+		cdef Ciphertext nameCipher = homomorphic.encrypt(name)
+		cdef Ciphertext birthCipher = homomorphic.encrypt(birthDate)
+		cdef Ciphertext addressCipher = homomorphic.encrypt(address)
+		cdef Ciphertext balanceCipher = homomorphic.encrypt(balance)
+
+		cdef Data data = Data()
+		data.id = id
+		data.name = name
+		data.address = address
+		data.balance = balance
+		data.birthDate = birthDate
+
+		cdef EncryptedData encryptedData = EncryptedData()
+		encryptedData.idCipher = idCipher
+		encryptedData.nameCipher = nameCipher
+		encryptedData.addressCipher = addressCipher
+		encryptedData.birthCipher = birthCipher
+		encryptedData.balanceCipher = balanceCipher
+
+		return encryptedData
+
+	def randomData(self, int slots, str dataType):
+		if dataType == "int":
+			return np.random.randint(100, 999, slots).tolist()
+		elif dataType == "float":
+			return [round(x, 2) for x in np.random.uniform(1.0, 1000.0, slots).tolist()]
+
 	cdef testDataConcept(self):
 		cdef int ringDim = 1024
 		cdef int slots = 8

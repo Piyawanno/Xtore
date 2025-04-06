@@ -43,8 +43,9 @@ cdef class CythonHomomorphic:
     cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext):
         return self.homomorphic.rotateCipher(index, ciphertext)
 
-    cdef vector[uint8_t] serialize(self, Ciphertext ciphertext):
-        return self.homomorphic.serialize(ciphertext)
+    cdef string serializeToStream(self, Ciphertext ciphertext):
+        cdef string serialized_str = self.homomorphic.serializeToStream(ciphertext)
+        return serialized_str
 
-    cdef Ciphertext deserialize(self, vector[uint8_t] ciphertext):
-        return self.homomorphic.deserialize(ciphertext)
+    cdef Ciphertext deserializeFromStream(self, string serializedData):
+        return self.homomorphic.deserializeFromStream(serializedData)

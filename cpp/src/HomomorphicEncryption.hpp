@@ -30,6 +30,8 @@ namespace Xtore
 		std::vector<double> getRealValue(int slots, const Ciphertext &ciphertext);
 		void writeCiphertextToFile(const std::string& filepath, const Ciphertext& ciphertext);
 		Ciphertext extractSlot(int slots, int index, const Ciphertext &ciphertext);
+		std::string serializeToStream(Ciphertext& ciphertext);
+		Ciphertext deserializeFromStream(const std::string& serializedData);
 		Ciphertext rotateCipher(int index, const Ciphertext& ciphertext);
 		std::vector<uint8_t> serialize(const Ciphertext& ciphertext);
 		Ciphertext deserialize(const std::vector<uint8_t>& byteStream);
