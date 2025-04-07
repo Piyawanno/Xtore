@@ -16,6 +16,8 @@ from xtore.instance.HomomorphicBSTStorage import HomomorphicBSTStorage
 from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext, Plaintext
 from libcpp.vector cimport vector
 from cpython.bytes cimport PyBytes_FromStringAndSize
+import numpy as np
+import sys, time, os, traceback, random, argparse
 
 cdef str __help__ = "Test Script for Homomorphic"
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
@@ -332,7 +334,6 @@ cdef class HomomorphicCLI:
 		birthDateIndex, sortedBirthDate = list(birthDateIndex), list(sortedBirthDate)  
 		birthCipher = homomorphic.encrypt(sortedBirthDate)
 		print(birthDate)
-		# print(balance)
 
 		startValue = random.choice([value for value in birthDate if value < sortedBirthDate[slots - 2]])
 		stopValues = random.choice([value for value in birthDate if value > startValue and value < sortedBirthDate[slots - 1]]) 
@@ -359,7 +360,6 @@ cdef class HomomorphicCLI:
 		maskValue = homomorphic.getRealValue(slots, maskBalance)
 		print(round(maskValue[birthDateIndex[foundIndex]], 2))
 
-
 	cdef testHomomorphic(self):
 		cdef int ringDim = 8192
 		cdef int slots = 1
@@ -377,27 +377,6 @@ cdef class HomomorphicCLI:
 		print(result)
 
 		decryptedText = homomorphic.decrypt(cipherText1)
-
-	cdef Data generateData(self, CythonHomomorphic homomorphic, int slots):
-		cdef vector[double] balance = self.randomData(slots, "float")
-		balanceCipher = homomorphic.encrypt(balance)
-
-		cdef birthDate = self.randomData(slots, "int")
-		birthDateSorter = sorted(enumerate(birthDate), key=lambda x: x[1])
-		birthDateIndex, sortedBirthDate = zip(*birthDateSorter)  
-		birthDateIndex = list(birthDateIndex)
-		sortedBirthDate = list(sortedBirthDate)
-
-		cdef Ciphertext birthCipher = homomorphic.encrypt(sortedBirthDate)
-
-		cdef Data data = Data()
-		data.balance = balance
-		data.birthDate = birthDate
-		data.index = birthDateIndex
-		data.birthCipher = birthCipher
-		data.balanceCipher = balanceCipher
-
-		return data
 
 	def randomData(self, int slots, str dataType):
 		if dataType == "int":
@@ -425,34 +404,23 @@ cdef class HomomorphicCLI:
 			maskList[mid] = 0.0  
 
 		return left 
-		
-	cdef mergedTwoBirth(self, CythonHomomorphic homomorphic, int slots, Data Data1, Data Data2):
-		cdef list mergedOrderBirth = []
-		cdef int i = 0
-		cdef int j = 0
 
-		while i < slots and j < slots:
-			cipher1 = homomorphic.extractSlot(slots, i, Data1.birthCipher)
-			cipher2 = homomorphic.extractSlot(slots, j, Data2.birthCipher)	
+	cdef CythonHomomorphic setCryptoContext(self, int ringDim, int slots):
+		cdef int batchSize = slots 
+		cdef int multiplicativeDepth = 17
+		cdef int scalingModSize = 50
+		cdef int firstModSize = 60
+		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
 
-			result = homomorphic.compare(1, cipher1, cipher2)
+		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)  
+		homomorphic.setupSchemeSwitching(slots, 25)
+		cipherText1 =  homomorphic.encrypt([1])
+		cipherText2 =  homomorphic.encrypt([2])
+		result = homomorphic.compare(slots, cipherText1, cipherText2)
+		print(result)
 
-			if result[0] == 1.0:
-				mergedOrderBirth.append((0,Data1.index[i])) 
-				i += 1
-			else:
-				mergedOrderBirth.append((1,Data2.index[j])) 
-				j += 1
-		
-		while i < slots:
-			mergedOrderBirth.append((0,Data1.index[i]))
-			i += 1
-
-		while j < slots:
-			mergedOrderBirth.append((1,Data2.index[j])) 
-			j += 1
-
-		return mergedOrderBirth
+		decryptedText = homomorphic.decrypt(cipherText1)
+		return homomorphic
 
 	cdef TextIntegerArray* toI32Array(self, str text):
 		cdef bytes encoded = text.encode()
