@@ -1,8 +1,8 @@
 from xtore.instance.RecordNode cimport RecordNode
-from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, getString, setString, initBuffer, releaseBuffer
+from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i16, i64, f128
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.base.CythonHomomorphic cimport CythonHomomorphic
+from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdlib cimport malloc, free
 import sys
@@ -11,7 +11,6 @@ cdef i32 DATASET_ENTRY_KEY_SIZE = 8
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
 
 cdef class DataSet(RecordNode):
-	
 	def __repr__(self):
 		return f'<Data Address={self.address} index={self.index}>'
 
@@ -38,85 +37,87 @@ cdef class DataSet(RecordNode):
 		stream.position = start
 		setBuffer(stream, <char *> &valueSize, 4)
 		stream.position = end
-	
-	# cdef i32 compare(self, RecordNode other):
-	# 	cdef DataSet otherDataSet = <DataSet> other
-	# 	if self.address == otherDataSet.address: return 0
-	# 	elif self.address > otherDataSet.address: return 1
-	# 	else: return -1
 
 	cdef i32 compare(self, RecordNode other):
 		cdef DataSet otherDataSet = <DataSet> other
+		cdef CythonHomomorphic homomorphic = CythonHomomorphic() 
 		cdef str path = f'{self.getResourcePath()}/test_data.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef Buffer selfBuffer, otherBuffer, selfPositionBuffer, otherPositionBuffer
+		
+		cdef Buffer selfBuffer, otherBuffer, selfOffsetBuffer, otherOffsetBuffer
 		cdef char *buffer_memory
-		cdef int ringDim = 1024
-		cdef int slots = 2
-		cdef int multiplicativeDepth = 17
-		cdef int scalingModSize = 50
-		cdef int firstModSize = 60
-		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
-		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, slots)  
-		homomorphic.setupSchemeSwitching(slots, 25)
-		cdef i32 selfPosition, otherPosition
+		cdef i64 dataSize = 349619
+		cdef i64 selfPosition, otherPosition, selfOffset, otherOffset
 		cdef i64 selfAddress = self.address
 		cdef i64 otherAddress = otherDataSet.address
 		cdef i32 selfIndex = self.index
 		cdef i32 otherIndex = otherDataSet.index
-		print(f'"otherAddress": {otherAddress}')
-		print(f'"otherIndex": {otherIndex}')
-		print(f'"selfAddress": {selfAddress}')
-		print(f'"selfIndex": {selfIndex}')
+		
+		cdef bytes serializedData1, serializedData2
+		cdef Ciphertext ciphertext1, ciphertext2
+		cdef Ciphertext maskedCipher1, maskedCipher2
+		
+		print(f'"selfAddress": {selfAddress}', f'"selfIndex": {selfIndex}')
+		print(f'"otherAddress": {otherAddress}, "otherIndex": {otherIndex}')
 
-		io.open()
 		try:
-			io.seek(selfAddress - 16)
-			buffer_memory = <char*>malloc(sizeof(i64))
-			initBuffer(&selfPositionBuffer, buffer_memory, sizeof(i64))
-			io.read(&selfPositionBuffer, sizeof(i64))
-			selfPosition = (<i64*> selfPositionBuffer.buffer)[0]
-			print(f'selfPosition: {selfPosition}')
-			
-			io.seek(selfPosition)
-			dataSize = 349619
+			io.open()        
+			try:
+				io.seek(selfAddress - 16)
+				buffer_memory = <char*>malloc(sizeof(i64))
+				initBuffer(&selfOffsetBuffer, buffer_memory, sizeof(i64))
+				io.read(&selfOffsetBuffer, sizeof(i64))
+				selfOffset = (<i64*> selfOffsetBuffer.buffer)[0]
+				
+				selfPosition = selfAddress - selfOffset
+				io.seek(selfPosition)
+				buffer_memory = <char*>malloc(dataSize)
+				initBuffer(&selfBuffer, buffer_memory, dataSize)
+				io.read(&selfBuffer, dataSize)
 
-			buffer_memory = <char*>malloc(dataSize)
-			initBuffer(&selfBuffer, buffer_memory, dataSize)
-			io.read(&selfBuffer, dataSize)
+				io.seek(otherAddress - 16)
+				buffer_memory = <char*>malloc(sizeof(i64))
+				initBuffer(&otherOffsetBuffer, buffer_memory, sizeof(i64))
+				io.read(&otherOffsetBuffer, sizeof(i64))
+				otherOffset = (<i64*> otherOffsetBuffer.buffer)[0]
 
-			io.seek(otherAddress - 16)
-			buffer_memory = <char*>malloc(dataSize)
-			initBuffer(&otherPositionBuffer, buffer_memory, sizeof(i64))
-			io.read(&otherPositionBuffer, sizeof(i64))
-			otherPosition = (<i64*> otherPositionBuffer.buffer)[0]
-			print(f'otherPosition: {otherPosition}')
+				otherPosition = otherAddress - otherOffset
+				io.seek(otherPosition)
+				buffer_memory = <char*>malloc(dataSize)
+				initBuffer(&otherBuffer, buffer_memory, dataSize)
+				io.read(&otherBuffer, dataSize)
+			finally:
+				io.close()
 			
-			io.seek(otherPosition)
-			buffer_memory = <char*>malloc(dataSize)
-			initBuffer(&otherBuffer, buffer_memory, dataSize)
-			io.read(&otherBuffer, dataSize)
+			serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, dataSize)
+			serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, dataSize)
+
+			ciphertext1 = homomorphic.deserializeFromStream(serializedData1)
+			ciphertext2 = homomorphic.deserializeFromStream(serializedData2)
+			
+			maskedCipher1 = self.homomorphic.extractSlot(8, selfIndex, ciphertext1)
+			maskedCipher2 = self.homomorphic.extractSlot(8, otherIndex, ciphertext2)
+
+			result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
+
+			if result[0] > 0:
+				return 1
+			else:
+				return 0
 		finally:
+			if selfBuffer.buffer != NULL:
+				releaseBuffer(&selfBuffer)
+			if otherBuffer.buffer != NULL:
+				releaseBuffer(&otherBuffer)
+			if selfOffsetBuffer.buffer != NULL:
+				releaseBuffer(&selfOffsetBuffer)
+			if otherOffsetBuffer.buffer != NULL:
+				releaseBuffer(&otherOffsetBuffer)
+				
 			io.close()
 
-		serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, dataSize)
-		ciphertext1 = homomorphic.deserializeFromStream(serializedData1)
-
-		serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, dataSize)
-		ciphertext2 = homomorphic.deserializeFromStream(serializedData2)
-
-		maskedCipher1 = homomorphic.extractSlot(slots, selfIndex, ciphertext1)
-		maskedCipher2 = homomorphic.extractSlot(slots, otherIndex, ciphertext2)
-
-		result = homomorphic.compare(1, maskedCipher1, maskedCipher2)
-
-		if result[0] > 0:
-			return 0
-		else:
-			return 1
-
 	cdef f128 getRangeValue(self):
-		return <f128> self.index
+		return <f128> self.address
 
 	cdef str getResourcePath(self):
 		if IS_VENV: return f'{sys.prefix}/var/xtore'
