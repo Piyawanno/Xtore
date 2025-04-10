@@ -18,7 +18,7 @@ cdef class SpawnServerCLI :
 		self.parser.add_argument("-u", "--host", help="Target Server host.", required=False, type=str, default='127.0.0.1')
 		self.parser.add_argument("-p", "--port", help="Initial Port.", required=False, type=int, default=7001)	
 		self.parser.add_argument("-n", "--number", help="Amount of Server.", required=False, type=int, default=6)
-		self.parser.add_argument("-m", "--mode", help="Cluster Mode.", required=False, choices=['spawn', 'kill'], default='spawn')
+		self.parser.add_argument("-m", "--mode", help="Cluster Mode.", required=False, choices=['spawn', 'kill', 'drop'], default='spawn')
 		self.option = self.parser.parse_args(argv)
 
 	cdef spawnServers(self):
@@ -60,7 +60,6 @@ cdef class SpawnServerCLI :
 		for port in range(self.option.port, self.option.port + self.option.number):
 			if not os.path.exists(venvPath):
 				subprocess.run(["tmux", "wait-for", f"done-{port}"])
-				print(f"✅ Server-{port} has finished setup!")
 
 		# subprocess.run(["xt-create-config", "-p", "2,3,5", "-r", "1"])
 		subprocess.run(["sleep", "20"])
@@ -77,8 +76,20 @@ cdef class SpawnServerCLI :
 
 		print("✅ All servers have been killed!")
 
+	cdef dropDB(self):
+		print('Drop DB...')
+
+		for port in range(self.option.port, self.option.port + self.option.number):
+			venvPath = os.path.join("venvs", f"db{port}.venv")
+			# delete file var/xtore/People.BST.bin in venv
+			if os.path.exists(venvPath):
+				subprocess.run(["rm", "-rf", os.path.join(venvPath, "var", "xtore", "People.BST.bin")])
+				print(f"🔥 DB-{port} is being drop...")
+		print("✅ All db have been remove!")
+
 	cdef run(self, list argv) :
 		self.getParser(argv)
 		if self.option.mode == 'spawn': self.spawnServers()
 		elif self.option.mode == 'kill': self.killServers()
+		elif self.option.mode == 'drop': self.dropDB()
 		else: print("Invalid mode")
