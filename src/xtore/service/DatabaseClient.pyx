@@ -5,7 +5,7 @@ from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOpera
 from libc.stdlib cimport malloc
 from cpython cimport PyBytes_FromStringAndSize
 
-cdef i32 BUFFER_SIZE = 1 << 16
+cdef i64 BUFFER_SIZE = 1 << 32
 
 cdef class DatabaseClient:
 	def __init__(self) :
