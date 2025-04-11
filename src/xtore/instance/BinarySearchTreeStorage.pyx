@@ -85,8 +85,12 @@ cdef class BinarySearchTreeStorage (BasicStorage):
 				return stored
 			elif compareResult > 0:
 				if right > 0: position = right
+				else: 
+					return None
 			else:
 				if left > 0: position = left
+				else: 
+					return None
 
 	cdef set(self, RecordNode reference):
 		cdef i64 placeHolder = -1

@@ -3,7 +3,7 @@ from xtore.algorithm.PrimeNode cimport PrimeNode
 from xtore.algorithm.StorageUnit cimport StorageUnit
 from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.common.Buffer cimport initBuffer, releaseBuffer, setBuffer
-# from xtore.instance.RecordNode cimport RecordNode
+from xtore.instance.RecordNode cimport RecordNode
 from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOperation, InstanceType
 from xtore.service.DatabaseClient cimport DatabaseClient
 from xtore.test.People cimport People
@@ -29,6 +29,11 @@ cdef class PrimeRingClient (DatabaseClient) :
 
 	cdef send(self, DatabaseOperation method, InstanceType instantType, str tableName, list data) :
 		cdef People record
+		cdef i64 totalHit = 0
+		cdef i64 totalAmount = 0
+		cdef list successList = []
+		cdef bytes message
+
 		if method == DatabaseOperation.SET :
 			for row in data[1:]:
 				record = People()
@@ -42,7 +47,8 @@ cdef class PrimeRingClient (DatabaseClient) :
 					record.income = <i64> int(row[0])
 					record.name = row[1]
 					record.surname = row[2]
-				asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
+				message = self.encodeData(method, instantType, tableName, [record])
+				asyncio.run(self.request(method, record.ID, message))
 		elif method == DatabaseOperation.GET :
 			for row in data[1:]:
 				record = People()
@@ -50,7 +56,16 @@ cdef class PrimeRingClient (DatabaseClient) :
 				record.income = 0
 				record.name = ""
 				record.surname = ""
-				asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
+				successReturn = asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
+				successList.append(successReturn)
+			for pair in successList:
+				totalHit += pair[0]
+				totalAmount += pair[1]
+			if totalAmount > 0:
+				successRate = (totalHit / totalAmount) * 100
+				print(f">> {totalHit}/{totalAmount} records {successRate}% success rate.")
+			else:
+				print(f">> {totalHit}/{totalAmount} records 0% success rate.")
 		elif method == DatabaseOperation.GETALL :
 			asyncio.run(self.request(method, None, self.encodeData(method, instantType, tableName, [])))
 
@@ -60,6 +75,9 @@ cdef class PrimeRingClient (DatabaseClient) :
 		cdef StorageUnit storageUnit
 		cdef list tasks = []
 		cdef str methodCode = METHOD[method][0::3]
+		cdef i64 totalHit = 0
+		cdef i64 totalAmount = 0
+		cdef list successList = []
 		if not self.connected :
 			if method == DatabaseOperation.GETALL :
 				for node in self.primeRing.nodes:
@@ -68,7 +86,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 						task = asyncio.create_task(self.tcpClient(f"{methodCode}{int.from_bytes(uuid.uuid4().bytes[:2]):05d}", message, primeRingNode.host, primeRingNode.port))
 						tasks.append(task)
 				self.connected = True
-				await asyncio.gather(*tasks)
+				successList = await asyncio.gather(*tasks)
 				self.connected = False
 			else :
 				record.ID = key
@@ -79,9 +97,15 @@ cdef class PrimeRingClient (DatabaseClient) :
 					if primeRingNode.isMaster == 1:
 						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
 						self.connected = True
-						await task
+						successReturn = await task
+						successList = [successReturn]
 						self.connected = False
 						break
+		for pair in successList:
+				totalHit += pair[0]
+				totalAmount += pair[1]
+		return totalHit, totalAmount
+
 
 	async def tcpClient(self, processID: str, message: bytes, host: str, port: int) :
 		cdef str prefix = f"[{processID}]({host}:{port})"
@@ -89,7 +113,26 @@ cdef class PrimeRingClient (DatabaseClient) :
 		writer.write(message)
 		await writer.drain()
 		self.received = await reader.read(1 << 16)
+		cdef People people
+		cdef i32 success = 0
+		cdef i32 amount = 1
+		if self.decodeData(self.received) == []:
+			print(f"{prefix} >> NOT FOUND")
+			writer.close()
+			await writer.wait_closed()
+			return success, amount
 		for record in self.decodeData(self.received):
-			print(f"{prefix} >> FOUND {record}")
+			if isinstance(record, People):
+				people = record
+				if people.income == 0 and people.name == "" and people.surname == "":
+					print(f"{prefix} >> NOT FOUND")
+				else:
+					print(f"{prefix} >> {record}")
+					success += 1
+			else:
+				print(f"{prefix} >> FOUND {record}")
+				success += 1
 		writer.close()
 		await writer.wait_closed()
+
+		return success, amount

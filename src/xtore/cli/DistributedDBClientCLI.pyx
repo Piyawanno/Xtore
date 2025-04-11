@@ -9,7 +9,7 @@ from xtore.BaseType cimport i32, i64
 from libc.stdlib cimport malloc
 from argparse import RawTextHelpFormatter
 
-import os, sys, argparse, json, csv, uuid
+import os, sys, argparse, json, csv, uuid, time
 
 cdef str __help__ = ""
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
@@ -19,7 +19,7 @@ cdef object METHOD = {
 	"SET": DatabaseOperation.SET,
 	"GET": DatabaseOperation.GET,
 	"GETALL": DatabaseOperation.GETALL,
-	"X": -1
+	"CLI": -1
 }
 
 cdef object INSTANT_TYPE = {
@@ -51,7 +51,7 @@ cdef class DistributedDBClientCLI :
 	cdef getParser(self, list argv) :
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("-f", "--filename", help="TSV file to send.", required=False, type=str)
-		self.parser.add_argument("-m", "--method", help="Method to use.", required=False, type=str, choices=METHOD.keys(), default="X")
+		self.parser.add_argument("-m", "--method", help="Method to use.", required=False, type=str, choices=METHOD.keys(), default="CLI")
 		self.option = self.parser.parse_args(argv)
 
 	cdef getConfig(self) :
@@ -89,10 +89,11 @@ cdef class DistributedDBClientCLI :
 			pass
 		elif METHOD[self.option.method] == -1:
 			while True:
-				method = input("Enter method (GET/SET/GETALL): ")
+				method = input("Enter method (GET/SET/GETALL/EXIT): ")
 				if method == "GET" or method == "SET":
 					filename = input("Enter TSV file path: ")
 					dataList = self.TSVToDataList(filename)
+					startTime = time.time()
 					if len(dataList) > 0:
 						self.client.send(
 							method=METHOD[method],
@@ -100,15 +101,18 @@ cdef class DistributedDBClientCLI :
 							tableName="People",
 							data=dataList
 						)
+						print(f"Elapsed time: {time.time() - startTime}")
 						continue
 					print("Invalid file.")
 				elif method == "GETALL":
+					startTime = time.time()
 					self.client.send(
 						method=METHOD[method],
 						instantType=InstanceType.BST,
 						tableName="People",
 						data=[]
 					)
+					print(f"Elapsed time: {time.time() - startTime}")
 					continue
 				elif method == "EXIT":
 					break
