@@ -79,7 +79,6 @@ cdef class HomomorphicCLI:
 			'BST',
 			'Concept',
 			'BinarySearch',
-			'Write',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=False, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -90,17 +89,6 @@ cdef class HomomorphicCLI:
 		if self.option.test == 'BST': self.testDataSetBSTStorage()
 		elif self.option.test == 'Concept': self.testDataConcept()
 		elif self.option.test == 'BinarySearch': self.testBinarySearch()
-		elif self.option.test == 'Write': self.testWriteCiphertextToFile()
-
-	cdef testWriteCiphertextToFile(self):
-		cdef str path = f'{self.getResourcePath()}/test_data.bin'
-		cdef int ringDim = 1024
-		cdef int slots = 8
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
-		cdef EncryptedData data = self.generateData(homomorphic, slots)
-
-		print("Writing encrypted data...")
-		cdef i64 dataAddress = self.writeEncryptedDataWithStream(path, data, homomorphic)
 
 	cdef i64 StreamIO(self):
 		cdef str path = f'{self.getResourcePath()}/test_data.bin'
@@ -220,8 +208,8 @@ cdef class HomomorphicCLI:
 			else: storage.readHeader(0)
 			dataList = self.writeDataSet(storage, address, homomorphic)
 			print("dataList", dataList)
-			storedList = self.readPeople(storage, dataList)
-			print("storedList", storedList)
+			# storedList = self.readPeople(storage, dataList)
+			# print("storedList", storedList)
 			# self.comparePeople(peopleList, storedList)
 			storage.writeHeader()
 		except:
@@ -281,7 +269,7 @@ cdef class HomomorphicCLI:
 		data.address = address
 		data.balance = balance
 		data.birthDate = birthDate
-		print("address:", address)
+		print("name:", name)
 
 		cdef EncryptedData encryptedData = EncryptedData()
 		encryptedData.idCipher = idCipher

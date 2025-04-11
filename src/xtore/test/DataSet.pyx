@@ -9,6 +9,7 @@ import sys
 
 cdef i32 DATASET_ENTRY_KEY_SIZE = 8
 cdef bint IS_VENV = sys.prefix != sys.base_prefix
+cdef i64 DATA_SIZE = 349619
 
 cdef class DataSet(RecordNode):
 	def __repr__(self):
@@ -19,13 +20,15 @@ cdef class DataSet(RecordNode):
 
 	cdef bint isEqual(self, RecordNode other):
 		cdef DataSet otherDataSet = <DataSet> other
-		return self.address == otherDataSet.address
+		return self.address == otherDataSet.address and self.index == otherDataSet.index
 
 	cdef readKey(self, i16 version, Buffer *stream):
 		self.address = (<i64*> getBuffer(stream, 8))[0]
+		print("key address: ",self.address)
 
 	cdef readValue(self, i16 version, Buffer *stream):
-		self.index = (<i64 *> getBuffer(stream, 4))[0]
+		self.index = (<i64 *> getBuffer(stream, 8))[0]
+		print("key index", self.index)
 
 	cdef write(self, Buffer *stream):
 		setBuffer(stream, <char *> &self.address, 8)
@@ -46,19 +49,19 @@ cdef class DataSet(RecordNode):
 		
 		cdef Buffer selfBuffer, otherBuffer, selfOffsetBuffer, otherOffsetBuffer
 		cdef char *buffer_memory
-		cdef i64 dataSize = 349619
+
 		cdef i64 selfPosition, otherPosition, selfOffset, otherOffset
 		cdef i64 selfAddress = self.address
-		cdef i64 otherAddress = otherDataSet.address
 		cdef i32 selfIndex = self.index
+
+		cdef i64 otherAddress = otherDataSet.address
 		cdef i32 otherIndex = otherDataSet.index
 		
 		cdef bytes serializedData1, serializedData2
 		cdef Ciphertext ciphertext1, ciphertext2
 		cdef Ciphertext maskedCipher1, maskedCipher2
 		
-		print(f'"selfAddress": {selfAddress}', f'"selfIndex": {selfIndex}')
-		print(f'"otherAddress": {otherAddress}, "otherIndex": {otherIndex}')
+		print(f'"selfIndex": {selfIndex}, "otherIndex": {otherIndex}')
 
 		try:
 			io.open()        
@@ -71,9 +74,9 @@ cdef class DataSet(RecordNode):
 				
 				selfPosition = selfAddress - selfOffset
 				io.seek(selfPosition)
-				buffer_memory = <char*>malloc(dataSize)
-				initBuffer(&selfBuffer, buffer_memory, dataSize)
-				io.read(&selfBuffer, dataSize)
+				buffer_memory = <char*>malloc(DATA_SIZE)
+				initBuffer(&selfBuffer, buffer_memory, DATA_SIZE)
+				io.read(&selfBuffer, DATA_SIZE)
 
 				io.seek(otherAddress - 16)
 				buffer_memory = <char*>malloc(sizeof(i64))
@@ -83,14 +86,14 @@ cdef class DataSet(RecordNode):
 
 				otherPosition = otherAddress - otherOffset
 				io.seek(otherPosition)
-				buffer_memory = <char*>malloc(dataSize)
-				initBuffer(&otherBuffer, buffer_memory, dataSize)
-				io.read(&otherBuffer, dataSize)
+				buffer_memory = <char*>malloc(DATA_SIZE)
+				initBuffer(&otherBuffer, buffer_memory, DATA_SIZE)
+				io.read(&otherBuffer, DATA_SIZE)
 			finally:
 				io.close()
 			
-			serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, dataSize)
-			serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, dataSize)
+			serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
+			serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, DATA_SIZE)
 
 			ciphertext1 = homomorphic.deserializeFromStream(serializedData1)
 			ciphertext2 = homomorphic.deserializeFromStream(serializedData2)
@@ -98,7 +101,14 @@ cdef class DataSet(RecordNode):
 			maskedCipher1 = self.homomorphic.extractSlot(8, selfIndex, ciphertext1)
 			maskedCipher2 = self.homomorphic.extractSlot(8, otherIndex, ciphertext2)
 
+			decryptedText1 = self.homomorphic.getRealValue(8, maskedCipher1)
+			decryptedText2 = self.homomorphic.getRealValue(8, maskedCipher2)
+
+			print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}')
+
 			result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
+
+			print(f'"result": {result[0]}')
 
 			if result[0] > 0:
 				return 1

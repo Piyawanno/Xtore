@@ -34,6 +34,7 @@ cdef class DataSetHomomorphic(HomomorphicBSTStorage):
 		self.io.seek(position)
 		self.io.read(&self.entryStream, DATASET_ENTRY_KEY_SIZE)
 		entry.readKey(0, &self.entryStream)
+		self.readNodeValue(entry)
 		return entry
 
 	cdef readNodeValue(self, RecordNode node):
