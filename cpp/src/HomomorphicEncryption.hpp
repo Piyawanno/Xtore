@@ -19,7 +19,7 @@ namespace Xtore
 	{
 	public:
 		HomomorphicEncryption();
-		void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize);
+		void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, const std::string &filepath);
 		void generateRotateKey(int slots);
 		void setupSchemeSwitching(int slots, int logQ_ccLWE);
 		Ciphertext encrypt(const std::vector<double>& plain);
@@ -33,8 +33,10 @@ namespace Xtore
 		std::string serializeToStream(Ciphertext& ciphertext);
 		Ciphertext deserializeFromStream(const std::string& serializedData);
 		Ciphertext rotateCipher(int index, const Ciphertext& ciphertext);
-		std::vector<uint8_t> serialize(const Ciphertext& ciphertext);
-		Ciphertext deserialize(const std::vector<uint8_t>& byteStream);
+		void serializeContext(const std::string& filepath);
+		void deserializeContext(const std::string& filepath);
+		void serializeKeys(const std::string& publicKeyFile, const std::string& privateKeyFile);
+		void deserializeKeys(const std::string& publicKeyFile, const std::string& privateKeyFile);
 
 	private:
 		CryptoContext cryptoContext;

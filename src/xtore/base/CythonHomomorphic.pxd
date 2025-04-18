@@ -12,10 +12,11 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         pass
     cdef cppclass CryptoContext:
         pass
+
         
     cdef cppclass HomomorphicEncryption:
         HomomorphicEncryption()
-        void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
+        void initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, const string& filepath)
         void generateRotateKey(int slots)
         void setupSchemeSwitching(int slots, int logQ_ccLWE)
         Ciphertext encrypt(const vector[double]& plain) except +
@@ -29,12 +30,11 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         Ciphertext deserializeFromStream(const string& serializedData) except +
         Ciphertext extractSlot(int slots, int index, Ciphertext ciphertext) except +
         Ciphertext rotateCipher(int index, Ciphertext ciphertext) except +
-        vector[uint8_t] serialize(Ciphertext ciphertext) except +
-        Ciphertext deserialize(vector[uint8_t] ciphertext) except +
-
+        void serializeKeys(const string& publicKeyFile, const string& privateKeyFile) except +
+        void deserializeKeys(const string& publicKeyFile, const string& privateKeyFile) except +
 cdef class CythonHomomorphic:
     cdef HomomorphicEncryption* homomorphic
-    cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize)
+    cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, str filepath)
     cdef generateRotateKey(self, int slots)
     cdef setupSchemeSwitching(self, int slots, int logQ_ccLWE)
     cdef Ciphertext encrypt(self, vector[double] plaintext)
@@ -48,3 +48,5 @@ cdef class CythonHomomorphic:
     cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext)
     cdef string serializeToStream(self, Ciphertext ciphertext)
     cdef Ciphertext deserializeFromStream(self, string serializedData)
+    cdef serializeKeys(self, str publicKeyFile, str privateKeyFile)
+    cdef deserializeKeys(self, str publicKeyFile, str privateKeyFile)

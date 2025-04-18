@@ -24,11 +24,9 @@ cdef class DataSet(RecordNode):
 
 	cdef readKey(self, i16 version, Buffer *stream):
 		self.address = (<i64*> getBuffer(stream, 8))[0]
-		print("key address: ",self.address)
 
 	cdef readValue(self, i16 version, Buffer *stream):
 		self.index = (<i64 *> getBuffer(stream, 8))[0]
-		print("key index", self.index)
 
 	cdef write(self, Buffer *stream):
 		setBuffer(stream, <char *> &self.address, 8)
@@ -43,88 +41,70 @@ cdef class DataSet(RecordNode):
 
 	cdef i32 compare(self, RecordNode other):
 		cdef DataSet otherDataSet = <DataSet> other
-		cdef CythonHomomorphic homomorphic = CythonHomomorphic() 
-		cdef str path = f'{self.getResourcePath()}/test_data.bin'
+		cdef str path = f'{self.getResourcePath()}/testData.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
-		
 		cdef Buffer selfBuffer, otherBuffer, selfOffsetBuffer, otherOffsetBuffer
 		cdef char *buffer_memory
-
-		cdef i64 selfPosition, otherPosition, selfOffset, otherOffset
-		cdef i64 selfAddress = self.address
-		cdef i32 selfIndex = self.index
-
-		cdef i64 otherAddress = otherDataSet.address
-		cdef i32 otherIndex = otherDataSet.index
-		
+		cdef i64 selfPosition, otherPosition, selfOffset, otherOffset		
 		cdef bytes serializedData1, serializedData2
 		cdef Ciphertext ciphertext1, ciphertext2
 		cdef Ciphertext maskedCipher1, maskedCipher2
 		
-		print(f'"selfIndex": {selfIndex}, "otherIndex": {otherIndex}')
-
+		io.open()        
 		try:
-			io.open()        
-			try:
-				io.seek(selfAddress - 16)
-				buffer_memory = <char*>malloc(sizeof(i64))
-				initBuffer(&selfOffsetBuffer, buffer_memory, sizeof(i64))
-				io.read(&selfOffsetBuffer, sizeof(i64))
-				selfOffset = (<i64*> selfOffsetBuffer.buffer)[0]
-				
-				selfPosition = selfAddress - selfOffset
-				io.seek(selfPosition)
-				buffer_memory = <char*>malloc(DATA_SIZE)
-				initBuffer(&selfBuffer, buffer_memory, DATA_SIZE)
-				io.read(&selfBuffer, DATA_SIZE)
-
-				io.seek(otherAddress - 16)
-				buffer_memory = <char*>malloc(sizeof(i64))
-				initBuffer(&otherOffsetBuffer, buffer_memory, sizeof(i64))
-				io.read(&otherOffsetBuffer, sizeof(i64))
-				otherOffset = (<i64*> otherOffsetBuffer.buffer)[0]
-
-				otherPosition = otherAddress - otherOffset
-				io.seek(otherPosition)
-				buffer_memory = <char*>malloc(DATA_SIZE)
-				initBuffer(&otherBuffer, buffer_memory, DATA_SIZE)
-				io.read(&otherBuffer, DATA_SIZE)
-			finally:
-				io.close()
+			io.seek(self.address - 16)
+			buffer_memory = <char*>malloc(sizeof(i64))
+			initBuffer(&selfOffsetBuffer, buffer_memory, sizeof(i64))
+			io.read(&selfOffsetBuffer, sizeof(i64))
+			selfOffset = (<i64*> selfOffsetBuffer.buffer)[0]
 			
-			serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
-			serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, DATA_SIZE)
+			selfPosition = self.address - selfOffset
+			io.seek(selfPosition)
+			buffer_memory = <char*>malloc(DATA_SIZE)
+			initBuffer(&selfBuffer, buffer_memory, DATA_SIZE)
+			io.read(&selfBuffer, DATA_SIZE)
 
-			ciphertext1 = homomorphic.deserializeFromStream(serializedData1)
-			ciphertext2 = homomorphic.deserializeFromStream(serializedData2)
-			
-			maskedCipher1 = self.homomorphic.extractSlot(8, selfIndex, ciphertext1)
-			maskedCipher2 = self.homomorphic.extractSlot(8, otherIndex, ciphertext2)
+			io.seek(otherDataSet.address - 16)
+			buffer_memory = <char*>malloc(sizeof(i64))
+			initBuffer(&otherOffsetBuffer, buffer_memory, sizeof(i64))
+			io.read(&otherOffsetBuffer, sizeof(i64))
+			otherOffset = (<i64*> otherOffsetBuffer.buffer)[0]
 
-			decryptedText1 = self.homomorphic.getRealValue(8, maskedCipher1)
-			decryptedText2 = self.homomorphic.getRealValue(8, maskedCipher2)
-
-			print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}')
-
-			result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
-
-			print(f'"result": {result[0]}')
-
-			if result[0] > 0:
-				return 1
-			else:
-				return 0
+			otherPosition = otherDataSet.address - otherOffset
+			io.seek(otherPosition)
+			buffer_memory = <char*>malloc(DATA_SIZE)
+			initBuffer(&otherBuffer, buffer_memory, DATA_SIZE)
+			io.read(&otherBuffer, DATA_SIZE)
 		finally:
-			if selfBuffer.buffer != NULL:
-				releaseBuffer(&selfBuffer)
-			if otherBuffer.buffer != NULL:
-				releaseBuffer(&otherBuffer)
-			if selfOffsetBuffer.buffer != NULL:
-				releaseBuffer(&selfOffsetBuffer)
-			if otherOffsetBuffer.buffer != NULL:
-				releaseBuffer(&otherOffsetBuffer)
-				
 			io.close()
+		
+		serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
+		serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, DATA_SIZE)
+
+		ciphertext1 = self.homomorphic.deserializeFromStream(serializedData1)
+		ciphertext2 = self.homomorphic.deserializeFromStream(serializedData2)
+		
+		maskedCipher1 = self.homomorphic.extractSlot(8, self.index, ciphertext1)
+		maskedCipher2 = self.homomorphic.extractSlot(8, otherDataSet.index, ciphertext2)
+
+		decryptedText1 = self.homomorphic.getRealValue(8, maskedCipher1)
+		decryptedText2 = self.homomorphic.getRealValue(8, maskedCipher2)
+
+		print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}')
+
+		result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
+
+		print(f'"result": {result[0]}')
+
+		releaseBuffer(&selfBuffer)
+		releaseBuffer(&otherBuffer)
+		releaseBuffer(&selfOffsetBuffer)
+		releaseBuffer(&otherOffsetBuffer)
+
+		if result[0] > 0:
+			return 1
+		else:
+			return 0
 
 	cdef f128 getRangeValue(self):
 		return <f128> self.address

@@ -62,6 +62,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		self.rootNodePosition = (<i64*> getBuffer(&self.headerStream, 8))[0]
 	
 	cdef RecordNode get(self, RecordNode reference, RecordNode result):
+
 		if self.rootNodePosition < 0: return None
 		cdef i64 position = self.rootNodePosition
 		cdef i64 nodePosition
@@ -69,6 +70,10 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		cdef i64 right
 		cdef i32 compareResult
 		cdef RecordNode stored
+
+
+		print()
+		print("start getting data at:", reference)
 
 		while True:
 			self.io.seek(position)
@@ -80,16 +85,30 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 
 			compareResult = reference.compare(stored)
 
+
+			print("reference:",reference)
+			print("stored:",stored)
+			# print("left:",left)
+			# print("right:",right)
+
 			if compareResult == 1:
 				if left > 0:
 					position = left
+					print("Go left")
+					print()
 				else:
+					print("return:", stored)
+					print()
 					return stored
 
 			else:
 				if right > 0:
 					position = right
+					print("Go right")
+					print()
 				else:
+					print("return:", stored)
+					print()
 					return stored
 			
 
@@ -104,6 +123,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 			setBuffer(&self.stream, <char *> &placeHolder, 8)
 			self.rootNodePosition = self.io.getTail()
 			self.io.append(&self.stream)
+			# print("Created root node at position", self.rootNodePosition)
 			return
 		
 		cdef i64 position = self.rootNodePosition
@@ -113,18 +133,22 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		cdef i32 compareResult
 		cdef RecordNode stored
 		while True:
+			# print("\nCurrent node position:", position)
 			self.io.seek(position)
 			self.io.read(&self.stream, BST_NODE_OFFSET)
 			nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
 			left = (<i64*> getBuffer(&self.stream, 8))[0]
 			right = (<i64*> getBuffer(&self.stream, 8))[0]
+			# print(f"Node at {position}: left={left}, right={right}")
 			stored = self.readNodeKey(nodePosition, self.comparingNode)
+
 
 			compareResult = reference.compare(stored)
 
 			if compareResult == 1:
 				if left > 0:
 					position = left
+					print("Go left")
 				else:
 					self.appendNode(reference)
 					self.stream.position = 0
@@ -133,14 +157,17 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 					setBuffer(&self.stream, <char *> &placeHolder, 8)
 					left = self.io.getTail()
 					self.io.append(&self.stream)
+
 					self.stream.position = 0
 					setBuffer(&self.stream, <char *> &left, 8)
 					self.io.seek(position + 8)
 					self.io.write(&self.stream)
+					print("appendNode left")
 					break
 			else:
 				if right > 0:
 					position = right
+					print("Go right")
 				else:
 					self.appendNode(reference)
 					self.stream.position = 0
@@ -149,8 +176,10 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 					setBuffer(&self.stream, <char *> &placeHolder, 8)
 					right = self.io.getTail()
 					self.io.append(&self.stream)
+
 					self.stream.position = 0
 					setBuffer(&self.stream, <char *> &right, 8)
 					self.io.seek(position + 16)
 					self.io.write(&self.stream)
+					print("appendNode right")
 					break

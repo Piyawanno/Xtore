@@ -6,8 +6,9 @@ cdef class CythonHomomorphic:
     def __dealloc__(self):
         del self.homomorphic 
 
-    cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize):
-        self.homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)
+    cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, str filepath):
+        cdef string path = filepath.encode("utf-8") 
+        self.homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, path)
     
     cdef generateRotateKey(self, int slots):
         self.homomorphic.generateRotateKey(slots)
@@ -49,3 +50,13 @@ cdef class CythonHomomorphic:
 
     cdef Ciphertext deserializeFromStream(self, string serializedData):
         return self.homomorphic.deserializeFromStream(serializedData)
+    
+    cdef serializeKeys(self, str publicKeyFile, str privateKeyFile):
+        cdef string publicKeyPath = publicKeyFile.encode("utf-8")
+        cdef string privateKeyPath = privateKeyFile.encode("utf-8")
+        self.homomorphic.serializeKeys(publicKeyPath, privateKeyPath)
+
+    cdef deserializeKeys(self, str publicKeyFile, str privateKeyFile):
+        cdef string publicKeyPath = publicKeyFile.encode("utf-8")
+        cdef string privateKeyPath = privateKeyFile.encode("utf-8")
+        self.homomorphic.deserializeKeys(publicKeyPath, privateKeyPath)

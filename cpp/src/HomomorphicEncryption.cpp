@@ -9,32 +9,39 @@ namespace Xtore
 	{
 	}
 
-	void HomomorphicEncryption::initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize){
-		CCParams<CryptoContextCKKSRNS> parameters;
-		parameters.SetMultiplicativeDepth(multiplicativeDepth);
-		parameters.SetScalingModSize(scalingModSize);
-		parameters.SetFirstModSize(firstModSize);
-		parameters.SetScalingTechnique(lbcrypto::FLEXIBLEAUTO);
-		parameters.SetSecurityLevel(lbcrypto::HEStd_NotSet);
-		parameters.SetRingDim(ringDim);
-		parameters.SetBatchSize(batchSize);
-		parameters.SetSecretKeyDist(lbcrypto::UNIFORM_TERNARY);
-		parameters.SetKeySwitchTechnique(lbcrypto::HYBRID);
-		parameters.SetNumLargeDigits(3);
+	void HomomorphicEncryption::initializeCKKS(int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, const std::string &filepath){
+			CCParams<CryptoContextCKKSRNS> parameters;
+			parameters.SetMultiplicativeDepth(multiplicativeDepth);
+			parameters.SetScalingModSize(scalingModSize);
+			parameters.SetFirstModSize(firstModSize);
+			parameters.SetScalingTechnique(lbcrypto::FLEXIBLEAUTO);
+			parameters.SetSecurityLevel(lbcrypto::HEStd_NotSet);
+			parameters.SetRingDim(ringDim);
+			parameters.SetBatchSize(batchSize);
+			parameters.SetSecretKeyDist(lbcrypto::UNIFORM_TERNARY);
+			parameters.SetKeySwitchTechnique(lbcrypto::HYBRID);
+			parameters.SetNumLargeDigits(3);
 
-		cryptoContext = lbcrypto::GenCryptoContext(parameters);
+		if (!std::ifstream(filepath)) {
+			cryptoContext = lbcrypto::GenCryptoContext(parameters);
 
-		cryptoContext->Enable(lbcrypto::PKE);
-		cryptoContext->Enable(lbcrypto::KEYSWITCH);
-		cryptoContext->Enable(lbcrypto::LEVELEDSHE);
-		cryptoContext->Enable(lbcrypto::ADVANCEDSHE);
-		cryptoContext->Enable(lbcrypto::SCHEMESWITCH);
+			cryptoContext->Enable(lbcrypto::PKE);
+			cryptoContext->Enable(lbcrypto::KEYSWITCH);
+			cryptoContext->Enable(lbcrypto::LEVELEDSHE);
+			cryptoContext->Enable(lbcrypto::ADVANCEDSHE);
+			cryptoContext->Enable(lbcrypto::SCHEMESWITCH);
 
-		keyPair = cryptoContext->KeyGen();
+			keyPair = cryptoContext->KeyGen();
+
+			serializeContext(filepath);
+			serializeKeys(filepath + ".public.key", filepath + ".private.key");
+		} else {
+			deserializeContext(filepath);
+			deserializeKeys(filepath + ".public.key", filepath + ".private.key");
+		}
 	}
 
 	void HomomorphicEncryption::generateRotateKey(int slots){
-
 		std::vector<int> rotationIndices(slots);
 		std::iota(rotationIndices.begin(), rotationIndices.end(), 0);
 		cryptoContext->EvalRotateKeyGen(keyPair.secretKey, rotationIndices);
@@ -59,6 +66,28 @@ namespace Xtore
 		double scaleSignFHEW = 1.0;
 
 		cryptoContext->EvalCompareSwitchPrecompute(pLWE2, scaleSignFHEW);
+	}
+
+	void HomomorphicEncryption::serializeContext(const std::string &filepath){
+		Serial::SerializeToFile(filepath, cryptoContext, SerType::BINARY);
+		std::cout << "CryptoContext saved to: " << filepath << std::endl;
+	}
+
+	void HomomorphicEncryption::deserializeContext(const std::string &filepath){
+		Serial::DeserializeFromFile(filepath, cryptoContext, SerType::BINARY);
+		std::cout << "CryptoContext loaded from: " << filepath << std::endl;
+	}
+
+	void HomomorphicEncryption::serializeKeys(const std::string &publicKeyPath, const std::string &privateKeyPath){
+        Serial::SerializeToFile(publicKeyPath, keyPair.publicKey, SerType::BINARY);
+        Serial::SerializeToFile(privateKeyPath, keyPair.secretKey, SerType::BINARY);
+        std::cout << "Keys saved successfully." << std::endl;
+	}
+
+	void HomomorphicEncryption::deserializeKeys(const std::string &publicKeyPath, const std::string &privateKeyPath){
+		Serial::DeserializeFromFile(publicKeyPath, keyPair.publicKey, SerType::BINARY);
+		Serial::DeserializeFromFile(privateKeyPath, keyPair.secretKey, SerType::BINARY);
+		std::cout << "Keys loaded successfully." << std::endl;
 	}
 
 	Ciphertext HomomorphicEncryption::encrypt(const std::vector<double> &plain){
@@ -110,15 +139,11 @@ namespace Xtore
 		cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &decryptedResult);
 		decryptedResult->SetLength(slots);
 		return decryptedResult->GetRealPackedValue();
-		;
 	}
 
 	void HomomorphicEncryption::writeCiphertextToFile(const std::string &filepath, const Ciphertext &ciphertext){
-		std::ofstream outFile(filepath, std::ios::binary);
-		outFile.is_open();
 		Serial::SerializeToFile(filepath, ciphertext, SerType::BINARY);
 		std::cout << "Ciphertext saved to: " << filepath << std::endl;
-		outFile.close();
 	}
 
 	std::string HomomorphicEncryption::serializeToStream(Ciphertext& ciphertext)
@@ -152,21 +177,5 @@ namespace Xtore
 		return cryptoContext->ModReduce(rotatedCipher);
 	}
 
-	std::vector<uint8_t> HomomorphicEncryption::serialize(const Ciphertext &ciphertext){
-		std::ostringstream stream;
-		Serial::Serialize(ciphertext, stream, SerType::BINARY);
-		std::vector<uint8_t> byteStream(stream.str().begin(), stream.str().end());
-
-		return byteStream;
-	}
-
-	Ciphertext HomomorphicEncryption::deserialize(const std::vector<uint8_t> &byteStream){
-		std::string byteString(byteStream.begin(), byteStream.end());
-		std::istringstream stream(byteString);
-		Ciphertext ciphertext;
-		Serial::Deserialize(ciphertext, stream, SerType::BINARY);
-
-		return ciphertext;
-	}
 
 }

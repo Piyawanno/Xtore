@@ -89,22 +89,18 @@ cdef class HomomorphicCLI:
 		if self.option.test == 'BST': self.testDataSetBSTStorage()
 		elif self.option.test == 'Concept': self.testDataConcept()
 		elif self.option.test == 'BinarySearch': self.testBinarySearch()
-
+		
 	cdef i64 StreamIO(self):
 		cdef str path = f'{self.getResourcePath()}/test_data.bin'
 		cdef int ringDim = 1024
 		cdef int slots = 8
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, path)
 		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
 		print("Writing encrypted data...")
 		cdef i64 dataAddress = self.writeEncryptedDataWithStream(path, data, homomorphic)
 
 		return dataAddress
-
-		# print("Reading encrypted data...")
-		# cdef Ciphertext readBirthCipher = self.readEncryptedDataWithStream(path, homomorphic)
-		# cdef Plaintext plaintext = homomorphic.decrypt(readBirthCipher)
 
 	cdef i64 writeEncryptedDataWithStream(self, str path, EncryptedData data, CythonHomomorphic homomorphic):
 		cdef StreamIOHandler io = StreamIOHandler(path)
@@ -119,15 +115,13 @@ cdef class HomomorphicCLI:
 		io.open()
 		try:
 			for attrName in attributeNames:
-					position = io.getTail()
-					positionList.append(position)
-					
-					cipher = data.getCipher(attrName)
-					
-					serializedData = homomorphic.serializeToStream(cipher)
-					initBuffer(&writeBuffer, <char*> serializedData, len(serializedData))
-					writeBuffer.position = len(serializedData)
-					io.write(&writeBuffer)
+				position = io.getTail()
+				positionList.append(position)
+				cipher = data.getCipher(attrName)
+				serializedData = homomorphic.serializeToStream(cipher)
+				initBuffer(&writeBuffer, <char*> serializedData, len(serializedData))
+				writeBuffer.position = len(serializedData)
+				io.write(&writeBuffer)
 
 			fileSize = io.getTail() + numAttributes * sizeof(i64)
 
@@ -138,75 +132,31 @@ cdef class HomomorphicCLI:
 				io.write(&writeBuffer)
 
 			dataAddress = io.getTail()
-			print(f"end address: {dataAddress}")
 			return dataAddress
 
 		finally:
 			io.close()
-	
-	cdef Ciphertext readEncryptedDataWithStream(self, str path, CythonHomomorphic homomorphic):
-		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef i32 offset
-		cdef Buffer readBuffer
-		cdef Ciphertext ciphertext
-		cdef bytes serializedData
-		cdef size_t data_size
-		cdef char* buffer_memory
-		
-		io.open()
-		try:
-			file_size = io.getTail()
-			buffer_memory = <char*>malloc(sizeof(i32))
-			if buffer_memory == NULL:
-				raise MemoryError("Failed to allocate memory for offset")
-
-			initBuffer(&readBuffer, buffer_memory, sizeof(i32))
-			io.seek(file_size - sizeof(i32))
-			io.read(&readBuffer, sizeof(i32))
-			offset = (<i32*> readBuffer.buffer)[0]
-			print(f"Read offset: {offset}, file size: {file_size}")
-
-			data_size = file_size - offset - sizeof(i32)
-
-			io.seek(offset)
-
-			buffer_memory = <char*>malloc(data_size)
-			if buffer_memory == NULL:
-				raise MemoryError("Failed to allocate memory for buffer")
-
-			initBuffer(&readBuffer, buffer_memory, data_size)
-			io.read(&readBuffer, data_size)
-			
-			serializedData = PyBytes_FromStringAndSize(readBuffer.buffer, data_size)
-			ciphertext = homomorphic.deserializeFromStream(serializedData)
-			
-			return ciphertext
-			
-		finally:
-			releaseBuffer(&readBuffer)
-			io.close()
 
 	cdef testDataSetBSTStorage(self):
-		cdef str resourcePath = self.getResourcePath()
-		cdef str path = f'{resourcePath}/DataSet.BST.bin'
-		cdef str path2 = f'{self.getResourcePath()}/test_data.bin'
-		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef str BSTPath = f'{self.getResourcePath()}/DataSet.BST.bin'
+		cdef str dataPath = f'{self.getResourcePath()}/testData.bin'
+		cdef str contextPath = f'{self.getResourcePath()}/context.bin'
+		cdef StreamIOHandler io = StreamIOHandler(BSTPath)
 		cdef DataSetHomomorphic storage = DataSetHomomorphic(io)
-		cdef bint isNew = not os.path.isfile(path)
-		cdef int ringDim = 1024
-		cdef int slots = 8
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+		cdef bint isNew = not os.path.isfile(BSTPath)
+		cdef i32 ringDim = 1024
+		cdef i32 slots = 8
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
 		cdef EncryptedData data = self.generateData(homomorphic, slots)
-		print()
 
 		print("Writing encrypted data...")
-		cdef i64 address = self.writeEncryptedDataWithStream(path2, data, homomorphic)
+		cdef i64 address = self.writeEncryptedDataWithStream(dataPath, data, homomorphic)
 
 		io.open()
 		try:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
-			dataList = self.writeDataSet(storage, address, homomorphic)
+			dataList = self.writeDataSet(storage, address, homomorphic, slots)
 			print("dataList", dataList)
 			# storedList = self.readPeople(storage, dataList)
 			# print("storedList", storedList)
@@ -216,13 +166,12 @@ cdef class HomomorphicCLI:
 			print(traceback.format_exc())
 		io.close()
 	
-	cdef list writeDataSet(self, BasicStorage storage, i32 address, CythonHomomorphic homomorphic):
+	cdef list writeDataSet(self, BasicStorage storage, i32 address, CythonHomomorphic homomorphic, i32 slots):
 		cdef list dataList = []
 		cdef DataSet dataSet
 		cdef int i
-		cdef int n = self.option.count
 		cdef double start = time.time()
-		for i in range(n):
+		for i in range(slots):
 			dataSet = DataSet()
 			dataSet.position = -1
 			dataSet.index = i
@@ -230,12 +179,12 @@ cdef class HomomorphicCLI:
 			dataSet.homomorphic = homomorphic
 			dataList.append(dataSet)
 		cdef double elapsed = time.time() - start
-		print(f'>>> Data of {n} are generated in {elapsed:.3}s')
+		print(f'>>> Data of {slots} are generated in {elapsed:.3}s')
 		start = time.time()
 		for dataSet in dataList:
 			storage.set(dataSet)
 		elapsed = time.time() - start
-		print(f'>>> Data of {n} are stored in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> Data of {slots} are stored in {elapsed:.3}s ({(slots/elapsed)} r/s)')
 		return dataList
 
 	cdef list readPeople(self, BasicStorage storage, list dataList):
@@ -289,7 +238,7 @@ cdef class HomomorphicCLI:
 	cdef testDataConcept(self):
 		cdef int ringDim = 1024
 		cdef int slots = 8
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, path=None)
 
 		startSetupTime = time.time()
 
@@ -339,10 +288,52 @@ cdef class HomomorphicCLI:
 		maskValue = homomorphic.getRealValue(slots, maskBalance)
 		print(maskValue)
 
+	cdef Ciphertext readEncryptedDataWithStream(self, str path, CythonHomomorphic homomorphic):
+		cdef StreamIOHandler io = StreamIOHandler(path)
+		cdef i32 offset
+		cdef Buffer readBuffer
+		cdef Ciphertext ciphertext
+		cdef bytes serializedData
+		cdef size_t data_size
+		cdef char* buffer_memory
+		
+		io.open()
+		try:
+			file_size = io.getTail()
+			buffer_memory = <char*>malloc(sizeof(i32))
+			if buffer_memory == NULL:
+				raise MemoryError("Failed to allocate memory for offset")
+
+			initBuffer(&readBuffer, buffer_memory, sizeof(i32))
+			io.seek(file_size - sizeof(i32))
+			io.read(&readBuffer, sizeof(i32))
+			offset = (<i32*> readBuffer.buffer)[0]
+			print(f"Read offset: {offset}, file size: {file_size}")
+
+			data_size = file_size - offset - sizeof(i32)
+
+			io.seek(offset)
+
+			buffer_memory = <char*>malloc(data_size)
+			if buffer_memory == NULL:
+				raise MemoryError("Failed to allocate memory for buffer")
+
+			initBuffer(&readBuffer, buffer_memory, data_size)
+			io.read(&readBuffer, data_size)
+			
+			serializedData = PyBytes_FromStringAndSize(readBuffer.buffer, data_size)
+			ciphertext = homomorphic.deserializeFromStream(serializedData)
+			
+			return ciphertext
+			
+		finally:
+			releaseBuffer(&readBuffer)
+			io.close()
+
 	cdef testBinarySearch(self):
 		cdef int ringDim = 1024
 		cdef int slots = 16
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots)
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, path=None)
 
 		startSetupTime = time.time()
 
@@ -389,8 +380,9 @@ cdef class HomomorphicCLI:
 		cdef int scalingModSize = 50
 		cdef int firstModSize = 60
 		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
+		cdef str path = f'{self.getResourcePath()}/test_data.bin'
 
-		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)  
+		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, path)  
 		homomorphic.setupSchemeSwitching(slots, 25)
 		cipherText1 =  homomorphic.encrypt([1])
 		cipherText2 =  homomorphic.encrypt([2])
@@ -426,14 +418,14 @@ cdef class HomomorphicCLI:
 
 		return left 
 
-	cdef CythonHomomorphic setCryptoContext(self, int ringDim, int slots):
+	cdef CythonHomomorphic setCryptoContext(self, int ringDim, int slots, str path):
 		cdef int batchSize = slots 
 		cdef int multiplicativeDepth = 17
 		cdef int scalingModSize = 50
 		cdef int firstModSize = 60
 		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
 
-		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize)  
+		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, path)  
 		homomorphic.setupSchemeSwitching(slots, 25)
 
 		return homomorphic
