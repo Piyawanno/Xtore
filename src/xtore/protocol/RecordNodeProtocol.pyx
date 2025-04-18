@@ -69,14 +69,14 @@ cdef class RecordNodeProtocol:
 		self.version = (<i16 *> getBuffer(stream, 2))[0]
 		self.recordCount = (<i32 *> getBuffer(stream, 4))[0]
 
-	cdef bytes handleRequest(self, Buffer *stream, StorageHandler handler, list[BasicStorage] storageList):
+	cdef bytes handleRequest(self, Buffer *stream, StorageHandler handler, BasicStorage storage):
 		stream.position = 0
 		self.getHeader(stream)
 		if self.operation == DatabaseOperation.GETALL:
 			print(f'>> Called Method - GETALL')
 			if self.type == InstanceType.BST:
 				print(f'>> Reading BSTStorage {self.tableName}')
-				queryResponse = handler.readAllBSTStorage(storageList[0])
+				queryResponse = handler.readAllBSTStorage(storage)
 			print(f'>> Sending {len(queryResponse)} records')
 			self.encode(&self.stream, queryResponse)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
@@ -84,13 +84,13 @@ cdef class RecordNodeProtocol:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} records')
 			if self.type == InstanceType.BST:
-				handler.writeToStorage(recordList, storageList[0])
+				handler.writeToStorage(recordList, storage)
 			self.encode(&self.stream, recordList)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		elif self.operation == DatabaseOperation.GET:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} keys')
-			queryResponse = handler.readData(storageList[0], recordList)
+			queryResponse = handler.readData(storage, recordList)
 			print(f'>> Sending {len(recordList)} records')
 			self.encode(&self.stream, queryResponse)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)

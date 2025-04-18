@@ -7,4 +7,4 @@ from xtore.service.StorageHandler cimport StorageHandler
 cdef class StorageTransferProtocol (AsyncProtocol):
 	cdef Buffer stream
 	cdef StorageHandler storageHandler
-	cdef list[BasicStorage] storageList
+	cdef BasicStorage storage

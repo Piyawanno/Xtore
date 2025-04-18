@@ -9,17 +9,15 @@ cdef class StorageServer :
 		self.host = self.config["host"]
 		self.port = self.config["port"]
 		self.storageHandler = StorageHandler({})
-		self.storageList = []
 	
 	def run(self) :
 		uvloop.install()
 		print(f"Start Storage Service ✨")
-		bstStorage = self.storageHandler.openBSTStorage("People.BST.bin")
-		self.storageList.append(bstStorage)
+		self.storage = self.storageHandler.openBSTStorage("People.BST.bin")
 		asyncio.run(self.serve())
 
 	def createProtocol(self) :
-		return StorageTransferProtocol(self.storageHandler, self.storageList)
+		return StorageTransferProtocol(self.storageHandler, self.storage)
 
 	async def serve(self) -> None :
 		loop = asyncio.get_event_loop()
