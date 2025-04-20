@@ -1,5 +1,6 @@
 from xtore.BaseType cimport i32, i64
 from xtore.algorithm.StorageUnit cimport StorageUnit
+from xtore.algorithm.PrimeNode cimport PrimeNode
 
 cdef class PrimeRing:
 	cdef dict primeRingConfig
@@ -10,6 +11,7 @@ cdef class PrimeRing:
 	cdef dict hashTable
 
 	cdef loadData(self, dict config)
-	cdef StorageUnit getStorageUnit(self, i64 hashKey)
+	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey)
+	cdef list[PrimeNode] getAllNodes(self)
 
 
