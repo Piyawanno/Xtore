@@ -29,4 +29,4 @@ cdef class RecordNodeProtocol:
 	cdef registerClass(self, str tableName, object recordClass)
 	cdef writeHeader(self, DatabaseOperation operation, InstanceType instantType, str tableName, i16 version)
 	cdef getHeader(self, Buffer *stream)
-	cdef bytes handleRequest(self, Buffer *request, StorageHandler handler, list[BasicStorage] storageList)
+	cdef bytes handleRequest(self, Buffer *request, StorageHandler handler, BasicStorage storage)
