@@ -70,6 +70,7 @@ cdef class RecordNodeProtocol:
 		self.recordCount = (<i32 *> getBuffer(stream, 4))[0]
 
 	cdef bytes handleRequest(self, Buffer *stream, StorageHandler handler, list[BasicStorage] storageList):
+		cdef i32 status = 0
 		stream.position = 0
 		self.getHeader(stream)
 		if self.operation == DatabaseOperation.GETALL:
@@ -84,7 +85,12 @@ cdef class RecordNodeProtocol:
 			recordList = self.decode(stream)
 			print(f'>> Received {len(recordList)} records')
 			if self.type == InstanceType.BST:
-				handler.writeToStorage(recordList, storageList[0])
+				status = handler.writeToStorage(recordList, storageList[0])
+				if status == 1:
+					print("❗️Write failed: storage full.")
+					self.stream.position = 0
+					self.encode(&self.stream, [])
+					return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 			self.encode(&self.stream, recordList)
 			return PyBytes_FromStringAndSize(self.stream.buffer, self.stream.position)
 		elif self.operation == DatabaseOperation.GET:

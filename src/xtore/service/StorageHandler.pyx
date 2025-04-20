@@ -24,6 +24,9 @@ cdef class StorageHandler:
 	def __init__(self, dict config):
 		self.config = config
 		initBuffer(&self.buffer, <char *> malloc(BUFFER_SIZE), BUFFER_SIZE)
+		self.isFulled = 0
+		self.maxCapacity = 100000
+		self.currentUsage = 0
 
 	def __dealloc__(self):
 		releaseBuffer(&self.buffer)
@@ -52,16 +55,24 @@ cdef class StorageHandler:
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef PeopleBSTStorage storage = PeopleBSTStorage(io)
 		cdef bint isNew = not os.path.isfile(path)
+		self.currentUsage = self.getFileSize(path)
+		print(f"Usage:{self.currentUsage}")
 		io.open()
 		try:
 			if isNew: storage.create()
+			elif self.currentUsage >= self.maxCapacity:
+				self.isFulled = 1
+				storage.readHeader(0)
 			else: storage.readHeader(0)
 		except:
 			print(traceback.format_exc())
 		return storage
 
-	cdef writeToStorage(self, list[RecordNode] dataList, BasicStorage storage):
+	cdef i32 writeToStorage(self, list[RecordNode] dataList, BasicStorage storage):
 		try:
+			if self.isFulled == 1:
+				print(f"Node full")
+				return 1
 			self.writeData(storage, dataList)
 			storage.writeHeader()
 		except:
@@ -72,14 +83,23 @@ cdef class StorageHandler:
 		cdef i32 dataLength = len(dataList)
 		cdef RecordNode node
 		cdef bytes uuidBytes
+		cdef i32 startPosition, endPosition
+		cdef i32 recordSize = 0
 		for data in range(dataLength):
+			if self.currentUsage >= self.maxCapacity:
+				self.isFulled = 1
+				print(f"Recorded Failed:Node fulled")
+				break
 			uuidBytes = uuid.uuid4().bytes[:8]
 			self.buffer.position = 0
 			setBuffer(&self.buffer, <char *> uuidBytes, 8)
 			node = dataList[data]
 			self.buffer.position = 0
-			# node.readKey(1, &self.buffer)
+			node.write(&self.buffer)
+			recordSize = self.buffer.position
 			storage.set(node)
+			self.currentUsage += recordSize
+			print(self.currentUsage)
 			print(node)
 			i += 1
 		print(f"Success Recorded {i} Records !")
@@ -177,3 +197,9 @@ cdef class StorageHandler:
 	cdef str getResourcePath(self):
 		if IS_VENV: return (f'{sys.prefix}/var/xtore').encode('utf-8').decode('utf-8')
 		else: return '/var/xtore'
+	
+	cdef i64 getFileSize(self, str path):
+		try:
+			return os.stat(path).st_size
+		except:
+			return -1
