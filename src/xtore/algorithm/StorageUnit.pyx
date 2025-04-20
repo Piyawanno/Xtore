@@ -24,7 +24,7 @@ cdef class StorageUnit:
 	def __str__(self):
 		nodeDetails = ', '.join(str(self.nodes[i]) for i in self.nodes)
 		return f"StorageUnit(ID={self.storageUnitId}, layer={self.layer}, nodes={{{nodeDetails}}}, parent={self.parent})"
-	
+
 	cdef PrimeNode getNextNode(self, LoadBalanceMode mode):
 		cdef PrimeNode nodeSelect = self.loadBalanceMode[mode]()
 		return nodeSelect
