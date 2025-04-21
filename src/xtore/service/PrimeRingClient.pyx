@@ -90,16 +90,19 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.connected = False
 			else :
 				record.ID = key
-				storageUnit = self.primeRing.getStorageUnit(record.hash())[-1]
-				self.storageUnit = storageUnit.nodes
-				for replica in self.storageUnit.values():
-					primeRingNode = replica
-					if primeRingNode.isMaster == 1:
-						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
-						self.connected = True
-						successReturn = await task
-						successList = [successReturn]
-						self.connected = False
+				storageUnits = self.primeRing.getStorageUnit(record.hash())[::-1]
+				for storageUnit in storageUnits:
+					self.storageUnit = storageUnit.nodes
+					for replica in self.storageUnit.values():
+						primeRingNode = replica
+						if primeRingNode.isMaster == 1:
+							task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+							self.connected = True
+							successReturn = await task
+							successList = [successReturn]
+							self.connected = False
+							break
+					if successReturn == (1, 1):
 						break
 		for pair in successList:
 				totalHit += pair[0]
