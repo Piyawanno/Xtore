@@ -90,7 +90,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.connected = False
 			else :
 				record.ID = key
-				storageUnit = self.primeRing.getStorageUnit(record.hash())
+				storageUnit = self.primeRing.getStorageUnit(record.hash())[-1]
 				self.storageUnit = storageUnit.nodes
 				for replica in self.storageUnit.values():
 					primeRingNode = replica
