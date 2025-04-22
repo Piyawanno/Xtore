@@ -2,9 +2,9 @@ from xtore.instance.RecordNode cimport RecordNode
 from xtore.common.Buffer cimport Buffer, getBuffer, setBuffer, initBuffer, releaseBuffer
 from xtore.BaseType cimport i16, i64, f128
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext
+from xtore.base.CythonHomomorphic cimport Ciphertext
 from cpython.bytes cimport PyBytes_FromStringAndSize
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc
 import sys
 
 cdef i32 DATASET_ENTRY_KEY_SIZE = 8
@@ -49,6 +49,7 @@ cdef class DataSet(RecordNode):
 		cdef bytes serializedData1, serializedData2
 		cdef Ciphertext ciphertext1, ciphertext2
 		cdef Ciphertext maskedCipher1, maskedCipher2
+		cdef int slots = self.homomorphic.getNumberOfSlots()
 		
 		io.open()        
 		try:
@@ -75,31 +76,23 @@ cdef class DataSet(RecordNode):
 			buffer_memory = <char*>malloc(DATA_SIZE)
 			initBuffer(&otherBuffer, buffer_memory, DATA_SIZE)
 			io.read(&otherBuffer, DATA_SIZE)
+
+			serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
+			serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, DATA_SIZE)
 		finally:
+			releaseBuffer(&selfBuffer)
+			releaseBuffer(&otherBuffer)
+			releaseBuffer(&selfOffsetBuffer)
+			releaseBuffer(&otherOffsetBuffer)
 			io.close()
-		
-		serializedData1 = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
-		serializedData2 = PyBytes_FromStringAndSize(otherBuffer.buffer, DATA_SIZE)
 
 		ciphertext1 = self.homomorphic.deserializeFromStream(serializedData1)
 		ciphertext2 = self.homomorphic.deserializeFromStream(serializedData2)
 		
-		maskedCipher1 = self.homomorphic.extractSlot(8, self.index, ciphertext1)
-		maskedCipher2 = self.homomorphic.extractSlot(8, otherDataSet.index, ciphertext2)
-
-		decryptedText1 = self.homomorphic.getRealValue(8, maskedCipher1)
-		decryptedText2 = self.homomorphic.getRealValue(8, maskedCipher2)
-
-		print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}')
+		maskedCipher1 = self.homomorphic.extractSlot(slots, self.index, ciphertext1)
+		maskedCipher2 = self.homomorphic.extractSlot(slots, otherDataSet.index, ciphertext2)
 
 		result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
-
-		print(f'"result": {result[0]}')
-
-		releaseBuffer(&selfBuffer)
-		releaseBuffer(&otherBuffer)
-		releaseBuffer(&selfOffsetBuffer)
-		releaseBuffer(&otherOffsetBuffer)
 
 		if result[0] > 0:
 			return 1

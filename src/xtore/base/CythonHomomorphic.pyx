@@ -51,12 +51,13 @@ cdef class CythonHomomorphic:
     cdef Ciphertext deserializeFromStream(self, string serializedData):
         return self.homomorphic.deserializeFromStream(serializedData)
     
-    cdef serializeKeys(self, str publicKeyFile, str privateKeyFile):
-        cdef string publicKeyPath = publicKeyFile.encode("utf-8")
-        cdef string privateKeyPath = privateKeyFile.encode("utf-8")
-        self.homomorphic.serializeKeys(publicKeyPath, privateKeyPath)
+    cdef serializeKeys(self, str filepath):
+        cdef string path = filepath.encode("utf-8")
+        self.homomorphic.serializeKeys(path)
 
-    cdef deserializeKeys(self, str publicKeyFile, str privateKeyFile):
-        cdef string publicKeyPath = publicKeyFile.encode("utf-8")
-        cdef string privateKeyPath = privateKeyFile.encode("utf-8")
-        self.homomorphic.deserializeKeys(publicKeyPath, privateKeyPath)
+    cdef deserializeKeys(self, str filepath):
+        cdef string path = filepath.encode("utf-8")
+        self.homomorphic.deserializeKeys(path)
+
+    cdef size_t getNumberOfSlots(self):
+        return self.homomorphic.getNumberOfSlots()

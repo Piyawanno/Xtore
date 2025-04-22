@@ -1,9 +1,8 @@
 from xtore.BaseType cimport i32, i64
 from xtore.common.StreamIOHandler cimport StreamIOHandler
-from xtore.common.Buffer cimport Buffer, initBuffer, getBuffer, setBuffer, releaseBuffer
+from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
 from xtore.common.ChunkedBuffer cimport ChunkedBuffer
 from xtore.instance.BasicStorage cimport BasicStorage
-from xtore.instance.BasicIterator cimport BasicIterator
 from xtore.test.DataSetHomomorphic cimport DataSetHomomorphic
 from xtore.test.DataSet cimport DataSet
 
@@ -13,7 +12,7 @@ from libcpp.vector cimport vector
 from argparse import RawTextHelpFormatter
 
 from xtore.instance.HomomorphicBSTStorage import HomomorphicBSTStorage
-from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext, CryptoContext
+from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext
 from libcpp.vector cimport vector
 from cpython.bytes cimport PyBytes_FromStringAndSize
 import numpy as np
@@ -425,8 +424,10 @@ cdef class HomomorphicCLI:
 		cdef int firstModSize = 60
 		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
 
-		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, path)  
-		homomorphic.setupSchemeSwitching(slots, 25)
+		cdef str context_path = path if path else f'{self.getResourcePath()}/context.bin'
+
+		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, context_path)  
+		# homomorphic.setupSchemeSwitching(slots, 25)
 
 		return homomorphic
 
