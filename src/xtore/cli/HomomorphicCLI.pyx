@@ -11,7 +11,7 @@ from libc.string cimport memcpy
 from libcpp.vector cimport vector
 from argparse import RawTextHelpFormatter
 
-from xtore.instance.HomomorphicBSTStorage import HomomorphicBSTStorage
+from xtore.instance.HomomorphicBSTStorage cimport HomomorphicBSTStorage
 from xtore.base.CythonHomomorphic cimport CythonHomomorphic, Ciphertext
 from libcpp.vector cimport vector
 from cpython.bytes cimport PyBytes_FromStringAndSize
@@ -160,6 +160,10 @@ cdef class HomomorphicCLI:
 			# storedList = self.readPeople(storage, dataList)
 			# print("storedList", storedList)
 			# self.comparePeople(peopleList, storedList)
+
+			resultList = self.readRangeData(storage, dataList)
+			print("resultList", resultList)
+			
 			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
@@ -198,9 +202,27 @@ cdef class HomomorphicCLI:
 		print(f'>>> People Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return storedList
 
+	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList):
+
+		low = dataList[1]
+		high = dataList[6]
+		# low = dataList[5]
+		# high = dataList[3]
+
+		cdef list resultList = []
+		cdef double start = time.time()
+		resultList = storage.getRangeData(low, high)
+		cdef double elapsed = time.time() - start
+		cdef int n = len(resultList)
+		print()
+		print(f'>>> Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		return resultList
+
 	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
 		cdef list id = self.randomData(slots, "int")
-		cdef list name = self.randomData(slots, "int")
+		# cdef list name = self.randomData(slots, "int")
+		cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
+
 		cdef list birthDate = self.randomData(slots, "int")
 		cdef list address = self.randomData(slots, "int")
 		cdef vector[double] balance = self.randomData(slots, "float")

@@ -12,3 +12,8 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 	cdef Buffer stream
 	cdef Buffer headerStream
 	cdef RecordNode comparingNode
+
+	cdef list getRangeData(self, RecordNode low, RecordNode high)
+	cdef tuple readNode(self, i64 position)
+	cdef void collectLess(self, i64 position, RecordNode high, list result)
+	cdef void collectGreater(self, i64 position, RecordNode low, list result)
