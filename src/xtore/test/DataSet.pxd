@@ -11,3 +11,4 @@ cdef class DataSet(RecordNode):
 	cdef CythonHomomorphic homomorphic
 
 	cdef str getResourcePath(self)
+	cdef i32 compareIntToRecord(self, RecordNode other, i32 num)

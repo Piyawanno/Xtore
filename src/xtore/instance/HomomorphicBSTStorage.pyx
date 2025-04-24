@@ -6,6 +6,7 @@ from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
 from libc.stdlib cimport malloc
 from libc.string cimport memcmp
+from xtore.test.DataSet cimport DataSet
 
 cdef char *MAGIC = "@XT_BSTR"
 cdef i32 MAGIC_LENGTH = 0
@@ -162,7 +163,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		self.inOrderRangeSearch(self.rootNodePosition, low, high, resultList)
 		return resultList
 		
-	cdef void inOrderRangeSearch(self, i64 position, RecordNode low, RecordNode high, list resultList):
+	cdef void inOrderRangeSearch(self, i64 position, DataSet low, DataSet high, list resultList):
 		if position < 0:
 			return
 			
@@ -178,17 +179,14 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		right = (<i64*> getBuffer(&self.stream, 8))[0]
 		currentNode = self.readNodeKey(nodePosition, None)
 
-		cmpLow = low.compare(currentNode)
-		cmpHigh = high.compare(currentNode)
+		cmpLow = low.compareIntToRecord(currentNode, low.address)
+		cmpHigh = high.compareIntToRecord(currentNode, high.address)
 		
 		if cmpLow == 1:
 			self.inOrderRangeSearch(left, low, high, resultList)
 		
 		if cmpLow >= 0 and cmpHigh == 0:
 			resultList.append(currentNode)
-
-		# if cmpLow == 1 and cmpHigh == 0:
-		# 	resultList.append(currentNode)
 		
 		if  cmpHigh == 0:
 			self.inOrderRangeSearch(right, low, high, resultList)
