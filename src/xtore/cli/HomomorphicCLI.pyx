@@ -144,7 +144,7 @@ cdef class HomomorphicCLI:
 		cdef DataSetHomomorphic storage = DataSetHomomorphic(io)
 		cdef bint isNew = not os.path.isfile(BSTPath)
 		cdef i32 ringDim = 1024
-		cdef i32 slots = 16
+		cdef i32 slots = 8
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
 		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
@@ -218,7 +218,8 @@ cdef class HomomorphicCLI:
 	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
 		cdef list id = self.randomData(slots, "int")
 		# cdef list name = self.randomData(slots, "int")
-		cdef list name = [724, 131, 854, 295, 225, 727, 421, 285, 100, 400, 200, 123, 456, 600, 298, 975]
+		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285, 100, 400, 200, 123, 456, 600, 298, 975]
+		cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
 
 		cdef list birthDate = self.randomData(slots, "int")
 		cdef list address = self.randomData(slots, "int")

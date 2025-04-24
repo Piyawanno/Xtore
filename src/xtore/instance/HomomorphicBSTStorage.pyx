@@ -168,6 +168,8 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 			
 		cdef i64 nodePosition, left, right
 		cdef RecordNode currentNode
+		cdef int cmpLow
+		cdef int cmpHigh
 		
 		self.io.seek(position)
 		self.io.read(&self.stream, BST_NODE_OFFSET)
@@ -175,15 +177,18 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		left = (<i64*> getBuffer(&self.stream, 8))[0]
 		right = (<i64*> getBuffer(&self.stream, 8))[0]
 		currentNode = self.readNodeKey(nodePosition, None)
+
+		cmpLow = low.compare(currentNode)
+		cmpHigh = high.compare(currentNode)
 		
-		if low.compare(currentNode) == 1:
+		if cmpLow == 1:
 			self.inOrderRangeSearch(left, low, high, resultList)
 		
-		if low.compare(currentNode) == 0 and high.compare(currentNode) == 0:
+		if cmpLow >= 0 and cmpHigh == 0:
 			resultList.append(currentNode)
 
-		if low.compare(currentNode) == 1 and high.compare(currentNode) == 0:
-			resultList.append(currentNode)
+		# if cmpLow == 1 and cmpHigh == 0:
+		# 	resultList.append(currentNode)
 		
-		if  high.compare(currentNode) == 0:
+		if  cmpHigh == 0:
 			self.inOrderRangeSearch(right, low, high, resultList)
