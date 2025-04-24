@@ -4,6 +4,7 @@ from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
+from xtore.test.DataSet cimport DataSet
 from libc.stdlib cimport malloc
 from libc.string cimport memcmp
 from xtore.test.DataSet cimport DataSet
@@ -111,6 +112,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		cdef i64 right
 		cdef i32 compareResult
 		cdef RecordNode stored
+
 		while True:
 			self.io.seek(position)
 			self.io.read(&self.stream, BST_NODE_OFFSET)
@@ -156,19 +158,18 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 					self.io.write(&self.stream)
 					break
 
-	cdef list getRangeData(self, RecordNode low, RecordNode high):
-		if self.rootNodePosition < 0: 
-			return []
+	cdef list getRangeData(self, RecordNode dataSet, int low, int high):
+		if self.rootNodePosition < 0: return None
 		cdef list resultList = []
-		self.inOrderRangeSearch(self.rootNodePosition, low, high, resultList)
+		self.inOrderRangeSearch(self.rootNodePosition, dataSet, low, high, resultList)
 		return resultList
 		
-	cdef void inOrderRangeSearch(self, i64 position, DataSet low, DataSet high, list resultList):
+	cdef void inOrderRangeSearch(self, i64 position, RecordNode dataSet, int low, int high, list resultList):
 		if position < 0:
 			return
 			
 		cdef i64 nodePosition, left, right
-		cdef RecordNode currentNode
+		cdef DataSet currentNode
 		cdef int cmpLow
 		cdef int cmpHigh
 		
@@ -179,14 +180,14 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		right = (<i64*> getBuffer(&self.stream, 8))[0]
 		currentNode = self.readNodeKey(nodePosition, None)
 
-		cmpLow = low.compareIntToRecord(currentNode, low.address)
-		cmpHigh = high.compareIntToRecord(currentNode, high.address)
+		cmpLow = currentNode.compareIntToRecord(dataSet, low)
+		cmpHigh = currentNode.compareIntToRecord(dataSet, high)
 		
 		if cmpLow == 1:
-			self.inOrderRangeSearch(left, low, high, resultList)
+			self.inOrderRangeSearch(left, dataSet, low, high, resultList)
 		
 		if cmpLow >= 0 and cmpHigh == 0:
 			resultList.append(currentNode)
 		
 		if  cmpHigh == 0:
-			self.inOrderRangeSearch(right, low, high, resultList)
+			self.inOrderRangeSearch(right, dataSet, low, high, resultList)

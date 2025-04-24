@@ -161,7 +161,7 @@ cdef class HomomorphicCLI:
 			# print("storedList", storedList)
 			# self.comparePeople(peopleList, storedList)
 
-			resultList = self.readRangeData(storage, dataList, homomorphic)
+			resultList = self.readRangeData(storage, dataList)
 			print("resultList", resultList)
 			
 			storage.writeHeader()
@@ -202,24 +202,14 @@ cdef class HomomorphicCLI:
 		print(f'>>> People Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return storedList
 
-	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic):
-		cdef list resultList = []
-		cdef DataSet dataSet
-		dataSet = DataSet()
-		dataSet.position = -1
-		dataSet.index = 0
-		dataSet.address = 100
-		dataSet.homomorphic = homomorphic
+	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList):
 
-		cdef DataSet dataSet2
-		dataSet2 = DataSet()
-		dataSet2.position = -1
-		dataSet2.index = 0
-		dataSet2.address = 300
-		dataSet2.homomorphic = homomorphic
+		node = dataList[0]
+		low = 200
+		high = 300
 
 		cdef double start = time.time()
-		resultList = storage.getRangeData(dataSet, dataSet2)
+		resultList = storage.getRangeData(node, low, high)
 		cdef double elapsed = time.time() - start
 
 		cdef int n = len(resultList)
