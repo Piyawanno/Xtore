@@ -14,6 +14,7 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 	cdef RecordNode comparingNode
 
 	cdef list getRangeData(self, RecordNode low, RecordNode high)
-	cdef tuple readNode(self, i64 position)
-	cdef void collectLess(self, i64 position, RecordNode high, list result)
-	cdef void collectGreater(self, i64 position, RecordNode low, list result)
+	cdef void inOrderRangeSearch(self, i64 position, RecordNode low, RecordNode high, list resultList)
+	# cdef tuple readNode(self, i64 position)
+	# cdef void collectLess(self, i64 position, RecordNode high, list result)
+	# cdef void collectGreater(self, i64 position, RecordNode low, list result)

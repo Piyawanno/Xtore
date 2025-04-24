@@ -89,22 +89,13 @@ cdef class DataSet(RecordNode):
 		ciphertext1 = self.homomorphic.deserializeFromStream(serializedData1)
 		ciphertext2 = self.homomorphic.deserializeFromStream(serializedData2)
 		
-		maskedCipher1 = self.homomorphic.extractSlot(8, self.index, ciphertext1)
-		maskedCipher2 = self.homomorphic.extractSlot(8, otherDataSet.index, ciphertext2)
+		maskedCipher1 = self.homomorphic.extractSlot(slots, self.index, ciphertext1)
+		maskedCipher2 = self.homomorphic.extractSlot(slots, otherDataSet.index, ciphertext2)
 
-		decryptedText1 = self.homomorphic.getRealValue(8, maskedCipher1)
-		decryptedText2 = self.homomorphic.getRealValue(8, maskedCipher2)
-
+		decryptedText1 = self.homomorphic.getRealValue(slots, maskedCipher1)
+		decryptedText2 = self.homomorphic.getRealValue(slots, maskedCipher2)
 
 		result = self.homomorphic.compare(1, maskedCipher1, maskedCipher2)
-
-		print(f'"ref index:"{self.index}', f'"stored index:"{otherDataSet.index}', f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}', f'"result": {result[0]}')
-
-
-		releaseBuffer(&selfBuffer)
-		releaseBuffer(&otherBuffer)
-		releaseBuffer(&selfOffsetBuffer)
-		releaseBuffer(&otherOffsetBuffer)
 
 		if result[0] > 0:
 			return 1
