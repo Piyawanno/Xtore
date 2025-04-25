@@ -103,11 +103,10 @@ cdef class DataSet(RecordNode):
 			return 0
 
 	cdef i32 compareIntToRecord(self, RecordNode dataSet, int num):
-
 		cdef DataSet referenceNode = <DataSet> dataSet
 		cdef str path = f'{self.getResourcePath()}/testData.bin'
 		cdef StreamIOHandler io = StreamIOHandler(path)
-		cdef Buffer referenceBuffer, referenceOffsetBuffer
+		cdef Buffer referenceBuffer, referenceOffsetBuffer, selfOffsetBuffer, selfBuffer
 		cdef char *buffer_memory
 		cdef i64 referencePosition,  referenceOffset		
 		cdef bytes serializedData1, serializedData
@@ -117,38 +116,37 @@ cdef class DataSet(RecordNode):
 
 		io.open()
 		try:
-			io.seek(referenceNode.address - 16)
+			io.seek(self.address - 16)
 			buffer_memory = <char*>malloc(sizeof(i64))
-			initBuffer(&referenceOffsetBuffer, buffer_memory, sizeof(i64))
-			io.read(&referenceOffsetBuffer, sizeof(i64))
-			referenceOffset = (<i64*> referenceOffsetBuffer.buffer)[0]
-
-			referencePosition = referenceNode.address - referenceOffset
-			io.seek(referencePosition)
+			initBuffer(&selfOffsetBuffer, buffer_memory, sizeof(i64))
+			io.read(&selfOffsetBuffer, sizeof(i64))
+			selfOffset = (<i64*> selfOffsetBuffer.buffer)[0]
+			
+			selfPosition = self.address - selfOffset
+			io.seek(selfPosition)
 			buffer_memory = <char*>malloc(DATA_SIZE)
-			initBuffer(&referenceBuffer, buffer_memory, DATA_SIZE)
-			io.read(&referenceBuffer, DATA_SIZE)
-	
-			serializedData = PyBytes_FromStringAndSize(referenceBuffer.buffer, DATA_SIZE)
+			initBuffer(&selfBuffer, buffer_memory, DATA_SIZE)
+			io.read(&selfBuffer, DATA_SIZE)
+
+			serializedData = PyBytes_FromStringAndSize(selfBuffer.buffer, DATA_SIZE)
 
 		finally:
-			releaseBuffer(&referenceBuffer)
-			releaseBuffer(&referenceOffsetBuffer)
+			releaseBuffer(&selfBuffer)
+			releaseBuffer(&selfOffsetBuffer)
 			io.close()
 
 		ciphertext1 = referenceNode.homomorphic.encrypt([num])
 		ciphertext2 = referenceNode.homomorphic.deserializeFromStream(serializedData)
-		
-		maskedCipher2 = referenceNode.homomorphic.extractSlot(8, self.index, ciphertext2)
+		maskedCipher2 = referenceNode.homomorphic.extractSlot(slots, self.index, ciphertext2)
 
 		result = referenceNode.homomorphic.compare(1, ciphertext1, maskedCipher2)
 
-		# decryptedText1 = referenceNode.homomorphic.getRealValue(8, ciphertext1)
-		# decryptedText2 = referenceNode.homomorphic.getRealValue(8, maskedCipher2)
-		# print(f'"ref index:"{referenceNode.index}', f'"stored :"{num}', f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}', f'"result": {result[0]}')
+		decryptedText1 = referenceNode.homomorphic.getRealValue(slots, ciphertext1)
+		decryptedText2 = referenceNode.homomorphic.getRealValue(slots, maskedCipher2)
+		# print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}', f'"result": {result[0]}')
 
-		releaseBuffer(&referenceBuffer)
-		releaseBuffer(&referenceOffsetBuffer)
+		releaseBuffer(&selfBuffer)
+		releaseBuffer(&selfOffsetBuffer)
 
 		if result[0] > 0:
 			return 1

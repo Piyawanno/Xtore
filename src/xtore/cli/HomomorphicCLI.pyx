@@ -24,11 +24,6 @@ def run():
 	cli = HomomorphicCLI()       
 	cli.run(sys.argv[1:])
 
-ctypedef struct TextIntegerArray:
-	i32 textLength
-	i32 arrayLength
-	i32 *array
-
 cdef class Data:
 	cdef list id
 	cdef list name
@@ -60,10 +55,6 @@ cdef class EncryptedData:
 		else:
 			raise ValueError(f"Unknown cipher attribute: {attrName}")
 
-cdef class SetPosition:
-	cdef list index
-	cdef Ciphertext birthCipher
-
 cdef class HomomorphicCLI:
 	cdef object parser
 	cdef object option
@@ -76,8 +67,6 @@ cdef class HomomorphicCLI:
 		self.parser = argparse.ArgumentParser(description=__help__, formatter_class=RawTextHelpFormatter)
 		self.parser.add_argument("test", help="Name of test", choices=[
 			'BST',
-			'Concept',
-			'BinarySearch',
 		])
 		self.parser.add_argument("-n", "--count", help="Number of record to test.", required=False, type=int)
 		self.option = self.parser.parse_args(argv)
@@ -86,8 +75,6 @@ cdef class HomomorphicCLI:
 		self.getParser(argv)  
 		self.checkPath()  
 		if self.option.test == 'BST': self.testDataSetBSTStorage()
-		elif self.option.test == 'Concept': self.testDataConcept()
-		elif self.option.test == 'BinarySearch': self.testBinarySearch()
 		
 	cdef i64 StreamIO(self):
 		cdef str path = f'{self.getResourcePath()}/test_data.bin'
@@ -148,6 +135,9 @@ cdef class HomomorphicCLI:
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
 		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
+		cdef int low = 200
+		cdef int high = 700
+		
 		print("Writing encrypted data...")
 		cdef i64 address = self.writeEncryptedDataWithStream(dataPath, data, homomorphic)
 
@@ -156,12 +146,12 @@ cdef class HomomorphicCLI:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
 			dataList = self.writeDataSet(storage, address, homomorphic, slots)
-			print("dataList", dataList)
+			# print("dataList", dataList)
 			# storedList = self.readPeople(storage, dataList)
 			# print("storedList", storedList)
 			# self.comparePeople(peopleList, storedList)
 
-			resultList = self.readRangeData(storage, dataList)
+			resultList = self.readRangeData(storage, dataList, homomorphic, low, high)
 			print("resultList", resultList)
 			
 			storage.writeHeader()
@@ -199,28 +189,34 @@ cdef class HomomorphicCLI:
 			storedList.append(stored)
 		cdef double elapsed = time.time() - start
 		cdef int n = len(dataList)
-		print(f'>>> People Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return storedList
 
-	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList):
+	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int low, int high):
+		# cdef DataSet dataSet
+		# dataSet = DataSet()
+		# dataSet.position = 8
+		# dataSet.index = 0
+		# dataSet.address = 1748135
+		# dataSet.homomorphic = homomorphic
 
-		node = dataList[0]
-		low = 200
-		high = 300
+		dataSet = dataList[0]
 
 		cdef double start = time.time()
-		resultList = storage.getRangeData(node, low, high)
+		resultList = storage.getRangeData(dataSet, low, high)
 		cdef double elapsed = time.time() - start
 
 		cdef int n = len(resultList)
-		print(f'>>> Data of {n} are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> {n} records are read (from {low} to {high}) in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
 	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
 		cdef list id = self.randomData(slots, "int")
 		# cdef list name = self.randomData(slots, "int")
 		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285, 100, 400, 200, 123, 456, 600, 298, 975]
-		cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
+		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
+		cdef list name = [ 100, 400, 200, 123, 456, 600, 298, 975]
+		print("name:", name)
 
 		cdef list birthDate = self.randomData(slots, "int")
 		cdef list address = self.randomData(slots, "int")
@@ -238,7 +234,6 @@ cdef class HomomorphicCLI:
 		data.address = address
 		data.balance = balance
 		data.birthDate = birthDate
-		print("name:", name)
 
 		cdef EncryptedData encryptedData = EncryptedData()
 		encryptedData.idCipher = idCipher
@@ -261,36 +256,11 @@ cdef class HomomorphicCLI:
 		cdef int scalingModSize = 50
 		cdef int firstModSize = 60
 		cdef CythonHomomorphic homomorphic = CythonHomomorphic()
-
 		cdef str context_path = path if path else f'{self.getResourcePath()}/context.bin'
 
 		homomorphic.initializeCKKS(multiplicativeDepth, scalingModSize, firstModSize, ringDim, batchSize, context_path)  
 
 		return homomorphic
-
-	cdef TextIntegerArray* toI32Array(self, str text):
-		cdef bytes encoded = text.encode()
-		cdef char *buffer = <char *> encoded
-		cdef i32 length = len(encoded)
-		cdef i32 arraySize = ((length >> 2) + 1) << 2
-		cdef TextIntegerArray *array = <TextIntegerArray *> malloc(sizeof(TextIntegerArray))
-
-		array.textLength = length
-		array.arrayLength = (length >> 3) + 1
-		array.array = <i32 *> malloc(arraySize)
-
-		cdef i32 position = 0
-		for i in range(array.arrayLength - 1):
-			memcpy(<void *> (&array.array[i]), <void *> (buffer + position), 4)
-			position += 4
-		memcpy(array.array + (array.arrayLength - 1), buffer + position, length - position)
-		return array
-		
-	cdef freeTextIntegerArray(self, TextIntegerArray* array):
-		if array:
-			if array.array:
-				free(array.array) 
-			free(array)
 
 	cdef checkPath(self):
 		cdef str resourcePath = self.getResourcePath()
