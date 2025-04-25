@@ -141,8 +141,8 @@ cdef class DataSet(RecordNode):
 
 		result = referenceNode.homomorphic.compare(1, ciphertext1, maskedCipher2)
 
-		decryptedText1 = referenceNode.homomorphic.getRealValue(slots, ciphertext1)
-		decryptedText2 = referenceNode.homomorphic.getRealValue(slots, maskedCipher2)
+		# decryptedText1 = referenceNode.homomorphic.getRealValue(slots, ciphertext1)
+		# decryptedText2 = referenceNode.homomorphic.getRealValue(slots, maskedCipher2)
 		# print(f'"decryptedText1": {int(decryptedText1[0])}', f'"decryptedText2": {int(decryptedText2[0])}', f'"result": {result[0]}')
 
 		releaseBuffer(&selfBuffer)

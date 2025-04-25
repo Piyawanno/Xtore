@@ -137,6 +137,7 @@ cdef class HomomorphicCLI:
 
 		cdef int low = 200
 		cdef int high = 700
+		cdef int threshold = 500
 		
 		print("Writing encrypted data...")
 		cdef i64 address = self.writeEncryptedDataWithStream(dataPath, data, homomorphic)
@@ -147,14 +148,26 @@ cdef class HomomorphicCLI:
 			else: storage.readHeader(0)
 			dataList = self.writeDataSet(storage, address, homomorphic, slots)
 			# print("dataList", dataList)
+			print()
+
 			# storedList = self.readPeople(storage, dataList)
 			# print("storedList", storedList)
-			# self.comparePeople(peopleList, storedList)
-
+			# print()
+	
 			resultList = self.readRangeData(storage, dataList, homomorphic, low, high)
 			print("resultList", resultList)
-			
+			print()
+
+			greaterList = self.readGreater(storage, dataList, homomorphic, threshold)
+			print("greaterList", greaterList)
+			print()
+
+			lesserList = self.readLesser(storage, dataList, homomorphic, threshold)
+			print("lesserList", lesserList)
+			print()
+
 			storage.writeHeader()
+			
 		except:
 			print(traceback.format_exc())
 		io.close()
@@ -207,7 +220,29 @@ cdef class HomomorphicCLI:
 		cdef double elapsed = time.time() - start
 
 		cdef int n = len(resultList)
-		print(f'>>> {n} records are read (from {low} to {high}) in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> Data {n} records are read (from {low} to {high}) in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		return resultList
+
+	cdef readGreater(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int threshold):
+		dataSet = dataList[0]
+
+		cdef double start = time.time()
+		resultList = storage.getGreater(dataSet, threshold)
+		cdef double elapsed = time.time() - start
+
+		cdef int n = len(resultList)
+		print(f'>>> Data {n} records (that > {threshold})  are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		return resultList
+
+	cdef readLesser(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int threshold):
+		dataSet = dataList[0]
+
+		cdef double start = time.time()
+		resultList = storage.getLesser(dataSet, threshold)
+		cdef double elapsed = time.time() - start
+
+		cdef int n = len(resultList)
+		print(f'>>> {n} records (that < {threshold}) are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
 	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
@@ -215,7 +250,7 @@ cdef class HomomorphicCLI:
 		# cdef list name = self.randomData(slots, "int")
 		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285, 100, 400, 200, 123, 456, 600, 298, 975]
 		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
-		cdef list name = [ 100, 400, 200, 123, 456, 600, 298, 975]
+		cdef list name = [ 100, 400, 210, 123, 556, 600, 298, 975]
 		print("name:", name)
 
 		cdef list birthDate = self.randomData(slots, "int")
