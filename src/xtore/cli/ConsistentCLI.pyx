@@ -33,7 +33,7 @@ cdef class ConsistentCLI:
 		self.getConfig()
 		cdef ConsistentHashing ring
 		ring = ConsistentHashing()
-		ring.loadData(self.config)
+		ring.loadData(self.config["nodeDictConsistent"])
 		self.setConfig()
 		hashKey = hashDJB(self.option.key.encode(), 5)
 		ring.getNodeList(hashKey)
