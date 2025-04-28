@@ -30,8 +30,9 @@ cdef extern from "xtorecpp/HomomorphicEncryption.hpp" namespace "Xtore":
         Ciphertext deserializeFromStream(const string& serializedData) except +
         Ciphertext extractSlot(int slots, int index, Ciphertext ciphertext) except +
         Ciphertext rotateCipher(int index, Ciphertext ciphertext) except +
-        void serializeKeys(const string& publicKeyFile, const string& privateKeyFile) except +
-        void deserializeKeys(const string& publicKeyFile, const string& privateKeyFile) except +
+        void serializeKeys(const string& filepath) except +
+        void deserializeKeys(const string& filepath) except +
+        size_t getNumberOfSlots() except +
 cdef class CythonHomomorphic:
     cdef HomomorphicEncryption* homomorphic
     cdef initializeCKKS(self, int multiplicativeDepth, int scalingModSize, int firstModSize, int ringDim, int batchSize, str filepath)
@@ -48,5 +49,6 @@ cdef class CythonHomomorphic:
     cdef Ciphertext rotateCipher(self, int index, Ciphertext ciphertext)
     cdef string serializeToStream(self, Ciphertext ciphertext)
     cdef Ciphertext deserializeFromStream(self, string serializedData)
-    cdef serializeKeys(self, str publicKeyFile, str privateKeyFile)
-    cdef deserializeKeys(self, str publicKeyFile, str privateKeyFile)
+    cdef serializeKeys(self, str filepath)
+    cdef deserializeKeys(self, str filepath)
+    cdef size_t getNumberOfSlots(self)

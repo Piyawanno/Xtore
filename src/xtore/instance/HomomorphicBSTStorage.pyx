@@ -4,8 +4,10 @@ from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.instance.CollisionMode cimport CollisionMode
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.instance.BasicStorage cimport BasicStorage
+from xtore.test.DataSet cimport DataSet
 from libc.stdlib cimport malloc
 from libc.string cimport memcmp
+from xtore.test.DataSet cimport DataSet
 
 cdef char *MAGIC = "@XT_BSTR"
 cdef i32 MAGIC_LENGTH = 0
@@ -60,9 +62,8 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		if isMagic != 0:
 			raise ValueError('Wrong Magic for BinarySearchTreeStorage')
 		self.rootNodePosition = (<i64*> getBuffer(&self.headerStream, 8))[0]
-	
-	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 
+	cdef RecordNode get(self, RecordNode reference, RecordNode result):
 		if self.rootNodePosition < 0: return None
 		cdef i64 position = self.rootNodePosition
 		cdef i64 nodePosition
@@ -70,10 +71,6 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		cdef i64 right
 		cdef i32 compareResult
 		cdef RecordNode stored
-
-
-		print()
-		print("start getting data at:", reference)
 
 		while True:
 			self.io.seek(position)
@@ -85,33 +82,17 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 
 			compareResult = reference.compare(stored)
 
-
-			print("reference:",reference)
-			print("stored:",stored)
-			# print("left:",left)
-			# print("right:",right)
-
 			if compareResult == 1:
 				if left > 0:
 					position = left
-					print("Go left")
-					print()
 				else:
-					print("return:", stored)
-					print()
 					return stored
-
 			else:
 				if right > 0:
 					position = right
-					print("Go right")
-					print()
 				else:
-					print("return:", stored)
-					print()
 					return stored
 			
-
 	cdef set(self, RecordNode reference):
 		cdef i64 placeHolder = -1
 
@@ -123,7 +104,6 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 			setBuffer(&self.stream, <char *> &placeHolder, 8)
 			self.rootNodePosition = self.io.getTail()
 			self.io.append(&self.stream)
-			# print("Created root node at position", self.rootNodePosition)
 			return
 		
 		cdef i64 position = self.rootNodePosition
@@ -132,23 +112,20 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 		cdef i64 right
 		cdef i32 compareResult
 		cdef RecordNode stored
+
 		while True:
-			# print("\nCurrent node position:", position)
 			self.io.seek(position)
 			self.io.read(&self.stream, BST_NODE_OFFSET)
 			nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
 			left = (<i64*> getBuffer(&self.stream, 8))[0]
 			right = (<i64*> getBuffer(&self.stream, 8))[0]
-			# print(f"Node at {position}: left={left}, right={right}")
 			stored = self.readNodeKey(nodePosition, self.comparingNode)
-
 
 			compareResult = reference.compare(stored)
 
 			if compareResult == 1:
 				if left > 0:
 					position = left
-					print("Go left")
 				else:
 					self.appendNode(reference)
 					self.stream.position = 0
@@ -162,12 +139,10 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 					setBuffer(&self.stream, <char *> &left, 8)
 					self.io.seek(position + 8)
 					self.io.write(&self.stream)
-					print("appendNode left")
 					break
 			else:
 				if right > 0:
 					position = right
-					print("Go right")
 				else:
 					self.appendNode(reference)
 					self.stream.position = 0
@@ -181,5 +156,121 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 					setBuffer(&self.stream, <char *> &right, 8)
 					self.io.seek(position + 16)
 					self.io.write(&self.stream)
-					print("appendNode right")
 					break
+
+	cdef list getRangeData(self, RecordNode dataSet, int low, int high):
+		if self.rootNodePosition < 0: return None
+		cdef list resultList = []
+		self.inOrderRangeSearch(self.rootNodePosition, dataSet, low, high, resultList)
+		return resultList
+		
+	cdef void inOrderRangeSearch(self, i64 position, RecordNode dataSet, int low, int high, list resultList):
+		if position < 0:
+			return
+			
+		cdef i64 nodePosition, left, right
+		cdef DataSet currentNode
+		cdef int cmpLow
+		cdef int cmpHigh
+
+		self.io.seek(position)
+		self.io.read(&self.stream, BST_NODE_OFFSET)
+		nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
+		left = (<i64*> getBuffer(&self.stream, 8))[0]
+		right = (<i64*> getBuffer(&self.stream, 8))[0]
+		currentNode = self.readNodeKey(nodePosition, None)
+
+		cmpLow = currentNode.compareIntToRecord(dataSet, low)
+		
+		if cmpLow == 1:
+			self.inOrderRangeSearch(left, dataSet, low, high, resultList)
+		
+		cmpHigh = currentNode.compareIntToRecord(dataSet, high)
+
+		if cmpLow == 1 and cmpHigh == 0:
+			resultList.append(currentNode)
+		
+		if  cmpHigh == 0:
+			self.inOrderRangeSearch(right, dataSet, low, high, resultList)
+
+	cdef list getGreater(self, RecordNode dataSet, int threshold):
+		if self.rootNodePosition < 0: return None
+		cdef list resultList = []
+		self.inOrderGreaterSearch(self.rootNodePosition, dataSet, threshold, resultList)
+		return resultList
+	
+	cdef list getLesser(self, RecordNode dataSet, int threshold):
+		if self.rootNodePosition < 0: return None
+		cdef list resultList = []
+		self.inOrderLesserSearch(self.rootNodePosition, dataSet, threshold, resultList)
+		return resultList
+
+	cdef void inOrderGreaterSearch(self, i64 position, RecordNode dataSet, int threshold, list resultList):
+		if position < 0:
+			return
+
+		cdef i64 nodePosition, left, right
+		cdef DataSet currentNode
+		cdef int cmp
+
+		self.io.seek(position)
+		self.io.read(&self.stream, BST_NODE_OFFSET)
+		nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
+		left = (<i64*> getBuffer(&self.stream, 8))[0]
+		right = (<i64*> getBuffer(&self.stream, 8))[0]
+		currentNode = self.readNodeKey(nodePosition, None)
+
+		cmp = currentNode.compareIntToRecord(dataSet, threshold)
+		
+		if cmp == 1:
+			self.inOrderGreaterSearch(left, dataSet, threshold, resultList)
+			resultList.append(currentNode)
+			self.collectSubTree(right, resultList)
+
+		else:
+			self.inOrderGreaterSearch(right, dataSet, threshold, resultList)
+
+	cdef void inOrderLesserSearch(self, i64 position, RecordNode dataSet, int threshold, list resultList):
+		if position < 0:
+			return
+
+		cdef i64 nodePosition, left, right
+		cdef DataSet currentNode
+		cdef int cmp
+
+		self.io.seek(position)
+		self.io.read(&self.stream, BST_NODE_OFFSET)
+		nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
+		left = (<i64*> getBuffer(&self.stream, 8))[0]
+		right = (<i64*> getBuffer(&self.stream, 8))[0]
+		currentNode = self.readNodeKey(nodePosition, None)
+
+		cmp = currentNode.compareIntToRecord(dataSet, threshold)
+		
+		if cmp == 0:
+			self.collectSubTree(left, resultList)
+			resultList.append(currentNode)
+			self.inOrderLesserSearch(right, dataSet, threshold, resultList)
+		else:
+			self.inOrderLesserSearch(left, dataSet, threshold, resultList)
+
+
+	cdef void collectSubTree(self, i64 position, list resultList):
+		cdef i64 nodePosition, left, right
+		cdef RecordNode currentNode
+
+		while position >= 0:
+			self.io.seek(position)
+			self.io.read(&self.stream, BST_NODE_OFFSET)
+			nodePosition = (<i64*> getBuffer(&self.stream, 8))[0]
+			left = (<i64*> getBuffer(&self.stream, 8))[0]
+			right = (<i64*> getBuffer(&self.stream, 8))[0]
+			currentNode = self.readNodeKey(nodePosition, None)
+
+			self.collectSubTree(left, resultList)
+
+			resultList.append(currentNode)
+
+			position = right
+
+

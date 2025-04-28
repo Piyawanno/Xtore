@@ -88,6 +88,26 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.connected = True
 				successList = await asyncio.gather(*tasks)
 				self.connected = False
+			if method == DatabaseOperation.GET :
+				record.ID = key
+				storageUnits = self.primeRing.getStorageUnit(record.hash())[::-1]
+				for storageUnit in storageUnits:
+					self.storageUnit = storageUnit.nodes
+					for replica in self.storageUnit.values():
+						primeRingNode = replica
+						if primeRingNode.isMaster == 1:
+							task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+							tasks.append(task)
+							break
+				self.connected = True
+				successReturn = None
+				for task in asyncio.as_completed(tasks):
+					result = await task
+					if result == (1, 1):
+						successReturn = result
+						break
+				successList = [successReturn]
+				self.connected = False
 			else :
 				record.ID = key
 				storageUnit = self.primeRing.getStorageUnit(record.hash())[-1]
@@ -105,7 +125,6 @@ cdef class PrimeRingClient (DatabaseClient) :
 				totalHit += pair[0]
 				totalAmount += pair[1]
 		return totalHit, totalAmount
-
 
 	async def tcpClient(self, processID: str, message: bytes, host: str, port: int) :
 		cdef str prefix = f"[{processID}]({host}:{port})"

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <filesystem>
 #include "openfhe.h"
 #include "DataType.hpp"
 
@@ -35,8 +36,9 @@ namespace Xtore
 		Ciphertext rotateCipher(int index, const Ciphertext& ciphertext);
 		void serializeContext(const std::string& filepath);
 		void deserializeContext(const std::string& filepath);
-		void serializeKeys(const std::string& publicKeyFile, const std::string& privateKeyFile);
-		void deserializeKeys(const std::string& publicKeyFile, const std::string& privateKeyFile);
+		void serializeKeys(const std::string& filepath);
+		void deserializeKeys(const std::string& filepath);
+		size_t getNumberOfSlots();
 
 	private:
 		CryptoContext cryptoContext;

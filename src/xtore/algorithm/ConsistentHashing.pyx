@@ -8,6 +8,7 @@ cdef class ConsistentHashing:
 		self.maxNode = maxNode
 		self.nodes = []
 		self.nodeMapper = {}
+		self.hashTable = {}
 
 	def __str__(self):
 		return f"Nodes: {[node.id for node in self.nodes]}"
@@ -15,7 +16,7 @@ cdef class ConsistentHashing:
 	cdef loadData(self, dict config):
 		cdef ConsistentNode node
 		
-		for raw in config["nodeList"]:
+		for raw in config.values():
 			if "id" not in raw or raw["id"] is None:
 				raw["id"] = self.generateNodeID()
 			node = ConsistentNode(raw)
@@ -30,6 +31,8 @@ cdef class ConsistentHashing:
 			if nodeID not in self.nodeMapper: return nodeID
 
 	cdef list[ConsistentNode] getNodeList(self, i64 hashKey):
+		if hashKey in self.hashTable:
+			return self.hashTable[hashKey]
 		cdef i32 hashed = hashKey % self.maxNode
 		cdef ConsistentNode node
 		cdef i32 low = 0
@@ -50,5 +53,8 @@ cdef class ConsistentHashing:
 			i += 1
 
 		nodes = self.nodes[i:i+self.replicationFactor]
+		
 		if len(nodes) < self.replicationFactor: nodes.extend(self.nodes[:self.replicationFactor-len(nodes)])
+		self.hashTable[hashKey] = nodes
+
 		return nodes
