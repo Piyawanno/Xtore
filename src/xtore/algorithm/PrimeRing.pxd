@@ -9,8 +9,11 @@ cdef class PrimeRing:
 	cdef dict storageUnits
 	cdef i32 layerNumber
 	cdef dict hashTable
+	cdef dict layerFull
+	cdef i32 currentLayer
 
 	cdef loadData(self, dict config)
+	cdef checkLayerFulled(self)
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey)
 	cdef list[PrimeNode] getAllNodes(self)
 
