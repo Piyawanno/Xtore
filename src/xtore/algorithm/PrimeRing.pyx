@@ -8,13 +8,36 @@ cdef class PrimeRing:
 		self.primeNumbers = primeNumbers
 		self.replicaNumber = replicaNumber
 		self.hashTable = {}
+		self.layerFull = {}
+		self.currentLayer = 0
 
 	cdef loadData(self, dict config):
 		self.primeRingConfig = config
 		cdef StorageUnit storageUnit
+		cdef i32 layer = 0
 		for i in self.primeRingConfig:
 			storageUnit = StorageUnit(self.primeRingConfig[i])
 			self.storageUnits[i] = storageUnit
+		self.checkLayerFulled()
+
+	cdef checkLayerFulled(self):
+		cdef StorageUnit unit
+		cdef PrimeNode node
+		cdef i32 layer
+		for unit in self.storageUnits.values():
+			for node in unit.nodes.values():
+				node.getCapacity()
+			layer = unit.layer
+			if not unit.isFull():
+				self.layerFull[layer] = False
+			else:
+				self.layerFull[layer] = True
+		for layer in range(len(self.primeNumbers)):
+			if layer not in self.layerFull:
+				break
+			if not self.layerFull[layer]:
+				self.currentLayer = layer
+				break
 	
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey):
 		cdef i32 previousPosition
@@ -28,7 +51,8 @@ cdef class PrimeRing:
 		cdef i32 previousNode = 0
 		cdef i32 nodeSum = 0
 		cdef list allStorageUnits = []
-		while position < len(self.storageUnits):
+		cdef i32 startLayer = 0
+		while startLayer < self.currentLayer + 1:
 			nodeInLayer = nodeInLayer * self.primeNumbers[index]
 			nodeSum += nodeInLayer
 			allStorageUnits.append(self.storageUnits[str(position)])
@@ -46,6 +70,7 @@ cdef class PrimeRing:
 			if (unit.parent != previousUnit.storageUnitId) or (unit.layer != index):
 				raise ValueError("Structure not correct: Parent or Layer mismatch")
 			previousNode += nodeInLayer
+			startLayer += 1
 		self.hashTable[hashKey] = self.storageUnits[str(position)]
 		return allStorageUnits
 

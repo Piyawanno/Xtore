@@ -98,10 +98,9 @@ cdef class PrimeRingClient (DatabaseClient) :
 					self.storageUnit = storageUnit.nodes
 					for replica in self.storageUnit.values():
 						primeRingNode = replica
-						if primeRingNode.isMaster == 1:
-							task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
-							tasks.append(task)
-							break
+						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+						tasks.append(task)
+						break
 				self.connected = True
 				successReturn = None
 				for task in asyncio.as_completed(tasks):
@@ -117,13 +116,13 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.storageUnit = storageUnit.nodes
 				for replica in self.storageUnit.values():
 					primeRingNode = replica
-					if primeRingNode.isMaster == 1:
-						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
-						self.connected = True
-						successReturn = await task
-						successList = [successReturn]
-						self.connected = False
-						break
+					task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+					self.connected = True
+					successReturn = await task
+					successList = [successReturn]
+					self.connected = False
+					break
+				self.primeRing.checkLayerFulled()
 		for pair in successList:
 			totalHit += pair[0]
 			totalAmount += pair[1]

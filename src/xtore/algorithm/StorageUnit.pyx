@@ -1,6 +1,8 @@
-from xtore.BaseType cimport i32
+from xtore.BaseType cimport i32, i64
 from xtore.algorithm.PrimeNode cimport PrimeNode
 import random
+
+cdef i64 MAX_CAPACITY = 100000
 
 cdef class StorageUnit:
 	def __init__(self, dict raw):
@@ -24,6 +26,13 @@ cdef class StorageUnit:
 	def __str__(self):
 		nodeDetails = ', '.join(str(self.nodes[i]) for i in self.nodes)
 		return f"StorageUnit(ID={self.storageUnitId}, layer={self.layer}, nodes={{{nodeDetails}}}, parent={self.parent})"
+
+	cdef bint isFull(self):
+		cdef PrimeNode node
+		for node in self.nodes.values():
+			if node.capacity < MAX_CAPACITY:
+				return False
+		return True
 
 	cdef PrimeNode getNextNode(self, LoadBalanceMode mode):
 		cdef PrimeNode nodeSelect = self.loadBalanceMode[mode]()
