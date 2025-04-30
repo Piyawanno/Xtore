@@ -18,30 +18,12 @@ cdef class PrimeRing:
 		for i in self.primeRingConfig:
 			storageUnit = StorageUnit(self.primeRingConfig[i])
 			self.storageUnits[i] = storageUnit
-		self.checkLayerFulled()
-
-	cdef checkLayerFulled(self):
-		cdef StorageUnit unit
-		cdef PrimeNode node
-		cdef i32 layer
-		for unit in self.storageUnits.values():
-			for node in unit.nodes.values():
-				node.getCapacity()
-			layer = unit.layer
-			if not unit.isFull():
-				self.layerFull[layer] = False
-			else:
-				self.layerFull[layer] = True
-		for layer in range(len(self.primeNumbers)):
-			if layer not in self.layerFull:
-				break
-			if not self.layerFull[layer]:
-				self.currentLayer = layer
-				break
+			print(self.storageUnits[i])
 	
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey):
 		cdef i32 previousPosition
 		cdef StorageUnit unit, previousUnit
+		cdef PrimeNode node
 		if hashKey in self.hashTable:
 			return self.hashTable[hashKey]
 		cdef i32 nodeInLayer = 1
@@ -51,26 +33,31 @@ cdef class PrimeRing:
 		cdef i32 previousNode = 0
 		cdef i32 nodeSum = 0
 		cdef list allStorageUnits = []
-		cdef i32 startLayer = 0
-		while startLayer < self.currentLayer + 1:
+		while position < len(self.storageUnits):
 			nodeInLayer = nodeInLayer * self.primeNumbers[index]
 			nodeSum += nodeInLayer
 			allStorageUnits.append(self.storageUnits[str(position)])
 			if (index + 1) == len(self.primeNumbers):
 				break
 			id = hashKey%self.primeNumbers[index + 1]
-			if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) >= len(self.storageUnits):
-				break
+			unit = self.storageUnits[str(position)]
+			for node in unit.nodes.values():
+				node.getCapacity()
+			unit.isFull = unit.checkFull()
+			if unit.isFull:
+				if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) >= len(self.storageUnits):
+					raise ValueError("node fulled please expand new layer")
+				else:
+					previousPosition = position
+					position = ((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id
+					index += 1
 			else:
-				previousPosition = position
-				position = ((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id
-				index += 1
+				break
 			unit = self.storageUnits[str(position)]
 			previousUnit = self.storageUnits[str(previousPosition)]
 			if (unit.parent != previousUnit.storageUnitId) or (unit.layer != index):
 				raise ValueError("Structure not correct: Parent or Layer mismatch")
 			previousNode += nodeInLayer
-			startLayer += 1
 		self.hashTable[hashKey] = self.storageUnits[str(position)]
 		return allStorageUnits
 

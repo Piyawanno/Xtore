@@ -122,7 +122,6 @@ cdef class PrimeRingClient (DatabaseClient) :
 					successList = [successReturn]
 					self.connected = False
 					break
-				self.primeRing.checkLayerFulled()
 		for pair in successList:
 			totalHit += pair[0]
 			totalAmount += pair[1]
