@@ -13,7 +13,6 @@ cdef class PrimeRing:
 	cdef i32 currentLayer
 
 	cdef loadData(self, dict config)
-	cdef checkLayerFulled(self)
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey)
 	cdef list[PrimeNode] getAllNodes(self)
 
