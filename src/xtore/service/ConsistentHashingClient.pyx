@@ -6,7 +6,8 @@ from xtore.protocol.RecordNodeProtocol cimport DatabaseOperation, InstanceType
 from xtore.service.DatabaseClient cimport DatabaseClient
 from xtore.test.People cimport People
 
-import asyncio, uuid
+from collections import Counter
+import asyncio, uuid, time
 
 cdef i32 BUFFER_SIZE = 1 << 16
 
@@ -26,6 +27,10 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 
 	cdef send(self, DatabaseOperation method, InstanceType instantType, str tableName, list data) :
 		cdef People record
+		cdef i64 totalHit = 0
+		cdef i64 totalAmount = 0
+		cdef list successList = []
+
 		if method == DatabaseOperation.SET :
 			for row in data[1:]:
 				record = People()
@@ -41,13 +46,24 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 					record.surname = row[2]
 				asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
 		elif method == DatabaseOperation.GET :
+			start = time.time()
 			for row in data[1:]:
 				record = People()
 				record.ID = <i64> int(row[0])
 				record.income = 0
 				record.name = ""
 				record.surname = ""
-				asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
+				successReturn = asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
+				successList.append(successReturn)
+			for pair in successList:
+				totalHit += pair[0]
+				totalAmount += pair[1]
+			if totalAmount > 0:
+				successRate = (totalHit / totalAmount) * 100
+				print(f">> {totalHit}/{totalAmount} records {successRate}% success rate.")
+			else:
+				print(f">> {totalHit}/{totalAmount} records 0% success rate.")
+			print(f">> Elapsed time: {time.time() - start:.2f} seconds")
 		elif method == DatabaseOperation.GETALL :
 			asyncio.run(self.request(method, None, self.encodeData(method, instantType, tableName, [])))
 
@@ -56,6 +72,9 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 		cdef ConsistentNode consistentHashingNode
 		cdef list tasks = []
 		cdef str methodCode = METHOD[method][0::3]
+		cdef i64 totalHit = 0
+		cdef i64 totalAmount = 0
+		cdef list successList = []
 		if not self.connected :
 			if method == DatabaseOperation.GETALL :
 				for node in self.consistentHashing.nodes:
@@ -63,7 +82,7 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 					task = asyncio.create_task(self.tcpClient(f"{methodCode}{int.from_bytes(uuid.uuid4().bytes[:2]):05d}", message, consistentHashingNode.host, consistentHashingNode.port))
 					tasks.append(task)
 				self.connected = True
-				await asyncio.gather(*tasks)
+				successList = await asyncio.gather(*tasks)
 				self.connected = False
 			else :
 				record.ID = key
@@ -75,8 +94,13 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 					tasks.append(task)
 					i+=1
 				self.connected = True
-				await asyncio.gather(*tasks)
+				successList = await asyncio.gather(*tasks)
 				self.connected = False
+
+			for pair in successList:
+				totalHit += pair[0]
+				totalAmount += pair[1]
+			return totalHit, totalAmount
 
 	async def tcpClient(self, processID: str, message: bytes, host: str, port: int) :
 		cdef str prefix = f"[{processID}]({host}:{port})"
@@ -84,7 +108,26 @@ cdef class ConsistentHashingClient (DatabaseClient) :
 		writer.write(message)
 		await writer.drain()
 		self.received = await reader.read(1 << 16)
+		cdef People people
+		cdef i32 success = 0
+		cdef i32 amount = 1
+		if self.decodeData(self.received) == []:
+			print(f"{prefix} >> NOT FOUND")
+			writer.close()
+			await writer.wait_closed()
+			return success, amount
 		for record in self.decodeData(self.received):
-			print(f"{prefix} >> FOUND {record}")
+			if isinstance(record, People):
+				people = record
+				if people.income == 0 and people.name == "" and people.surname == "":
+					print(f"{prefix} >> NOT FOUND")
+				else:
+					# print(f"{prefix} >> {record}")
+					success += 1
+			else:
+				print(f"{prefix} >> FOUND {record}")
+				success += 1
 		writer.close()
 		await writer.wait_closed()
+
+		return success, amount

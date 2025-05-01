@@ -19,7 +19,9 @@ cdef class StorageUnit:
 	cdef i32 replicaCounter
 	cdef i32 count
 	cdef dict loadBalanceMode
+	cdef bint isFull
 
+	cdef bint checkFull(self)
 	cdef PrimeNode getNextNode(self, LoadBalanceMode mode)
 	cdef PrimeNode getRoundRobin(self)
 	cdef PrimeNode getNoMasterRoundRobin(self)

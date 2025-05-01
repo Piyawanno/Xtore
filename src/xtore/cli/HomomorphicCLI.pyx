@@ -1,14 +1,13 @@
 from xtore.BaseType cimport i32, i64
 from xtore.common.StreamIOHandler cimport StreamIOHandler
 from xtore.common.Buffer cimport Buffer, initBuffer, releaseBuffer
-from xtore.common.ChunkedBuffer cimport ChunkedBuffer
 from xtore.instance.BasicStorage cimport BasicStorage
 from xtore.test.DataSetHomomorphic cimport DataSetHomomorphic
 from xtore.test.DataSet cimport DataSet
 
+from libcpp.vector cimport vector
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
-from libcpp.vector cimport vector
 from argparse import RawTextHelpFormatter
 
 from xtore.instance.HomomorphicBSTStorage cimport HomomorphicBSTStorage
@@ -80,9 +79,9 @@ cdef class HomomorphicCLI:
 		# elif self.option.test == 'BST': self.testDataSetBSTStorage()
 		
 	cdef i64 StreamIO(self):
-		cdef str path = f'{self.getResourcePath()}/test_data.bin'
+		cdef str path = f'{self.getResourcePath()}/testData.bin'
 		cdef int ringDim = 1024
-		cdef int slots = 8
+		cdef int slots = 64
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, path)
 		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
@@ -122,7 +121,6 @@ cdef class HomomorphicCLI:
 
 			dataAddress = io.getTail()
 			return dataAddress
-
 		finally:
 			io.close()
 
@@ -159,9 +157,7 @@ cdef class HomomorphicCLI:
 
 			startTime = time.time()
 			while addr <= dataAddress[i]:
-				# print("addr:",addr)
 				count += self.linearSearch(homomorphic, addr, slots, dataPath, start, end)
-				# print(count)
 				addr += 1748135
 				
 			elapsed = time.time() - startTime
@@ -174,12 +170,11 @@ cdef class HomomorphicCLI:
 		cdef str dataPath = f'{self.getResourcePath()}/testData.bin'
 		cdef str contextPath = f'{self.getResourcePath()}/context.bin'
 
-
 		cdef i32 ringDim = 1024
-		cdef i32 slots = 512
+		cdef i32 slots = 8
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
 
-		cdef int n = 16
+		cdef int n = 8
 		cdef int start = 100
 		cdef int end = 400
 		cdef EncryptedData data 
@@ -376,7 +371,6 @@ cdef class HomomorphicCLI:
 
 			resultList = self.readRangeData(storage, dataList, homomorphic, low, high)
 			storage.writeHeader()
-			
 		except:
 			print(traceback.format_exc())
 		io.close()
@@ -421,7 +415,7 @@ cdef class HomomorphicCLI:
 		print(f'>>> Data {n} records are read (from {low} to {high}) in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
-	cdef readGreater(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int threshold):
+	cdef readGreater(self, HomomorphicBSTStorage storage, CythonHomomorphic homomorphic, list dataList, int threshold):
 		dataSet = dataList[0]
 
 		cdef double start = time.time()
@@ -429,10 +423,10 @@ cdef class HomomorphicCLI:
 		cdef double elapsed = time.time() - start
 
 		cdef int n = len(resultList)
-		print(f'>>> Data {n} records (that > {threshold})  are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> Data {n} records (that > {threshold}) are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
-	cdef readLesser(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int threshold):
+	cdef readLesser(self, HomomorphicBSTStorage storage, CythonHomomorphic homomorphic, list dataList, int threshold):
 		dataSet = dataList[0]
 
 		cdef double start = time.time()

@@ -6,7 +6,8 @@ cdef class ErrorHandler:
 
 	async def handleError(self, processID: str, message: bytes, host: str, port: int, object tcpFunction):
 		try:
-			await tcpFunction(processID, message, host, port)
+			result = await tcpFunction(processID, message, host, port)
+			return result
 		except (asyncio.TimeoutError, ConnectionRefusedError, ConnectionError) as e:
 			print(f"[{processID}]({host}:{port}) >> ERROR {str(e)}")
 			self.failedData.append((processID, message, host, port))

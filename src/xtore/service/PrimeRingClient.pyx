@@ -8,7 +8,8 @@ from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOpera
 from xtore.service.DatabaseClient cimport DatabaseClient
 from xtore.test.People cimport People
 
-import asyncio, uuid
+from collections import Counter
+import asyncio, uuid, time
 
 cdef i32 BUFFER_SIZE = 1 << 16
 
@@ -50,6 +51,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 				message = self.encodeData(method, instantType, tableName, [record])
 				asyncio.run(self.request(method, record.ID, message))
 		elif method == DatabaseOperation.GET :
+			start = time.time()
 			for row in data[1:]:
 				record = People()
 				record.ID = <i64> int(row[0])
@@ -66,6 +68,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 				print(f">> {totalHit}/{totalAmount} records {successRate}% success rate.")
 			else:
 				print(f">> {totalHit}/{totalAmount} records 0% success rate.")
+			print(f">> Elapsed time: {time.time() - start:.2f} seconds")
 		elif method == DatabaseOperation.GETALL :
 			asyncio.run(self.request(method, None, self.encodeData(method, instantType, tableName, [])))
 
@@ -95,10 +98,9 @@ cdef class PrimeRingClient (DatabaseClient) :
 					self.storageUnit = storageUnit.nodes
 					for replica in self.storageUnit.values():
 						primeRingNode = replica
-						if primeRingNode.isMaster == 1:
-							task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
-							tasks.append(task)
-							break
+						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+						tasks.append(task)
+						break
 				self.connected = True
 				successReturn = None
 				for task in asyncio.as_completed(tasks):
@@ -114,16 +116,15 @@ cdef class PrimeRingClient (DatabaseClient) :
 				self.storageUnit = storageUnit.nodes
 				for replica in self.storageUnit.values():
 					primeRingNode = replica
-					if primeRingNode.isMaster == 1:
-						task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
-						self.connected = True
-						successReturn = await task
-						successList = [successReturn]
-						self.connected = False
-						break
+					task = asyncio.create_task(self.tcpClient(f"{methodCode}{key}", message, primeRingNode.host, primeRingNode.port))
+					self.connected = True
+					successReturn = await task
+					successList = [successReturn]
+					self.connected = False
+					break
 		for pair in successList:
-				totalHit += pair[0]
-				totalAmount += pair[1]
+			totalHit += pair[0]
+			totalAmount += pair[1]
 		return totalHit, totalAmount
 
 	async def tcpClient(self, processID: str, message: bytes, host: str, port: int) :
@@ -146,7 +147,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 				if people.income == 0 and people.name == "" and people.surname == "":
 					print(f"{prefix} >> NOT FOUND")
 				else:
-					print(f"{prefix} >> {record}")
+					# print(f"{prefix} >> {record}")
 					success += 1
 			else:
 				print(f"{prefix} >> FOUND {record}")

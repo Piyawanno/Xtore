@@ -8,17 +8,22 @@ cdef class PrimeRing:
 		self.primeNumbers = primeNumbers
 		self.replicaNumber = replicaNumber
 		self.hashTable = {}
+		self.layerFull = {}
+		self.currentLayer = 0
 
 	cdef loadData(self, dict config):
 		self.primeRingConfig = config
 		cdef StorageUnit storageUnit
+		cdef i32 layer = 0
 		for i in self.primeRingConfig:
 			storageUnit = StorageUnit(self.primeRingConfig[i])
 			self.storageUnits[i] = storageUnit
+			print(self.storageUnits[i])
 	
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey):
 		cdef i32 previousPosition
 		cdef StorageUnit unit, previousUnit
+		cdef PrimeNode node
 		if hashKey in self.hashTable:
 			return self.hashTable[hashKey]
 		cdef i32 nodeInLayer = 1
@@ -35,12 +40,19 @@ cdef class PrimeRing:
 			if (index + 1) == len(self.primeNumbers):
 				break
 			id = hashKey%self.primeNumbers[index + 1]
-			if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) >= len(self.storageUnits):
-				break
+			unit = self.storageUnits[str(position)]
+			for node in unit.nodes.values():
+				node.getCapacity()
+			unit.isFull = unit.checkFull()
+			if unit.isFull:
+				if (((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id) >= len(self.storageUnits):
+					raise ValueError("node fulled please expand new layer")
+				else:
+					previousPosition = position
+					position = ((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id
+					index += 1
 			else:
-				previousPosition = position
-				position = ((position - previousNode) * self.primeNumbers[index + 1]) + nodeSum + id
-				index += 1
+				break
 			unit = self.storageUnits[str(position)]
 			previousUnit = self.storageUnits[str(previousPosition)]
 			if (unit.parent != previousUnit.storageUnitId) or (unit.layer != index):

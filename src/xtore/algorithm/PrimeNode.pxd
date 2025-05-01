@@ -1,6 +1,6 @@
-from xtore.BaseType cimport u16, i32
+from xtore.BaseType cimport i32, i64, u16
+from xtore.service.StorageHandler cimport StorageHandler
+from xtore.algorithm.Node cimport Node
 
-cdef class PrimeNode:
-	cdef str host
-	cdef u16 port
+cdef class PrimeNode(Node):
 	cdef i32 isMaster
