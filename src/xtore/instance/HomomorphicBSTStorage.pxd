@@ -16,9 +16,11 @@ cdef class HomomorphicBSTStorage (BasicStorage):
 
 	cdef list getRangeData(self, RecordNode dataSet, int low, int high)
 	cdef list getGreater(self, RecordNode dataSet, int threshold)
-	cdef list getLesser(self, RecordNode dataSet, int threshold)
+	cdef list getLess(self, RecordNode dataSet, int threshold)
 	
-	cdef void inOrderRangeSearch(self, i64 position, RecordNode node, int low, int high, list resultList)
-	cdef void inOrderLesserSearch(self, i64 position, RecordNode dataSet, int threshold, list resultList)
+	cdef void inOrderLessSearch(self, i64 position, RecordNode dataSet, int threshold, list resultList)
 	cdef void inOrderGreaterSearch(self, i64 position, RecordNode dataSet, int threshold, list resultList)
 	cdef void collectSubTree(self, i64 position, list result)
+
+	cdef void collectFromLow(self, i64 position, RecordNode dataSet, int low, list resultList)
+	cdef void collectFromHigh(self, i64 position, RecordNode dataSet, int high, list resultList)

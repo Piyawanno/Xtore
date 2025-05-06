@@ -75,20 +75,9 @@ cdef class HomomorphicCLI:
 	cdef run(self, list argv):
 		self.getParser(argv)  
 		self.checkPath()  
-		if self.option.test == 'BM': self.testBenchmark()
-		# elif self.option.test == 'BST': self.testDataSetBSTStorage()
+		if self.option.test == 'BST': self.testBST()
 		
-	cdef i64 StreamIO(self):
-		cdef str path = f'{self.getResourcePath()}/testData.bin'
-		cdef int ringDim = 1024
-		cdef int slots = 64
-		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, path)
-		cdef EncryptedData data = self.generateData(homomorphic, slots)
-
-		print("Writing encrypted data...")
-		cdef i64 dataAddress = self.writeEncryptedDataWithStream(path, data, homomorphic)
-
-		return dataAddress
+		if self.option.test == 'BM': self.testBenchmark()
 
 	cdef i64 writeEncryptedDataWithStream(self, str path, EncryptedData data, CythonHomomorphic homomorphic):
 		cdef StreamIOHandler io = StreamIOHandler(path)
@@ -138,8 +127,46 @@ cdef class HomomorphicCLI:
 		else:
 			print(f'Directory {path} does not exist.')
 
-	cdef benchmark(self, CythonHomomorphic homomorphic, str dataPath, list dataAddress, str BSTPath, int slots, int n, int start, int end):
+	cdef testBST(self):
+		cdef str BSTPath = f'{self.getResourcePath()}/DataSet.BST.bin'
+		cdef str dataPath = f'{self.getResourcePath()}/testData.bin'
+		cdef str contextPath = f'{self.getResourcePath()}/context.bin'
+		cdef StreamIOHandler io = StreamIOHandler(BSTPath)
+		cdef DataSetHomomorphic storage = DataSetHomomorphic(io)
+		cdef bint isNew = not os.path.isfile(BSTPath)
+		cdef i32 ringDim = 1024
+		cdef i32 slots = self.option.count
+		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
+		cdef EncryptedData data = self.generateData(homomorphic, slots)
 
+		cdef int low = 200
+		cdef int high = 500
+		print(f"high:{high}, low;{low}")
+		
+		print("Writing encrypted data...")
+		cdef i64 address = self.writeEncryptedDataWithStream(dataPath, data, homomorphic)
+
+		io.open()
+		try:
+			if isNew: storage.create()
+			else: storage.readHeader(0)
+			dataList = self.writeDataSet(storage, address, homomorphic, slots)
+			# print("dataList", dataList)
+			print()
+
+			resultList = self.readRangeData(storage, dataList, homomorphic, low, high)
+			# print("resultList", resultList)
+			print()
+
+			rmPath = 'venv/var/xtore'
+			self.removeFile(rmPath)
+
+			storage.writeHeader()
+		except:
+			print(traceback.format_exc())
+		io.close()
+
+	cdef benchmark(self, CythonHomomorphic homomorphic, str dataPath, list dataAddress, str BSTPath, int slots, int n, int start, int end):
 		cdef double stattTime = 0
 		cdef double elapsed = 0
 		cdef int count = 0
@@ -149,21 +176,36 @@ cdef class HomomorphicCLI:
 			data = self.generateData(homomorphic, slots)
 			address = self.writeEncryptedDataWithStream(dataPath, data, homomorphic)
 			dataAddress.append(address)
-			print(f"(Sets = {i}, dataAddress: {dataAddress[i]})")
+			print(f"(Sets = {i}, dataAddress: {dataAddress[i]}, num of datas: {slots*(i+1)})")
 			self.testDataSetBSTStorage(homomorphic, dataPath, BSTPath, slots, dataAddress[i], start, end)
 
 			count = 0
 			addr = 1748135
-
 			startTime = time.time()
 			while addr <= dataAddress[i]:
 				count += self.linearSearch(homomorphic, addr, slots, dataPath, start, end)
 				addr += 1748135
-				
 			elapsed = time.time() - startTime
-			print(f'>>> Linear: get {count} data in range {elapsed:.3} s')
-			print()
+			print(f'>>> Linear: data {count} records are read (from {start} to {end}) in {elapsed:.3} s')
 
+			count = 0
+			addr = 1748135
+			startTime = time.time()
+			while addr <= dataAddress[i]:
+				count += self.linearSearchGetGreater(homomorphic, addr, slots, dataPath, start)
+				addr += 1748135
+			elapsed = time.time() - startTime
+			print(f'>>> Linear: data {count} records (that > {start}) are read in {elapsed:.3} s')
+
+			count = 0
+			addr = 1748135
+			startTime = time.time()
+			while addr <= dataAddress[i]:
+				count += self.linearSearchGetLess(homomorphic, addr, slots, dataPath, start)
+				addr += 1748135
+			elapsed = time.time() - startTime
+			print(f'>>> Linear: data {count} records (that < {start}) are read in {elapsed:.3} s')
+			print()
 
 	cdef testBenchmark(self):
 		cdef str BSTPath = f'{self.getResourcePath()}/DataSet.BST.bin'
@@ -172,43 +214,20 @@ cdef class HomomorphicCLI:
 
 		cdef i32 ringDim = 1024
 		cdef i32 slots = 8
+		cdef int n = 3
+
 		cdef CythonHomomorphic homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
 
-		cdef int n = 8
-		cdef int start = 100
-		cdef int end = 400
+		cdef int start = 300
+		cdef int end = 500
 		cdef EncryptedData data 
-		# cdef i64 dataAddress 
 		cdef list dataAddress = []
 		rmPath = 'venv/var/xtore'
 
 		print(f"-----BENCHMARK {slots} SLOTS")
-		print()
-		while end <= 1000:
-			print(f"Test  start:{start} end:{end}, {n} DataSets {slots} slots")
-			self.benchmark(homomorphic, dataPath, dataAddress, BSTPath, slots, n, start, end)
-			self.removeFile(rmPath)
-			print()
-			start += 300
-			end += 300
-
-		# while slots <= ringDim // 2:
-		# 	print()
-		# 	print(f"-----BENCHMARK {slots} SLOTS")
-		# 	print()
-		# 	while end <= 1000:
-		# 		print(f"Test  start:{start} end:{end}, {n} DataSets {slots} slots")
-		# 		self.benchmark(homomorphic, dataPath, dataAddress, BSTPath, slots, n, start, end)
-		# 		self.removeFile(rmPath)
-		# 		print()
-		# 		start += 300
-		# 		end += 300
-			# start 100
-			# end = 400
-		# 	slots *= 2 
-		# 	print("slots:", slots)
-		# 	homomorphic = self.setCryptoContext(ringDim, slots, contextPath)
-
+		print(f"Test start: {start} end: {end}, {n} DataSets {slots} slots")
+		self.benchmark(homomorphic, dataPath, dataAddress, BSTPath, slots, n, start, end)
+		# self.removeFile(rmPath)
 
 	cdef int linearSearch(self, CythonHomomorphic homomorphic, i64 dataAddress, int slots, str path, int start, int end):
 		cdef StreamIOHandler io = StreamIOHandler(path)
@@ -259,7 +278,7 @@ cdef class HomomorphicCLI:
 		cdef double elapsed = time.time() - startTime
 		return count
 
-	cdef linearSearchGetLesser(self, CythonHomomorphic homomorphic, i64 dataAddress, int slots, str path, int start):
+	cdef int linearSearchGetLess(self, CythonHomomorphic homomorphic, i64 dataAddress, int slots, str path, int start):
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef Buffer offsetBuffer, dataBuffer
 		cdef i64 offset, position	
@@ -305,9 +324,9 @@ cdef class HomomorphicCLI:
 				continue
 
 		cdef double elapsed = time.time() - startTime
-		print(f'>>> Linear Search Get Lesser: get {count} data {elapsed:.3}s')
+		return count
 
-	cdef linearSearchGetGreater(self, CythonHomomorphic homomorphic, i64 dataAddress, int slots, str path, int start):
+	cdef int linearSearchGetGreater(self, CythonHomomorphic homomorphic, i64 dataAddress, int slots, str path, int start):
 		cdef StreamIOHandler io = StreamIOHandler(path)
 		cdef Buffer offsetBuffer, dataBuffer
 		cdef i64 offset, position	
@@ -353,23 +372,21 @@ cdef class HomomorphicCLI:
 				continue
 
 		cdef double elapsed = time.time() - startTime
-		print(f'>>> Linear Search Get Greater: get {count} data {elapsed:.3}s')
+		return count
 
 	cdef testDataSetBSTStorage(self, CythonHomomorphic homomorphic, str dataPath, str BSTPath, int slots, i64 address, int low, int high):
 		cdef StreamIOHandler io = StreamIOHandler(BSTPath)
 		cdef DataSetHomomorphic storage = DataSetHomomorphic(io)
 		cdef bint isNew = not os.path.isfile(BSTPath)
-		cdef int threshold = 500
 		
-		# print("Writing encrypted data...")
-
 		io.open()
 		try:
 			if isNew: storage.create()
 			else: storage.readHeader(0)
 			dataList = self.writeDataSet(storage, address, homomorphic, slots)
-
 			resultList = self.readRangeData(storage, dataList, homomorphic, low, high)
+			self.readGreater(storage, homomorphic, dataList, low)
+			self.readLess(storage, homomorphic, dataList, low)
 			storage.writeHeader()
 		except:
 			print(traceback.format_exc())
@@ -388,7 +405,7 @@ cdef class HomomorphicCLI:
 			dataSet.homomorphic = homomorphic
 			dataList.append(dataSet)
 		cdef double elapsed = time.time() - start
-		# print(f'>>> Data of {slots} are generated in {elapsed:.3}s')
+
 		start = time.time()
 		for dataSet in dataList:
 			storage.set(dataSet)
@@ -396,15 +413,7 @@ cdef class HomomorphicCLI:
 		print(f'>>> Data of {slots} are stored in {elapsed:.3}s ({(slots/elapsed)} r/s)')
 		return dataList
 
-
 	cdef readRangeData(self, HomomorphicBSTStorage storage, list dataList, CythonHomomorphic homomorphic, int low, int high):
-		# cdef DataSet dataSet
-		# dataSet = DataSet()
-		# dataSet.position = 8
-		# dataSet.index = 0
-		# dataSet.address = 1748135
-		# dataSet.homomorphic = homomorphic
-
 		dataSet = dataList[0]
 
 		cdef double start = time.time()
@@ -426,23 +435,24 @@ cdef class HomomorphicCLI:
 		print(f'>>> Data {n} records (that > {threshold}) are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
-	cdef readLesser(self, HomomorphicBSTStorage storage, CythonHomomorphic homomorphic, list dataList, int threshold):
+	cdef readLess(self, HomomorphicBSTStorage storage, CythonHomomorphic homomorphic, list dataList, int threshold):
 		dataSet = dataList[0]
 
 		cdef double start = time.time()
-		resultList = storage.getLesser(dataSet, threshold)
+		resultList = storage.getLess(dataSet, threshold)
 		cdef double elapsed = time.time() - start
 
 		cdef int n = len(resultList)
-		print(f'>>> {n} records (that < {threshold}) are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
+		print(f'>>> Data {n} records (that < {threshold}) are read in {elapsed:.3}s ({(n/elapsed)} r/s)')
 		return resultList
 
 	cdef EncryptedData generateData(self, CythonHomomorphic homomorphic, int slots):
 		cdef list id = self.randomData(slots, "int")
 		cdef list name = self.randomData(slots, "int")
 		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285, 100, 400, 200, 123, 456, 600, 298, 975]
-		# cdef list name = [724, 131, 854, 295, 225, 727, 421, 285]
-		# cdef list name = [ 710, 699, 918, 610, 174, 780, 739, 644]
+		# name = [724, 131, 854, 295, 225, 727, 421, 285]
+		# name = [710, 899, 918, 710, 174, 780, 739, 744]
+		# name = [368, 849, 271, 159, 951, 241, 764, 509]
 		# print("name:", name)
 
 		cdef list birthDate = self.randomData(slots, "int")
