@@ -8,9 +8,6 @@ cdef class PrimeRing:
 	cdef i32 replicaNumber
 	cdef dict storageUnits
 	cdef i32 layerNumber
-	cdef dict hashTable
-	cdef dict layerFull
-	cdef i32 currentLayer
 
 	cdef loadData(self, dict config)
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey)

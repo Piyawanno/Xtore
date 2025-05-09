@@ -7,9 +7,6 @@ cdef class PrimeRing:
 		self.storageUnits = {}
 		self.primeNumbers = primeNumbers
 		self.replicaNumber = replicaNumber
-		self.hashTable = {}
-		self.layerFull = {}
-		self.currentLayer = 0
 
 	cdef loadData(self, dict config):
 		self.primeRingConfig = config
@@ -18,21 +15,18 @@ cdef class PrimeRing:
 		for i in self.primeRingConfig:
 			storageUnit = StorageUnit(self.primeRingConfig[i])
 			self.storageUnits[i] = storageUnit
-			print(self.storageUnits[i])
 	
 	cdef list[StorageUnit] getStorageUnit(self, i64 hashKey):
 		cdef i32 previousPosition
 		cdef StorageUnit unit, previousUnit
 		cdef PrimeNode node
-		if hashKey in self.hashTable:
-			return self.hashTable[hashKey]
+		cdef list allStorageUnits = []
 		cdef i32 nodeInLayer = 1
 		cdef i32 index = 0
 		cdef i32 id = hashKey%self.primeNumbers[index]
 		cdef i32 position = id
 		cdef i32 previousNode = 0
 		cdef i32 nodeSum = 0
-		cdef list allStorageUnits = []
 		while position < len(self.storageUnits):
 			nodeInLayer = nodeInLayer * self.primeNumbers[index]
 			nodeSum += nodeInLayer
@@ -58,7 +52,6 @@ cdef class PrimeRing:
 			if (unit.parent != previousUnit.storageUnitId) or (unit.layer != index):
 				raise ValueError("Structure not correct: Parent or Layer mismatch")
 			previousNode += nodeInLayer
-		self.hashTable[hashKey] = self.storageUnits[str(position)]
 		return allStorageUnits
 
 	cdef list[PrimeNode] getAllNodes(self):
