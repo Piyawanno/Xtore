@@ -6,7 +6,7 @@ from xtore.common.Buffer cimport initBuffer, releaseBuffer, setBuffer
 from xtore.instance.RecordNode cimport RecordNode
 from xtore.protocol.RecordNodeProtocol cimport RecordNodeProtocol, DatabaseOperation, InstanceType
 from xtore.service.DatabaseClient cimport DatabaseClient
-from xtore.service.ErrorHandler cimport ErrorHandler
+from xtore.service.PrimeRingErrorHandler cimport PrimeRingErrorHandler
 from xtore.test.People cimport People
 
 from collections import Counter
@@ -26,7 +26,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 		self.nodeList = nodeList
 		self.primeRing = PrimeRing(primeNumbers = config["primeNumbers"], replicaNumber=config["replicaNumber"])
 		self.primeRing.loadData(self.nodeList)
-		self.handler = ErrorHandler()
+		self.handler = PrimeRingErrorHandler()
 		
 		self.storageUnit = {}
 
@@ -36,6 +36,10 @@ cdef class PrimeRingClient (DatabaseClient) :
 		cdef i64 totalAmount = 0
 		cdef list successList = []
 		cdef bytes message
+		cdef dict newNodes = {}
+		cdef StorageUnit newStorage
+		cdef PrimeNode newPrimeNode
+		cdef People failedRecord = People()
 
 		if method == DatabaseOperation.SET :
 			start = time.time()
@@ -53,8 +57,9 @@ cdef class PrimeRingClient (DatabaseClient) :
 					record.surname = row[2]
 				message = self.encodeData(method, instantType, tableName, [record])
 				asyncio.run(self.request(method, record.ID, message))
-			asyncio.run(self.handler.resend(self.tcpClient, method))
-			print(f">> Elapsed time: {time.time() - start:.2f} seconds")
+			print(f">> Elapsed time before resend: {time.time() - start:.2f} seconds")
+			asyncio.run(self.handler.resend(self.tcpClient, method, self.primeRing))
+			print(f">> Elapsed time after resend: {time.time() - start:.2f} seconds")
 		elif method == DatabaseOperation.GET :
 			start = time.time()
 			for row in data[1:]:
@@ -66,7 +71,7 @@ cdef class PrimeRingClient (DatabaseClient) :
 				successReturn = asyncio.run(self.request(method, record.ID, self.encodeData(method, instantType, tableName, [record])))
 				successList.append(successReturn)
 			print(f">> Elapsed time before resend: {time.time() - start:.2f} seconds")
-			asyncio.run(self.handler.resend(self.tcpClient, method))
+			asyncio.run(self.handler.resend(self.tcpClient, method, self.primeRing))
 			for pair in successList:
 				totalHit += pair[0]
 				totalAmount += pair[1]
