@@ -1,10 +1,10 @@
 from xtore.algorithm.PrimeRing cimport PrimeRing
 from xtore.algorithm.PrimeNode cimport PrimeNode
 from xtore.service.DatabaseClient cimport DatabaseClient
-from xtore.service.ErrorHandler cimport ErrorHandler
+from xtore.service.PrimeRingErrorHandler cimport PrimeRingErrorHandler
 
 cdef class PrimeRingClient (DatabaseClient) :
 	cdef dict nodeList
 	cdef PrimeRing primeRing
 	cdef dict storageUnit
-	cdef ErrorHandler handler
+	cdef PrimeRingErrorHandler handler

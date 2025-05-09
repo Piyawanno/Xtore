@@ -12,7 +12,7 @@ cdef object METHOD = {
 	DatabaseOperation.GETALL: "GETALL"
 }
 
-cdef class ErrorHandler:
+cdef class PrimeRingErrorHandler:
 	def __init__(self):
 		self.failedData = []
 		self.semaphore = asyncio.Semaphore(100)
@@ -27,7 +27,7 @@ cdef class ErrorHandler:
 				self.failedData.append((processID, message, host, port))
 				return (0, 0)
 
-	async def resend(self, object tcpFunction, DatabaseOperation method):
+	async def resend(self, object tcpFunction, DatabaseOperation method, PrimeRing primeRing):
 		cdef list tasks = []
 		cdef People record = People()
 		cdef StorageUnit storageUnit
@@ -38,6 +38,16 @@ cdef class ErrorHandler:
 			current = self.failedData
 			self.failedData = []
 			for processID, message, host, port in current:
-				task = asyncio.create_task(self.handleError(processID, message, host, port, tcpFunction))
-				tasks.append(task)
+				if method == DatabaseOperation.SET :
+					record.ID = <u64> int(processID[1:])
+					storageUnit = primeRing.getStorageUnit(record.hash())[-1]
+					nodes = storageUnit.nodes
+					for replica in nodes.values():
+						primeRingNode = replica
+						if primeRingNode.isMaster == 1:
+							task = asyncio.create_task(self.handleError(processID, message, primeRingNode.host, primeRingNode.port, tcpFunction))
+							tasks.append(task)
+				else:
+					task = asyncio.create_task(self.handleError(processID, message, host, port, tcpFunction))
+					tasks.append(task)
 			await asyncio.gather(*tasks)
